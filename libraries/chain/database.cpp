@@ -3788,7 +3788,7 @@ void database::apply_hardfork( uint32_t hardfork )
 #ifndef IS_TEST_NET
          elog( "HARDFORK 1 at block ${b}", ("b", head_block_num()) );
 #endif
-         perform_vesting_share_split( 1000000 );
+         perform_vesting_share_split( 10000 );
 #ifdef IS_TEST_NET
          {
             custom_operation test_op;
