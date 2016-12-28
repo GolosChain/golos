@@ -3,15 +3,31 @@ Introducing Golos (alpha)
 
 Seed Nodes
 ----------
+Nodes that returns CHAIN_ID:
+```
+seed-node = 88.99.13.48:4243                    # @primus (DE)
+seed-node = golos.imcoins.org:4243              # @dr2073 (RU)
+seed-node = node.golostools.ru:4243             # @on0tole (?)
+seed-node = 138.68.101.115:4243                 # @kuna (?)
+seed-node = 178.62.224.148:4242                 # @vitaly-lvov (NED)
+```
+
+Other known Nodes:
 ```
 seed-node = 136.243.33.85:4243                  # @smailer (DE)
 seed-node = golos-seed.someguy123.com:4243      # @someguy123 (USA)
 seed-node = steemul.ru:4243                     # @xtar (DE)
-seed-node = 88.99.13.48:4243                    # @primus (DE)
 seed-node = 52.57.156.202:4243                  # @smooth (DE)
 seed-node = golos.steem.ws:4243                 # @jesta (US)
 seed-node = seed.roelandp.nl:4243               # @roelandp (CAN)
 seed-node = golosnode.com:4243                  # @steem-id (FR)
+seed-node = golos-seed.arcange.eu:4243          # @arcange (EU)
+seed-node = golosnode.com:4243                  # @steem-id (FR)
+seed-node = 173.208.206.34:4243                 # @serejandmyself (USA)
+seed-node = 142.54.168.58:4243                  # @steemychicken1 (USA)
+seed-node = 5.9.18.213:4243                     # @pfunk (DE)
+seed-node = 94.23.200.113:4243                  # @steve-walschot (FR)
+seed-node = 89.179.243.53:4243                  # @litrbooh (RU)
 ```
 
 How to Mine
