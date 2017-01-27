@@ -137,7 +137,7 @@ namespace steemit {
             try {
                 ilog("Reindexing Blockchain");
                 wipe(data_dir, shared_mem_dir, false);
-                open(data_dir, shared_mem_dir, 0, shared_file_size, chainbase::database::read_write);
+                open(data_dir, shared_mem_dir, STEEMIT_INIT_SUPPLY, shared_file_size, chainbase::database::read_write);
                 _fork_db.reset();    // override effect of _fork_db.start_block() call in open()
 
                 auto start = fc::time_point::now();
@@ -2362,9 +2362,9 @@ namespace steemit {
             asset percent(calc_percent_reward_per_round<STEEMIT_POW_APR_PERCENT>(props.virtual_supply.amount), STEEM_SYMBOL);
 
             if (has_hardfork(STEEMIT_HARDFORK_0_16)) {
-                return std::max(percent, STEEMIT_MIN_POW_REWARD_PRE_HF_16);
-            } else {
                 return std::max(percent, STEEMIT_MIN_POW_REWARD);
+            } else {
+                return std::max(percent, STEEMIT_MIN_POW_REWARD_PRE_HF_16);
             }
         }
 
@@ -2780,6 +2780,7 @@ namespace steemit {
         }
 
         void database::init_genesis(uint64_t init_supply) {
+            init_supply = STEEMIT_INIT_SUPPLY;
             try {
                 struct auth_inhibitor {
                     auth_inhibitor(database &db)
@@ -3385,9 +3386,9 @@ namespace steemit {
 
                     string scheduled_witness = get_scheduled_witness(slot_num);
 
-                    FC_ASSERT(witness.owner ==
-                              scheduled_witness, "Witness produced block at wrong time",
-                            ("block witness", next_block.witness)("scheduled", scheduled_witness)("slot_num", slot_num));
+                    // FC_ASSERT(witness.owner ==
+                    //           scheduled_witness, "Witness produced block at wrong time",
+                    //         ("block witness", next_block.witness)("scheduled", scheduled_witness)("slot_num", slot_num));
                 }
 
                 return witness;
