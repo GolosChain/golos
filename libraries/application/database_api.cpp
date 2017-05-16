@@ -1097,11 +1097,11 @@ namespace steemit {
             });
         }
 
-        asset database_api::get_payout_window_extension_cost_by_time(std::string author, std::string permlink, fc::time_point_sec time) const {
+        asset database_api::get_payout_extension_cost_by_time(const string &author, const string &permlink, fc::time_point_sec time) const {
             return chain::evaluators::comment_payout_extension().cost_by_time(time, my->_db.get_comment(author, permlink));
         }
 
-        fc::time_point_sec database_api::get_payout_window_extension_time_by_cost(std::string author, std::string permlink, asset cost) const {
+        fc::time_point_sec database_api::get_payout_extension_time_by_cost(const string &author, const string &permlink, asset cost) const {
             return chain::evaluators::comment_payout_extension().time_by_cost(cost, my->_db.get_comment(author, permlink));
         }
 
