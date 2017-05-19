@@ -36,6 +36,7 @@ namespace steemit {
                 };
                 flat_set<bucket_id_type> _current_buckets;
                 uint32_t _maximum_history_per_bucket_size = 100;
+                std::vector <fc::ip::endpoint> _recipient_ip_vec;
             };
 
             struct operation_process {
@@ -400,7 +401,9 @@ namespace steemit {
                     ("chain-stats-bucket-size", boost::program_options::value<string>()->default_value("[60,3600,21600,86400,604800,2592000]"),
                             "Track blockchain statistics by grouping orders into buckets of equal size measured in seconds specified as a JSON array of numbers")
                     ("chain-stats-history-per-bucket", boost::program_options::value<uint32_t>()->default_value(100),
-                            "How far back in time to track history for each bucket size, measured in the number of buckets (default: 100)");
+                            "How far back in time to track history for each bucket size, measured in the number of buckets (default: 100)")
+                    ("chain-stats-recipient-ip", boost::program_options::value<std::vector<std::string>>()->multitoken()->
+                            zero_tokens()->composing(), "IP adresses of recipients");
             cfg.add(cli);
         }
 
@@ -421,6 +424,11 @@ namespace steemit {
                 }
                 if (options.count("chain-stats-history-per-bucket")) {
                     _my->_maximum_history_per_bucket_size = options["chain-stats-history-per-bucket"].as<uint32_t>();
+                }
+                if (options.count("chain-stats-recipient-ip")) {
+                    for (auto it: options["chain-stats-recipient-ip"].as<std::vector<std::string>>()) {
+                        _my->_recipient_ip_vec.push_back(fc::ip::endpoint::from_string(it));
+                    }
                 }
 
                 wlog("chain-stats-bucket-size: ${b}", ("b", _my->_tracked_buckets));
