@@ -1,6 +1,6 @@
 #include <steemit/blockchain_statistics/blockchain_statistics_api.hpp>
 
-#include <steemit/app/impacted.hpp>
+#include <steemit/application/impacted.hpp>
 #include <steemit/chain/account_object.hpp>
 #include <steemit/chain/comment_object.hpp>
 #include <steemit/chain/history_object.hpp>
@@ -328,12 +328,22 @@ namespace steemit {
                         auto &account = db.get_account(op.account);
                         const auto &bucket = db.get(bucket_id);
 
-                        auto new_vesting_withdrawal_rate =
-                                op.vesting_shares.amount /
-                                STEEMIT_VESTING_WITHDRAW_INTERVALS;
+                        share_type new_vesting_withdrawal_rate;
+
+                        if (db.has_hardfork(STEEMIT_HARDFORK_0_17__103)) {
+                            op.vesting_shares.amount /
+                            STEEMIT_VESTING_WITHDRAW_INTERVALS;
+                        } else if (db.has_hardfork(STEEMIT_HARDFORK_0_16)) {
+                            op.vesting_shares.amount /
+                            STEEMIT_VESTING_WITHDRAW_INTERVALS_PRE_HF_17;
+                        } else {
+                            op.vesting_shares.amount /
+                            STEEMIT_VESTING_WITHDRAW_INTERVALS_PRE_HF_16;
+                        }
+
                         if (op.vesting_shares.amount > 0 &&
                             new_vesting_withdrawal_rate == 0) {
-                                new_vesting_withdrawal_rate = 1;
+                            new_vesting_withdrawal_rate = 1;
                         }
 
                         if (!db.has_hardfork(STEEMIT_HARDFORK_0_1)) {
@@ -394,7 +404,6 @@ namespace steemit {
                             "How far back in time to track history for each bucket size, measured in the number of buckets (default: 100)")
                     ("chain-stats-recipient-ip", boost::program_options::value<std::vector<std::string>>()->multitoken()->
                             zero_tokens()->composing(), "IP adresses of recipients");
-
             cfg.add(cli);
         }
 
