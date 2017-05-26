@@ -2785,6 +2785,7 @@ namespace steemit {
         }
 
         void database::init_genesis(uint64_t init_supply) {
+            init_supply = STEEMIT_INIT_SUPPLY;
             try {
                 struct auth_inhibitor {
                     auth_inhibitor(database &db)
@@ -3393,9 +3394,9 @@ namespace steemit {
 
                     string scheduled_witness = get_scheduled_witness(slot_num);
 
-                    FC_ASSERT(witness.owner ==
-                              scheduled_witness, "Witness produced block at wrong time",
-                            ("block witness", next_block.witness)("scheduled", scheduled_witness)("slot_num", slot_num));
+                    // FC_ASSERT(witness.owner ==
+                    //           scheduled_witness, "Witness produced block at wrong time",
+                    //         ("block witness", next_block.witness)("scheduled", scheduled_witness)("slot_num", slot_num));
                 }
 
                 return witness;
