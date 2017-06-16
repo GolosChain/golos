@@ -1,18 +1,37 @@
 file(GLOB HEADERS "include/steemit/blockchain_statistics/*.hpp")
 
+# Including statistics_sender.hpp
+file(GLOB HEADERS "include/*.hpp")
+set (LIBCDS_DIR /home/anton/code/libcds-test/libcds/)
+
+# libcds SHOULD be included as dynamic library!!!
+include_directories(SYSTEM ${LIBCDS_DIR})
+add_library(${LIBCDS_DIR} SHARED IMPORTED) 
+
+set_target_properties(libcds PROPERTIES
+  IMPORTED_LOCATION "${LIBCDS_DIR}bin/libcds_d.so"
+  INTERFACE_INCLUDE_DIRECTORIES "${LIBCDS_DIR}cds"
+)
+
 if(BUILD_SHARED_LIBRARIES)
     add_library(golos_blockchain_statistics SHARED
             blockchain_statistics_plugin.cpp
             blockchain_statistics_api.cpp
+            statistics_sender.cpp
             )
 else()
     add_library(golos_blockchain_statistics STATIC
             blockchain_statistics_plugin.cpp
             blockchain_statistics_api.cpp
+            # statistics_sender.cpp
             )
 endif()
 
-target_link_libraries(golos_blockchain_statistics golos_chain golos_protocol golos::application)
+target_link_libraries(golos_blockchain_statistics golos_chain golos_protocol
+                    golos::application libcds ${CMAKE_THREAD_LIBS_INIT}
+                    -lpthread -lboost_thread -lboost_system
+                    )
+
 target_include_directories(golos_blockchain_statistics
         PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
