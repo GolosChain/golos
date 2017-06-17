@@ -39,10 +39,15 @@ namespace steemit {
                 };
                 flat_set<bucket_id_type> _current_buckets;
                 uint32_t _maximum_history_per_bucket_size = 100;
-                std::vector <std::string> _recipient_ip_vec;
+                std::vector <std::string> _recipient_ip_vec;                
+                // Statistics sender                
+                statServer * stat_sender;
+                uint32_t stat_sender_port = 8125;
+                uint32_t stat_sender_timeout = 3;
             };
             struct operation_process {
-                const blockchain_statistics_plugin &_plugin;
+                // ADDING blockchain_statistics_plugin_impl OBJ
+                const blockchain_statistics_plugin &_plugin;                
                 const bucket_object &_bucket;
                 chain::database &_db;
 
@@ -456,6 +461,7 @@ namespace steemit {
         }
 
         blockchain_statistics_plugin::~blockchain_statistics_plugin() {
+            delete _my->stat_sender;
         }
 
         void blockchain_statistics_plugin::plugin_set_program_options(
@@ -500,6 +506,9 @@ namespace steemit {
                 wlog("chain-stats-history-per-bucket: ${h}", ("h", _my->_maximum_history_per_bucket_size));
                 
 
+                _my->stat_sender = new statServer();
+
+                ilog("chain_stats plugin: stat_sender was initialized");
                 ilog("chain_stats_plugin: plugin_initialize() end");
             } FC_CAPTURE_AND_RETHROW()
         }
@@ -508,6 +517,12 @@ namespace steemit {
             ilog("chain_stats plugin: plugin_startup() begin");
 
             app().register_api_factory<blockchain_statistics_api>("chain_stats_api");
+
+            for (auto address : _my->_recipient_ip_vec) {
+                _my->stat_sender->add_address(address);
+            }
+            _my->stat_sender->start(_my->stat_sender_port, _my->stat_sender_timeout);
+
 
             ilog("chain_stats plugin: plugin_startup() end");
         }

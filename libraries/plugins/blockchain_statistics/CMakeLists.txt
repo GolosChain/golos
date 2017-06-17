@@ -1,7 +1,6 @@
-file(GLOB HEADERS "include/steemit/blockchain_statistics/*.hpp")
-
+file(GLOB HEADERS "include/steemit/blockchain_statistics/*.hpp" "include/*.hpp")
 # Including statistics_sender.hpp
-file(GLOB HEADERS "include/*.hpp")
+
 set (LIBCDS_DIR /home/anton/code/libcds-test/libcds/)
 
 # libcds SHOULD be included as dynamic library!!!
@@ -24,7 +23,8 @@ else()
     add_library(golos_blockchain_statistics STATIC
             blockchain_statistics_plugin.cpp
             blockchain_statistics_api.cpp
-            # statistics_sender.cpp
+            statistics_sender.cpp
+            # ${LIBCDS_DIR} HOW TO ADD LIBCDS AS A STATIC LIB???
             )
 endif()
 
