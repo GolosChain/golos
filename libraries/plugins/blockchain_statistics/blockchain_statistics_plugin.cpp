@@ -8,7 +8,8 @@
 #include <steemit/chain/index.hpp>
 #include <steemit/chain/operation_notification.hpp>
 
-#include <statistics_sender.h>
+// #include <statistics_sender.h>
+#include "include/statistics_sender.hpp"
 
 namespace steemit {
     namespace blockchain_statistics {
@@ -62,15 +63,15 @@ namespace steemit {
                         if (op.amount.symbol == STEEM_SYMBOL) {
                             b.steem_transferred += op.amount.amount;
 
-                            stat_sender->push("steem_transferred" + ":" +
-                                op.amount.amount > 0 ? "+" : "-" +
-                                std::to_string(op.amount.amount) +  "|g");
+                            // stat_sender->push("steem_transferred" + ":" +
+                                // op.amount.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.amount.amount) +  "|g");
                         } else {
                             b.sbd_transferred += op.amount.amount;
 
-                            stat_sender->push("sbd_transferred" + ":" +
-                                op.amount.amount > 0 ? "+" : "-" +
-                                std::to_string(op.amount.amount) +  "|g");
+                            // stat_sender->push("sbd_transferred" + ":" +
+                                // op.amount.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.amount.amount) +  "|g");
                         }
                     });
                     
@@ -80,9 +81,9 @@ namespace steemit {
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.sbd_paid_as_interest += op.interest.amount;
 
-                        stat_sender->push("sbd_paid_as_interest" + ":" +
-                                op.interest.amount > 0 ? "+" : "-" +
-                                std::to_string(op.interest.amount) +  "|g");
+                        // stat_sender->push("sbd_paid_as_interest" + ":" +
+                                // op.interest.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.interest.amount) +  "|g");
                     });
                 }
 
@@ -90,7 +91,7 @@ namespace steemit {
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.paid_accounts_created++;
 
-                        stat_sender->push("paid_accounts_created:+1|g");
+                        // stat_sender->push("paid_accounts_created:+1|g");
                     });
                 }
 
@@ -100,12 +101,12 @@ namespace steemit {
 
                         if (worker.created == _db.head_block_time()) {
                             b.mined_accounts_created++;
-                            stat_sender->push("mined_accounts_created:+1|g");
+                            // stat_sender->push("mined_accounts_created:+1|g");
                         }
 
                         b.total_pow++;
 
-                        stat_sender->push("mined_accounts_created:+1|g");
+                        // stat_sender->push("mined_accounts_created:+1|g");
 
                         uint64_t bits =
                                 (_db.get_dynamic_global_properties().num_pow_witnesses /
@@ -124,9 +125,9 @@ namespace steemit {
                                 (b.estimated_hashpower * delta_t +
                                  estimated_hashes) / delta_t;
 
-                        stat_sender->push("estimated_hashpower" + ":" +
-                                b.estimated_hashpower > 0 ? "+" : "-" +
-                                std::to_string(b.estimated_hashpower) +  "|g");
+                        // stat_sender->push("estimated_hashpower" + ":" +
+                                // b.estimated_hashpower > 0 ? "+" : "-" +
+                                // std::to_string(b.estimated_hashpower) +  "|g");
                     });
                 }
 
@@ -137,18 +138,18 @@ namespace steemit {
                         if (comment.created == _db.head_block_time()) {
                             if (comment.parent_author.length()) {
                                 b.replies++;                                
-                                stat_sender->push("replies:+1|g");
+                                // stat_sender->push("replies:+1|g");
                             } else {
                                 b.root_comments++;
-                                stat_sender->push("root_comments:+1|g");
+                                // stat_sender->push("root_comments:+1|g");
                             }
                         } else {
                             if (comment.parent_author.length()) {
                                 b.reply_edits++;
-                                stat_sender->push("reply_edits:+1|g");
+                                // stat_sender->push("reply_edits:+1|g");
                             } else {
                                 b.root_comment_edits++;
-                                stat_sender->push("root_comment_edits:+1|g");
+                                // stat_sender->push("root_comment_edits:+1|g");
                             }
                         }
                     });
@@ -164,18 +165,18 @@ namespace steemit {
                         if (itr->num_changes) {
                             if (comment.parent_author.size()) {
                                 b.new_reply_votes++;
-                                stat_sender->push("new_reply_votes:+1|g");
+                                // stat_sender->push("new_reply_votes:+1|g");
                             } else {
                                 b.new_root_votes++;
-                                stat_sender->push("new_root_votes:+1|g");
+                                // stat_sender->push("new_root_votes:+1|g");
                             }
                         } else {
                             if (comment.parent_author.size()) {
                                 b.changed_reply_votes++;
-                                stat_sender->push("changed_reply_votes:+1|g");
+                                // stat_sender->push("changed_reply_votes:+1|g");
                             } else {
                                 b.changed_root_votes++;
-                                stat_sender->push("changed_root_votes:+1|g");
+                                // stat_sender->push("changed_root_votes:+1|g");
                             }
                         }
                     });
@@ -187,33 +188,33 @@ namespace steemit {
                         b.sbd_paid_to_authors += op.sbd_payout.amount;
                         b.vests_paid_to_authors += op.vesting_payout.amount;
 
-                        stat_sender->push("payouts:+1|g");
+                        // stat_sender->push("payouts:+1|g");
 
-                        stat_sender->push("sbd_paid_to_authors:" +
-                                op.sbd_payout.amount > 0 ? "+" : "-" +
-                                std::to_string(op.sbd_payout.amount) +  "|g");
+                        // stat_sender->push("sbd_paid_to_authors:" +
+                                // op.sbd_payout.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.sbd_payout.amount) +  "|g");
 
-                        stat_sender->push("vests_paid_to_authors:" +
-                                op.vesting_payout.amount > 0 ? "+" : "-" +
-                                std::to_string(op.vesting_payout.amount) +  "|g");
+                        // stat_sender->push("vests_paid_to_authors:" +
+                                // op.vesting_payout.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.vesting_payout.amount) +  "|g");
                     });
                 }
 
                 void operator()(const curation_reward_operation &op) const {
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.vests_paid_to_curators += op.reward.amount;
-                        stat_sender->push("vests_paid_to_curators:" +
-                                op.reward.amount > 0 ? "+" : "-" +
-                                std::to_string(op.reward.amount) +  "|g");
+                        // stat_sender->push("vests_paid_to_curators:" +
+                                // op.reward.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.reward.amount) +  "|g");
                     });
                 }
 
                 void operator()(const liquidity_reward_operation &op) const {
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.liquidity_rewards_paid += op.payout.amount;
-                        stat_sender->push("liquidity_rewards_paid:" +
-                                op.payout.amount > 0 ? "+" : "-" +
-                                std::to_string(op.payout.amount) +  "|g");
+                        // stat_sender->push("liquidity_rewards_paid:" +
+                                // op.payout.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.payout.amount) +  "|g");
                     });
                 }
 
@@ -222,10 +223,10 @@ namespace steemit {
                         b.transfers_to_vesting++;
                         b.steem_vested += op.amount.amount;
 
-                        stat_sender->push("transfers_to_vesting:+1|g");
-                        stat_sender->push("steem_vested:" +
-                                op.amount.amount > 0 ? "+" : "-" +
-                                std::to_string(op.amount.amount) +  "|g");
+                        // stat_sender->push("transfers_to_vesting:+1|g");
+                        // stat_sender->push("steem_vested:" +
+                                // op.amount.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.amount.amount) +  "|g");
                     });
                 }
 
@@ -234,23 +235,23 @@ namespace steemit {
 
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.vesting_withdrawals_processed++;
-                        stat_sender->push("vesting_withdrawals_processed:+1|g");
+                        // stat_sender->push("vesting_withdrawals_processed:+1|g");
 
                         if (op.deposited.symbol == STEEM_SYMBOL) {
                             b.vests_withdrawn += op.withdrawn.amount;
-                            stat_sender->push("vests_withdrawn:" +
-                                op.withdrawn.amount > 0 ? "+" : "-" +
-                                std::to_string(op.withdrawn.amount) +  "|g");
+                            // stat_sender->push("vests_withdrawn:" +
+                                // op.withdrawn.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.withdrawn.amount) +  "|g");
                         } else {
                             b.vests_transferred += op.withdrawn.amount;
-                            stat_sender->push("vests_transferred:" +
-                                op.withdrawn.amount > 0 ? "+" : "-" +
-                                std::to_string(op.withdrawn.amount) +  "|g");
+                            // stat_sender->push("vests_transferred:" +
+                                // op.withdrawn.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.withdrawn.amount) +  "|g");
                         }
 
                         if (account.vesting_withdraw_rate.amount == 0) {
                             b.finished_vesting_withdrawals++;
-                            stat_sender->push("finished_vesting_withdrawals:+1|g");
+                            // stat_sender->push("finished_vesting_withdrawals:+1|g");
                         }
                     });
                 }
@@ -258,21 +259,21 @@ namespace steemit {
                 void operator()(const limit_order_create_operation &op) const {
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.limit_orders_created++;
-                        stat_sender->push("limit_orders_created:+1|g");
+                        // stat_sender->push("limit_orders_created:+1|g");
                     });
                 }
 
                 void operator()(const fill_order_operation &op) const {
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.limit_orders_filled += 2;
-                        stat_sender->push("limit_orders_filled:+2|g");
+                        // stat_sender->push("limit_orders_filled:+2|g");
                     });
                 }
 
                 void operator()(const limit_order_cancel_operation &op) const {
                     _db.modify(_bucket, [&](bucket_object &b) {
                         b.limit_orders_cancelled++;
-                        stat_sender->push("limit_orders_cancelled:+1|g");
+                        // stat_sender->push("limit_orders_cancelled:+1|g");
                     });
                 }
 
@@ -281,10 +282,10 @@ namespace steemit {
                         b.sbd_conversion_requests_created++;
                         b.sbd_to_be_converted += op.amount.amount;
 
-                        stat_sender->push("sbd_conversion_requests_created:+1|g");
-                        stat_sender->push("sbd_to_be_converted:" +
-                                op.amount.amount > 0 ? "+" : "-" +
-                                std::to_string(op.amount.amount) + "|g");
+                        // stat_sender->push("sbd_conversion_requests_created:+1|g");
+                        // stat_sender->push("sbd_to_be_converted:" +
+                                // op.amount.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.amount.amount) + "|g");
                     });
                 }
 
@@ -293,10 +294,10 @@ namespace steemit {
                         b.sbd_conversion_requests_filled++;
                         b.steem_converted += op.amount_out.amount;
                         
-                        stat_sender->push("sbd_conversion_requests_filled:|g");
-                        stat_sender->push("steem_converted:" +
-                                op.amount_out.amount > 0 ? "+" : "-" +
-                                std::to_string(op.amount_out.amount) + "|g");
+                        // stat_sender->push("sbd_conversion_requests_filled:|g");
+                        // stat_sender->push("steem_converted:" +
+                                // op.amount_out.amount > 0 ? "+" : "-" +
+                                // std::to_string(op.amount_out.amount) + "|g");
                     });
                 }
             };
