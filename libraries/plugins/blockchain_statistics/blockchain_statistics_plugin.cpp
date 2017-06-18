@@ -8,7 +8,6 @@
 #include <steemit/chain/index.hpp>
 #include <steemit/chain/operation_notification.hpp>
 
-// #include <statistics_sender.h>
 #include "include/statistics_sender.hpp"
 
 namespace steemit {
@@ -39,20 +38,21 @@ namespace steemit {
                 };
                 flat_set<bucket_id_type> _current_buckets;
                 uint32_t _maximum_history_per_bucket_size = 100;
-                std::vector <std::string> _recipient_ip_vec;                
+                std::vector <std::string> _recipient_ip_vec;
                 // Statistics sender                
-                statServer * stat_sender;
+                statClient * stat_sender;
                 uint32_t stat_sender_port = 8125;
                 uint32_t stat_sender_timeout = 3;
             };
             struct operation_process {
-                // ADDING blockchain_statistics_plugin_impl OBJ
-                const blockchain_statistics_plugin &_plugin;                
+                const blockchain_statistics_plugin &_plugin;
                 const bucket_object &_bucket;
                 chain::database &_db;
+                statClient * &stat_sender;
 
-                operation_process(blockchain_statistics_plugin &bsp, const bucket_object &b)
-                        : _plugin(bsp), _bucket(b), _db(bsp.database()) {
+                operation_process(blockchain_statistics_plugin &bsp,
+                    const bucket_object &b, statClient * &stat_sender)
+                        : _plugin(bsp), _bucket(b), _db(bsp.database()), stat_sender(stat_sender) {
                 }
 
                 typedef void result_type;
@@ -68,15 +68,19 @@ namespace steemit {
                         if (op.amount.symbol == STEEM_SYMBOL) {
                             b.steem_transferred += op.amount.amount;
 
+                            // This doesn't Work because op.amount.amount is
+                            // a safe type: ./include/fc/safe.hpp                            
                             // stat_sender->push("steem_transferred" + ":" +
-                                // op.amount.amount > 0 ? "+" : "-" +
-                                // std::to_string(op.amount.amount) +  "|g");
+                            //     op.amount.amount > 0 ? "+" : "-" +
+                            //     std::to_string(op.amount.amount) +  "|g");
+                            // // No way to call to_string...
+                            // What should I do?                            
                         } else {
                             b.sbd_transferred += op.amount.amount;
 
                             // stat_sender->push("sbd_transferred" + ":" +
-                                // op.amount.amount > 0 ? "+" : "-" +
-                                // std::to_string(op.amount.amount) +  "|g");
+                            //     op.amount.amount > 0 ? "+" : "-" +
+                            //     std::to_string(op.amount.amount) +  "|g");
                         }
                     });
                     
@@ -448,7 +452,7 @@ namespace steemit {
                                 b.operations++;
                             });
                         }
-                        o.op.visit(operation_process(_self, bucket));
+                        o.op.visit(operation_process(_self, bucket, stat_sender));
                     }
                 } FC_CAPTURE_AND_RETHROW()
             }
@@ -506,7 +510,7 @@ namespace steemit {
                 wlog("chain-stats-history-per-bucket: ${h}", ("h", _my->_maximum_history_per_bucket_size));
                 
 
-                _my->stat_sender = new statServer();
+                _my->stat_sender = new statClient();
 
                 ilog("chain_stats plugin: stat_sender was initialized");
                 ilog("chain_stats_plugin: plugin_initialize() end");

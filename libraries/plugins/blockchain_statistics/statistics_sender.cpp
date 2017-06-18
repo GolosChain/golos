@@ -11,37 +11,39 @@
 #include <algorithm>
 #include <queue>
 
-statServer::statServer() {}
-statServer::~statServer() {
+statClient::statClient() {
+    QUEUE_ENABLED = false;
+}
+statClient::~statClient() {
     QUEUE_ENABLED = false;
     sender_thread.join();
     cds::Terminate();
 }
-void statServer::add_address(const std::string & address) {
+void statClient::add_address(const std::string & address) {
     recipient_ip_vec.push_back(address);
 }
-void statServer::_init(int br_port, int timeout) {    
+void statClient::_init(int br_port, int timeout) {    
     QUEUE_ENABLED = true;
     port = br_port;
     sender_sleeping_time = timeout;
     cds::Initialize();
 }
 
-void statServer::stop() {
+void statClient::stop() {
     QUEUE_ENABLED = false;
 }
 
-void statServer::push(const std::string & item) {
+void statClient::push(const std::string & item) {
     stat_q.enqueue(item);
 }
 
-void statServer::start(int br_port, int timeout) {
-    std::cout << "Server is on!!" << std::endl;
+void statClient::start(int br_port, int timeout) {
+    std::cout << "Client is on!!" << std::endl;
     _init(br_port, timeout);
     // Lambda which implements the data sending loop
     auto run_broadcast_loop = [&]() {
         boost::asio::io_service io_service;
-        // Server binds to any address and any port.
+        // Client binds to any address and any port.
         boost::asio::ip::udp::socket socket(io_service,
             boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0));
         socket.set_option(boost::asio::socket_base::broadcast(true));
@@ -68,7 +70,7 @@ void statServer::start(int br_port, int timeout) {
                     socket.send_to(boost::asio::buffer(tmp_s), recipient);
                 }
             }
-            std::this_thread::sleep_for(std::chrono::seconds(_sender_sleeping_time));
+            std::this_thread::sleep_for(std::chrono::seconds(sender_sleeping_time));
         }
                 
         cds::threading::Manager::detachThread();
