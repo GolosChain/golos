@@ -1,5 +1,6 @@
-file(GLOB HEADERS "include/steemit/blockchain_statistics/*.hpp" "include/*.hpp")
+file(GLOB HEADERS "include/steemit/blockchain_statistics/*.hpp")
 
+# Has to be changed!!! Too nooby
 set (LIBCDS_DIR /home/anton/code/libcds-test/libcds)
 
 include_directories(SYSTEM ${LIBCDS_DIR})

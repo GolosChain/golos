@@ -22,7 +22,7 @@ statClient::~statClient() {
 void statClient::add_address(const std::string & address) {
     recipient_ip_vec.push_back(address);
 }
-void statClient::_init(int br_port, int timeout) {    
+void statClient::init(int br_port, int timeout) {    
     QUEUE_ENABLED = true;
     port = br_port;
     sender_sleeping_time = timeout;
@@ -38,8 +38,7 @@ void statClient::push(const std::string & item) {
 }
 
 void statClient::start(int br_port, int timeout) {
-    std::cout << "Client is on!!" << std::endl;
-    _init(br_port, timeout);
+    init(br_port, timeout);
     // Lambda which implements the data sending loop
     auto run_broadcast_loop = [&]() {
         boost::asio::io_service io_service;
@@ -77,11 +76,10 @@ void statClient::start(int br_port, int timeout) {
     };
     try
     {   
-        if (recipient_ip_vec.empty()) {
-            throw "No any recipient IP was set.";
-        }
-        std::thread sending_thr(run_broadcast_loop);
-        sender_thread = std::move(sending_thr);
+        if (!recipient_ip_vec.empty()) {
+            std::thread sending_thr(run_broadcast_loop);
+            sender_thread = std::move(sending_thr);
+        }        
     }
     catch (const std::exception &ex)
     {

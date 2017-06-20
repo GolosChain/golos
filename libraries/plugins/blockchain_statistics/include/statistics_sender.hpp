@@ -23,7 +23,7 @@ private:
     // Timeout in seconds
     int sender_sleeping_time;
 
-    void _init(int port, int timeout);
+    void init(int port, int timeout);
 
 public:
     // adds address to _recipient_ip_vec.
