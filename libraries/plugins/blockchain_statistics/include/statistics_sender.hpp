@@ -8,6 +8,12 @@
 #include <thread>
 #include <atomic>
 
+#include <steemit/chain/steem_object_types.hpp>
+
+#include <fc/api.hpp>
+#include <fc/uint128.hpp>
+using namespace steemit::chain;
+// using app::application;
 class statClient {
 
 private:
@@ -37,3 +43,7 @@ public:
     // initializing and runs data sending loop in a new thread
     void start(int br_port, int timeout);
 };
+
+std::string get_value_string(uint32_t val);
+std::string get_value_string(share_type val);
+std::string get_value_string(fc::uint128_t val);

@@ -1,22 +1,24 @@
-#include "include/statistics_sender.hpp"
-
 #include <boost/asio.hpp> 
 
 #include <string>
 #include <cstdio>
 #include <iostream>
 #include <vector>
-#include <random>
 #include <cstdlib>
 #include <algorithm>
 #include <queue>
+
+#include "include/statistics_sender.hpp"
+
 
 statClient::statClient() {
     QUEUE_ENABLED = false;
 }
 statClient::~statClient() {
     QUEUE_ENABLED = false;
-    sender_thread.join();
+    if (!recipient_ip_vec.empty()) {
+        sender_thread.join();
+    }
     cds::Terminate();
 }
 void statClient::add_address(const std::string & address) {
@@ -79,10 +81,26 @@ void statClient::start(int br_port, int timeout) {
         if (!recipient_ip_vec.empty()) {
             std::thread sending_thr(run_broadcast_loop);
             sender_thread = std::move(sending_thr);
-        }        
+        }
     }
     catch (const std::exception &ex)
     {
          std::cerr << ex.what() << std::endl;
     }
+}
+
+std::string get_value_string(uint32_t val) {
+    std::string tmp_s = val > 0 ? "+" : "-";
+    tmp_s += std::to_string(val) + "|g";
+    return tmp_s;
+}
+std::string get_value_string(share_type val) {
+    std::string tmp_s = val > 0 ? "+" : "-";
+    tmp_s = std::string(val) + "|g";
+    return tmp_s;
+}
+std::string get_value_string(fc::uint128_t val) {
+    std::string tmp_s = val > 0 ? "+" : "-";
+    tmp_s = std::string(val) + "|g";
+    return tmp_s;
 }
