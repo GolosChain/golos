@@ -1,24 +1,25 @@
 file(GLOB HEADERS "include/steemit/blockchain_statistics/*.hpp")
 
 # libcds SHOULD only be included as the dynamic library!!!
-
-find_path(libcds_INCLUDE_DIRS NAMES cds PATH_SUFFIXES ${ARGN})
-set (libcds_INCLUDE_DIRS "${libcds_INCLUDE_DIRS}/libcds")
-message ("${libcds_INCLUDE_DIRS}")
-
-find_path(libcds_SO_FILE_PATH NAMES libcds_d.so
-    HINTS   ${libcds_INCLUDE_DIRS}/libcds/bin/
-            /usr/local/lib64/
-    PATH_SUFFIXES ${ARGN} NO_DEFAULT_PATH
-    )
-
-if(NOT libcds_INCLUDE_DIRS OR NOT libcds_SO_FILE_PATH)
-    message(FATAL_ERROR "libcds development files are required to build.")
-else()
-    message(STATUS "Found libcds. PATH: ${libcds_INCLUDE_DIRS}")
-    message(STATUS "Found libcds_d.so PATH: ${libcds_SO_FILE_PATH}")
+#
+# First find it in system. Default searching path is cds "make install" path:
+# for .SO file: usr/local/lib64 and for cds headers: usr/local/include
+# 
+include (FindLibcds.cmake)
+locate_libcds()
+# 
+# If cds has not built yet, then it has to be added with git submodule
+# 
+if (NOT ${LIBCDS_IS_BUILT})
+# 
+# TODO !!!
+# INCLUDE LIBCDS WITH GIT SUBMODULE HERE!!
+# 
+# 
 endif()
-
+# 
+# Now everything has to be fine. Linking CDS to the plugin.
+# 
 include_directories(SYSTEM ${libcds_INCLUDE_DIRS})
 add_library(libcds SHARED IMPORTED)
 
