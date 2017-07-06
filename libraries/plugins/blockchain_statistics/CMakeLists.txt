@@ -11,11 +11,9 @@ locate_libcds()
 # If cds has not built yet, then it has to be added with git submodule
 # 
 if (NOT ${LIBCDS_IS_BUILT})
-# 
-# TODO !!!
-# INCLUDE LIBCDS WITH GIT SUBMODULE HERE!!
-# 
-# 
+# Building git submoudle
+    include(AddLibcds.cmake)
+    add_libcds()
 endif()
 # 
 # Now everything should be fine.
@@ -24,6 +22,9 @@ endif()
 # 
 include_directories(SYSTEM ${libcds_INCLUDE_DIRS})
 add_library(libcds SHARED IMPORTED)
+
+message ("${libcds_SO_FILE_PATH}")
+message ("${libcds_INCLUDE_DIRS}")
 
 set_target_properties(libcds PROPERTIES
     IMPORTED_LOCATION "${libcds_SO_FILE_PATH}/libcds_d.so"
