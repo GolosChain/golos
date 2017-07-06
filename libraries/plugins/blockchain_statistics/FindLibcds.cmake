@@ -5,8 +5,6 @@ function(locate_libcds)
     endif()
 
     find_path(libcds_INCLUDE_DIRS NAMES cds PATH_SUFFIXES ${ARGN})
-    
-    message ("${libcds_INCLUDE_DIRS}")
 
     find_path(libcds_SO_FILE_PATH NAMES libcds_d.so
         HINTS   ${libcds_INCLUDE_DIRS}/libcds/bin/

@@ -1,5 +1,5 @@
 file(GLOB HEADERS "include/steemit/blockchain_statistics/*.hpp")
-
+# 
 # libcds SHOULD only be included as the dynamic library!!!
 #
 # First find it in system. Default searching path is cds "make install" path:
@@ -18,7 +18,9 @@ if (NOT ${LIBCDS_IS_BUILT})
 # 
 endif()
 # 
-# Now everything has to be fine. Linking CDS to the plugin.
+# Now everything should be fine.
+# 
+# Linking CDS to the plugin.
 # 
 include_directories(SYSTEM ${libcds_INCLUDE_DIRS})
 add_library(libcds SHARED IMPORTED)
