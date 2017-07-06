@@ -14,7 +14,6 @@ function(locate_libcds)
 
     if(NOT libcds_INCLUDE_DIRS OR NOT libcds_SO_FILE_PATH)
         set (LIBCDS_IS_BUILT FALSE PARENT_SCOPE)
-        # message(FATAL_ERROR "libcds development files are required to build.")
     else()
         message(STATUS "Found libcds. PATH: ${libcds_INCLUDE_DIRS}")
         message(STATUS "Found libcds_d.so PATH: ${libcds_SO_FILE_PATH}")
