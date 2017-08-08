@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/GolosChain/golos.png?label=ready&title=Ready)](https://waffle.io/GolosChain/golos?utm_source=badge)
 # Introducing Golos (beta)
 
 [![Build Status](https://travis-ci.org/GolosChain/golos.svg?branch=master)](https://travis-ci.org/GolosChain/golos)
