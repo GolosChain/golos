@@ -1,0 +1,3 @@
+#ifndef STEEMIT_HARDFORK_0_17
+#define STEEMIT_HARDFORK_0_17 17
+#endif

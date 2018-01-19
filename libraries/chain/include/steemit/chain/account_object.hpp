@@ -411,6 +411,11 @@ namespace steemit {
         allocator<change_recovery_account_request_object>
         >
         change_recovery_account_request_index;
+
+        struct account_metadata {
+            set<string> ban_list;
+        };
+
     }
 }
 
@@ -454,3 +459,5 @@ FC_REFLECT(steemit::chain::change_recovery_account_request_object,
         (id)(account_to_recover)(recovery_account)(effective_on)
 )
 CHAINBASE_SET_INDEX_TYPE(steemit::chain::change_recovery_account_request_object, steemit::chain::change_recovery_account_request_index)
+
+FC_REFLECT(steemit::chain::account_metadata, (ban_list));

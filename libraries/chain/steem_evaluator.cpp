@@ -4,6 +4,9 @@
 #include <steemit/chain/steem_objects.hpp>
 #include <steemit/chain/block_summary_object.hpp>
 
+#include <fc/io/json.hpp>
+#include <fc/string.hpp>
+
 #ifndef IS_LOW_MEM
 
 #include <diff_match_patch.h>
@@ -399,6 +402,26 @@ namespace steemit {
                     parent = &_db.get_comment(o.parent_author, o.parent_permlink);
                     FC_ASSERT(parent->depth <
                               STEEMIT_MAX_COMMENT_DEPTH, "Comment is nested ${x} posts deep, maximum depth is ${y}.", ("x", parent->depth)("y", STEEMIT_MAX_COMMENT_DEPTH));
+
+
+                    // check root author ban list
+                    if (_db.has_hardfork(STEEMIT_HARDFORK_0_17)) {
+                        const comment_object root(_db.get<comment_object>(parent->root_comment));
+                        const account_object root_acc(_db.get_account(root.author));
+                        account_metadata meta;
+                        if (root_acc.json_metadata.size())
+                        {
+                           try
+                           {
+                              meta = fc::json::from_string( to_string( root_acc.json_metadata ) ).as< account_metadata >();
+                              FC_ASSERT( std::find(meta.ban_list.begin(), meta.ban_list.end(), o.author) == meta.ban_list.end(), "Author added your account to ban list" );
+                           }
+                           catch( const fc::exception& e )
+                           {
+                              // Do nothing on malformed json_metadata
+                           }
+                        }
+                    }
                 }
                 auto now = _db.head_block_time();
 
