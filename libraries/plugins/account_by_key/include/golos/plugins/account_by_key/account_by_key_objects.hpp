@@ -38,10 +38,10 @@ namespace golos {
             };
             typedef key_lookup_object::id_type key_lookup_id_type;
 
-            struct key_references_r {
+            struct account_references_r {
                 vector<vector<account_name_type>> references;
             };
-            struct key_references_a {
+            struct account_references_a {
                 vector<public_key_type> keys;
             };
 
@@ -70,6 +70,6 @@ namespace golos {
 }
 
 FC_REFLECT((golos::plugins::account_by_key::key_lookup_object), (id)(key)(account))
-FC_REFLECT((golos::plugins::account_by_key::key_references_r), (references))
-FC_REFLECT((golos::plugins::account_by_key::key_references_a), (keys))
+FC_REFLECT((golos::plugins::account_by_key::account_references_r), (references))
+FC_REFLECT((golos::plugins::account_by_key::account_references_a), (keys))
 CHAINBASE_SET_INDEX_TYPE(golos::plugins::account_by_key::key_lookup_object, golos::plugins::account_by_key::key_lookup_index)

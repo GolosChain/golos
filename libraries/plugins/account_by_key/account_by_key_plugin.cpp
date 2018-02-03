@@ -205,8 +205,9 @@ namespace golos {
                 note.op.visit(detail::post_operation_visitor(_self));
             }
 
-            key_references_r account_by_key_plugin::account_by_key_plugin_impl::get_key_references(const key_references_a& val) const {
-                key_references_r final_result;
+            account_references_r account_by_key_plugin::account_by_key_plugin_impl::get_account_references(
+                    const account_references_a& val) const {
+                account_references_r final_result;
                 final_result.references.reserve(val.keys.size());
 
                 const auto &key_idx = _db.get_index<key_lookup_index>().indices().get<by_key>();
@@ -263,12 +264,12 @@ namespace golos {
             }
 
             // Api Defines
-            DEFINE_API(account_by_key_plugin, get_key_references) {
-                auto tmp = args.args->at(0).as<key_references_a>();
+            DEFINE_API(account_by_key_plugin, get_account_references) {
+                auto tmp = args.args->at(0).as<account_references_a>();
                 auto &db = my->database();
                 return db.with_read_lock([&]() {
-                    key_references_r result;
-                    result = my->get_key_references(tmp);
+                    account_references_r result;
+                    result = my->get_account_references(tmp);
                     return result;
                 });
             }

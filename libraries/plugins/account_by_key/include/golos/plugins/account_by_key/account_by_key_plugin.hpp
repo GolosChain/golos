@@ -16,7 +16,7 @@ namespace golos {
 
             using namespace golos::protocol;
 
-            DEFINE_API_ARGS(get_key_references, json_rpc::msg_pack, key_references_r)
+            DEFINE_API_ARGS(get_account_references, json_rpc::msg_pack, account_references_r)
 
             class account_by_key_plugin : public appbase::plugin<account_by_key_plugin> {
             public:
@@ -24,7 +24,7 @@ namespace golos {
 
                 account_by_key_plugin();
 
-                DECLARE_API((get_key_references))
+                DECLARE_API((get_account_references))
 
                 constexpr const static char *plugin_name = "account_by_key";
 
@@ -61,7 +61,7 @@ namespace golos {
 
                     void update_key_lookup(const account_authority_object &a);
 
-                    key_references_r get_key_references(const key_references_a& val) const;
+                    account_references_r get_account_references(const account_references_a& val) const;
 
                     golos::chain::database &database() const {
                         return _db;
