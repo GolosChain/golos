@@ -1,14 +1,15 @@
-#include <steemit/app/application.hpp>
+#include <golos/application/application.hpp>
 
-#include <steemit/witness/witness.hpp>
-#include <steemit/manifest/plugins.hpp>
+#include <golos/witness/witness.hpp>
+#include <golos/manifest/plugins.hpp>
 
 #include <fc/interprocess/signals.hpp>
 #include <fc/log/console_appender.hpp>
+#include <fc/log/json_console_appender.hpp>
 #include <fc/log/file_appender.hpp>
 #include <fc/log/logger_config.hpp>
 
-#include <graphene/utilities/git_revision.hpp>
+#include <golos/utilities/git_revision.hpp>
 #include <fc/git_revision.hpp>
 
 #include <boost/property_tree/ptree.hpp>
@@ -21,14 +22,14 @@
 # include <signal.h>
 #else
 
-# include <csignal>
+#include <csignal>
 
 #endif
 
-#include <graphene/utilities/key_conversion.hpp>
+#include <golos/utilities/key_conversion.hpp>
 
-using namespace steemit;
-using steemit::protocol::version;
+using namespace golos;
+using golos::protocol::version;
 namespace bpo = boost::program_options;
 
 void write_default_logging_config_to_stream(std::ostream &out);
@@ -36,8 +37,8 @@ void write_default_logging_config_to_stream(std::ostream &out);
 fc::optional<fc::logging_config> load_logging_config_from_ini_file(const fc::path &config_ini_filename);
 
 int main(int argc, char **argv) {
-    steemit::plugin::initialize_plugin_factories();
-    app::application *node = new app::application();
+    golos::plugin::initialize_plugin_factories();
+    application::application *node = new application::application();
     fc::oexception unhandled_exception;
     try {
 
@@ -76,8 +77,8 @@ int main(int argc, char **argv) {
 
         bpo::variables_map options;
 
-        for (const std::string &plugin_name : steemit::plugin::get_available_plugins()) {
-            node->register_abstract_plugin(steemit::plugin::create_plugin(plugin_name, node));
+        for (const std::string &plugin_name : golos::plugin::get_available_plugins()) {
+            node->register_abstract_plugin(golos::plugin::create_plugin(plugin_name, node));
         }
 
         try {
@@ -255,10 +256,30 @@ fc::optional<fc::logging_config> load_logging_config_from_ini_file(const fc::pat
             const boost::property_tree::ptree &section_tree = section.second;
 
             const std::string console_appender_section_prefix = "log.console_appender.";
+            const std::string json_console_appender_section_prefix = "log.json_console_appender.";
             const std::string file_appender_section_prefix = "log.file_appender.";
             const std::string logger_section_prefix = "logger.";
 
-            if (boost::starts_with(section_name, console_appender_section_prefix)) {
+            if (boost::starts_with(section_name, json_console_appender_section_prefix)) {
+                std::string console_appender_name = section_name.substr(json_console_appender_section_prefix.length());
+                std::string stream_name = section_tree.get<std::string>("stream");
+
+                // construct a default json console appender config here
+                // stdout/stderr will be taken from ini file, everything else hard-coded here
+                fc::json_console_appender::j_config console_appender_config;
+                console_appender_config.level_colors.emplace_back(
+                        fc::json_console_appender::j_level_color(fc::log_level::debug,
+                                fc::json_console_appender::j_color::green));
+                console_appender_config.level_colors.emplace_back(
+                        fc::json_console_appender::j_level_color(fc::log_level::warn,
+                                fc::json_console_appender::j_color::brown));
+                console_appender_config.level_colors.emplace_back(
+                        fc::json_console_appender::j_level_color(fc::log_level::error,
+                                fc::json_console_appender::j_color::cyan));
+                console_appender_config.stream = fc::variant(stream_name).as<fc::json_console_appender::j_stream::type>();
+                logging_config.appenders.push_back(fc::appender_config(console_appender_name, "json_console", fc::variant(console_appender_config)));
+                found_logging_config = true;
+            } else if (boost::starts_with(section_name, console_appender_section_prefix)) {
                 std::string console_appender_name = section_name.substr(console_appender_section_prefix.length());
                 std::string stream_name = section_tree.get<std::string>("stream");
 

@@ -1,4 +1,4 @@
-file(GLOB HEADERS "include/steemit/plugins/raw_block/*.hpp")
+file(GLOB HEADERS "include/golos/plugins/raw_block/*.hpp")
 
 if(BUILD_SHARED_LIBRARIES)
     add_library(golos_raw_block SHARED
@@ -14,6 +14,6 @@ else()
             )
 endif()
 
-target_link_libraries(golos_raw_block golos_app golos_chain golos_protocol fc)
+target_link_libraries(golos_raw_block golos::application golos_chain golos_protocol fc)
 target_include_directories(golos_raw_block
         PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

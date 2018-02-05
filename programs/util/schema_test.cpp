@@ -1,14 +1,14 @@
-#include <graphene/db/schema.hpp>
-#include <graphene/db/schema_impl.hpp>
-#include <graphene/db/schema_types.hpp>
+#include <golos/db/schema.hpp>
+#include <golos/db/schema_impl.hpp>
+#include <golos/db/schema_types.hpp>
 
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <steemit/chain/account_object.hpp>
-#include <steemit/chain/steem_objects.hpp>
+#include <golos/chain/objects/account_object.hpp>
+#include <golos/chain/objects/steem_objects.hpp>
 
 using namespace graphene::db;
 
@@ -44,8 +44,8 @@ void process(std::shared_ptr<abstract_schema> s) {
 int main(int argc, char **argv, char **envp) {
     std::vector<std::shared_ptr<abstract_schema>> schemas;
 
-    schemas.push_back(get_schema_for_type<steemit::chain::account_object>());
-    schemas.push_back(get_schema_for_type<steemit::chain::comment_object>());
+    schemas.push_back(get_schema_for_type<golos::chain::account_object>());
+    schemas.push_back(get_schema_for_type<golos::chain::comment_object>());
     add_dependent_schemas(schemas);
 
     for (const std::shared_ptr<abstract_schema> &s : schemas) {

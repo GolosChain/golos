@@ -1,10 +1,9 @@
-#include <steemit/account_by_key/account_by_key_plugin.hpp>
+#include <golos/account_by_key/account_by_key_plugin.hpp>
 
-#include <steemit/chain/account_object.hpp>
-#include <steemit/chain/index.hpp>
-#include <steemit/chain/operation_notification.hpp>
+#include <golos/chain/objects/account_object.hpp>
+#include <golos/chain/operation_notification.hpp>
 
-namespace steemit {
+namespace golos {
     namespace account_by_key {
 
         namespace detail {
@@ -12,11 +11,11 @@ namespace steemit {
             class account_by_key_plugin_impl {
             public:
                 account_by_key_plugin_impl(account_by_key_plugin &_plugin)
-                        : _self(_plugin) {
+                        : self(_plugin) {
                 }
 
-                steemit::chain::database &database() {
-                    return _self.database();
+                golos::chain::database &database() {
+                    return self.database();
                 }
 
                 void pre_operation(const operation_notification &op_obj);
@@ -27,10 +26,8 @@ namespace steemit {
 
                 void cache_auths(const account_authority_object &a);
 
-                void update_key_lookup(const account_authority_object &a);
-
                 flat_set<public_key_type> cached_keys;
-                account_by_key_plugin &_self;
+                account_by_key_plugin &self;
             };
 
             struct pre_operation_visitor {
@@ -46,11 +43,13 @@ namespace steemit {
                 void operator()(const T &) const {
                 }
 
-                void operator()(const account_create_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const account_create_operation<Major, Hardfork, Release> &op) const {
                     _plugin.my->clear_cache();
                 }
 
-                void operator()(const account_update_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const account_update_operation<Major, Hardfork, Release> &op) const {
                     _plugin.my->clear_cache();
                     auto acct_itr = _plugin.database().find<account_authority_object, by_account>(op.account);
                     if (acct_itr) {
@@ -58,7 +57,8 @@ namespace steemit {
                     }
                 }
 
-                void operator()(const recover_account_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const recover_account_operation<Major, Hardfork, Release> &op) const {
                     _plugin.my->clear_cache();
                     auto acct_itr = _plugin.database().find<account_authority_object, by_account>(op.account_to_recover);
                     if (acct_itr) {
@@ -66,11 +66,13 @@ namespace steemit {
                     }
                 }
 
-                void operator()(const pow_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const pow_operation<Major, Hardfork, Release> &op) const {
                     _plugin.my->clear_cache();
                 }
 
-                void operator()(const pow2_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const pow2_operation<Major, Hardfork, Release> &op) const {
                     _plugin.my->clear_cache();
                 }
             };
@@ -97,46 +99,52 @@ namespace steemit {
                 void operator()(const T &) const {
                 }
 
-                void operator()(const account_create_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const account_create_operation<Major, Hardfork, Release> &op) const {
                     auto acct_itr = _plugin.database().find<account_authority_object, by_account>(op.new_account_name);
                     if (acct_itr) {
-                        _plugin.my->update_key_lookup(*acct_itr);
+                        _plugin.update_key_lookup(*acct_itr);
                     }
                 }
 
-                void operator()(const account_update_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const account_update_operation<Major, Hardfork, Release> &op) const {
                     auto acct_itr = _plugin.database().find<account_authority_object, by_account>(op.account);
                     if (acct_itr) {
-                        _plugin.my->update_key_lookup(*acct_itr);
+                        _plugin.update_key_lookup(*acct_itr);
                     }
                 }
 
-                void operator()(const recover_account_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const recover_account_operation<Major, Hardfork, Release> &op) const {
                     auto acct_itr = _plugin.database().find<account_authority_object, by_account>(op.account_to_recover);
                     if (acct_itr) {
-                        _plugin.my->update_key_lookup(*acct_itr);
+                        _plugin.update_key_lookup(*acct_itr);
                     }
                 }
 
-                void operator()(const pow_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const pow_operation<Major, Hardfork, Release> &op) const {
                     auto acct_itr = _plugin.database().find<account_authority_object, by_account>(op.worker_account);
                     if (acct_itr) {
-                        _plugin.my->update_key_lookup(*acct_itr);
+                        _plugin.update_key_lookup(*acct_itr);
                     }
                 }
 
-                void operator()(const pow2_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const pow2_operation<Major, Hardfork, Release> &op) const {
                     const account_name_type *worker_account = op.work.visit(pow2_work_get_account_visitor());
                     if (worker_account == nullptr) {
                         return;
                     }
                     auto acct_itr = _plugin.database().find<account_authority_object, by_account>(*worker_account);
                     if (acct_itr) {
-                        _plugin.my->update_key_lookup(*acct_itr);
+                        _plugin.update_key_lookup(*acct_itr);
                     }
                 }
 
-                void operator()(const hardfork_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const hardfork_operation<Major, Hardfork, Release> &op) const {
                     if (op.hardfork_id == STEEMIT_HARDFORK_0_16) {
                         auto &db = _plugin.database();
 
@@ -171,62 +179,17 @@ namespace steemit {
                 }
             }
 
-            void account_by_key_plugin_impl::update_key_lookup(const account_authority_object &a) {
-                auto &db = database();
-                flat_set<public_key_type> new_keys;
-
-                // Construct the set of keys in the account's authority
-                for (const auto &item : a.owner.key_auths) {
-                    new_keys.insert(item.first);
-                }
-                for (const auto &item : a.active.key_auths) {
-                    new_keys.insert(item.first);
-                }
-                for (const auto &item : a.posting.key_auths) {
-                    new_keys.insert(item.first);
-                }
-
-                // For each key that needs a lookup
-                for (const auto &key : new_keys) {
-                    // If the key was not in the authority, add it to the lookup
-                    if (cached_keys.find(key) == cached_keys.end()) {
-                        auto lookup_itr = db.find<key_lookup_object, by_key>(std::make_tuple(key, a.account));
-
-                        if (lookup_itr == nullptr) {
-                            db.create<key_lookup_object>([&](key_lookup_object &o) {
-                                o.key = key;
-                                o.account = a.account;
-                            });
-                        }
-                    } else {
-                        // If the key was already in the auths, remove it from the set so we don't delete it
-                        cached_keys.erase(key);
-                    }
-                }
-
-                // Loop over the keys that were in authority but are no longer and remove them from the lookup
-                for (const auto &key : cached_keys) {
-                    auto lookup_itr = db.find<key_lookup_object, by_key>(std::make_tuple(key, a.account));
-
-                    if (lookup_itr != nullptr) {
-                        db.remove(*lookup_itr);
-                    }
-                }
-
-                cached_keys.clear();
-            }
-
             void account_by_key_plugin_impl::pre_operation(const operation_notification &note) {
-                note.op.visit(pre_operation_visitor(_self));
+                note.op.visit(pre_operation_visitor(self));
             }
 
             void account_by_key_plugin_impl::post_operation(const operation_notification &note) {
-                note.op.visit(post_operation_visitor(_self));
+                note.op.visit(post_operation_visitor(self));
             }
 
         } // detail
 
-        account_by_key_plugin::account_by_key_plugin(steemit::app::application *app)
+        account_by_key_plugin::account_by_key_plugin(golos::application::application *app)
                 : plugin(app),
                   my(new detail::account_by_key_plugin_impl(*this)) {
         }
@@ -242,10 +205,14 @@ namespace steemit {
                 ilog("Initializing account_by_key plugin");
                 chain::database &db = database();
 
-                db.pre_apply_operation.connect([&](const operation_notification &o) { my->pre_operation(o); });
-                db.post_apply_operation.connect([&](const operation_notification &o) { my->post_operation(o); });
+                db.pre_apply_operation.connect([&](const operation_notification &o) {
+                    my->pre_operation(o);
+                });
+                db.post_apply_operation.connect([&](const operation_notification &o) {
+                    my->post_operation(o);
+                });
 
-                add_plugin_index<key_lookup_index>(db);
+                db.add_plugin_index<key_lookup_index>();
             }
             FC_CAPTURE_AND_RETHROW()
         }
@@ -254,7 +221,51 @@ namespace steemit {
             app().register_api_factory<account_by_key_api>("account_by_key_api");
         }
 
-    }
-} // steemit::account_by_key
+        void account_by_key_plugin::update_key_lookup(const account_authority_object &a) {
+            auto &db = database();
+            flat_set<public_key_type> new_keys;
 
-STEEMIT_DEFINE_PLUGIN(account_by_key, steemit::account_by_key::account_by_key_plugin)
+            // Construct the set of keys in the account's authority
+            for (const auto &item : a.owner.key_auths) {
+                new_keys.insert(item.first);
+            }
+            for (const auto &item : a.active.key_auths) {
+                new_keys.insert(item.first);
+            }
+            for (const auto &item : a.posting.key_auths) {
+                new_keys.insert(item.first);
+            }
+
+            // For each key that needs a lookup
+            for (const auto &key : new_keys) {
+                // If the key was not in the authority, add it to the lookup
+                if (my->cached_keys.find(key) == my->cached_keys.end()) {
+                    auto lookup_itr = db.find<key_lookup_object, by_key>(std::make_tuple(key, a.account));
+
+                    if (lookup_itr == nullptr) {
+                        db.create<key_lookup_object>([&](key_lookup_object &o) {
+                            o.key = key;
+                            o.account = a.account;
+                        });
+                    }
+                } else {
+                    // If the key was already in the auths, remove it from the set so we don't delete it
+                    my->cached_keys.erase(key);
+                }
+            }
+
+            // Loop over the keys that were in authority but are no longer and remove them from the lookup
+            for (const auto &key : my->cached_keys) {
+                auto lookup_itr = db.find<key_lookup_object, by_key>(std::make_tuple(key, a.account));
+
+                if (lookup_itr != nullptr) {
+                    db.remove(*lookup_itr);
+                }
+            }
+
+            my->cached_keys.clear();
+        }
+    }
+} // golos::account_by_key
+
+STEEMIT_DEFINE_PLUGIN(account_by_key, golos::account_by_key::account_by_key_plugin)

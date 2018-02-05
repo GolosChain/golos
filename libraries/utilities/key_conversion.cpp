@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <graphene/utilities/key_conversion.hpp>
+#include <golos/utilities/key_conversion.hpp>
 #include <fc/crypto/base58.hpp>
 
 namespace graphene {
@@ -73,4 +73,4 @@ namespace graphene {
         }
 
     }
-} // end namespace graphene::utilities
+} // end namespace golos::utilities

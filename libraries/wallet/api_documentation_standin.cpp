@@ -23,10 +23,10 @@
  */
 #include <iomanip>
 #include <boost/algorithm/string/join.hpp>
-#include <steemit/wallet/wallet.hpp>
-#include <steemit/wallet/api_documentation.hpp>
+#include <golos/wallet/wallet.hpp>
+#include <golos/wallet/api_documentation.hpp>
 
-namespace steemit {
+namespace golos {
     namespace wallet {
         namespace detail {
             namespace {
@@ -83,4 +83,4 @@ namespace steemit {
         }
 
     }
-} // end namespace steemit::wallet
+} // end namespace golos::wallet

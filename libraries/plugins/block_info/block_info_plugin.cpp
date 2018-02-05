@@ -1,11 +1,11 @@
 
-#include <steemit/chain/database.hpp>
+#include <golos/chain/database.hpp>
 
-#include <steemit/plugins/block_info/block_info.hpp>
-#include <steemit/plugins/block_info/block_info_api.hpp>
-#include <steemit/plugins/block_info/block_info_plugin.hpp>
+#include <golos/plugins/block_info/block_info.hpp>
+#include <golos/plugins/block_info/block_info_api.hpp>
+#include <golos/plugins/block_info/block_info_plugin.hpp>
 
-namespace steemit {
+namespace golos {
     namespace plugin {
         namespace block_info {
 
@@ -55,6 +55,6 @@ namespace steemit {
 
         }
     }
-} // steemit::plugin::block_info
+} // golos::plugin::block_info
 
-STEEMIT_DEFINE_PLUGIN(block_info, steemit::plugin::block_info::block_info_plugin)
+STEEMIT_DEFINE_PLUGIN(block_info, golos::plugin::block_info::block_info_plugin)

@@ -1,12 +1,10 @@
-#include <steemit/blockchain_statistics/blockchain_statistics_api.hpp>
+#include <golos/blockchain_statistics/blockchain_statistics_api.hpp>
 
-namespace steemit {
+namespace golos {
     namespace blockchain_statistics {
 
-        namespace detail {
-            class blockchain_statistics_api_impl {
-            public:
-                blockchain_statistics_api_impl(steemit::app::application &app)
+            struct blockchain_statistics_api::blockchain_statistics_api_impl {
+                blockchain_statistics_api_impl(golos::application::application &app)
                         : _app(app) {
                 }
 
@@ -16,10 +14,10 @@ namespace steemit {
 
                 statistics get_lifetime_stats() const;
 
-                steemit::app::application &_app;
+                golos::application::application &_app;
             };
 
-            statistics blockchain_statistics_api_impl::get_stats_for_time(fc::time_point_sec open, uint32_t interval) const {
+            statistics blockchain_statistics_api::blockchain_statistics_api_impl::get_stats_for_time(fc::time_point_sec open, uint32_t interval) const {
                 statistics result;
                 const auto &bucket_idx = _app.chain_database()->get_index<bucket_index>().indices().get<by_bucket>();
                 auto itr = bucket_idx.lower_bound(boost::make_tuple(interval, open));
@@ -31,8 +29,7 @@ namespace steemit {
                 return result;
             }
 
-            statistics blockchain_statistics_api_impl::get_stats_for_interval(fc::time_point_sec start, fc::time_point_sec end) const {
-                statistics result;
+            statistics blockchain_statistics_api::blockchain_statistics_api_impl::get_stats_for_interval(fc::time_point_sec start, fc::time_point_sec end) const {                statistics result;
                 const auto &bucket_itr = _app.chain_database()->get_index<bucket_index>().indices().get<by_bucket>();
                 const auto &sizes = _app.get_plugin<blockchain_statistics_plugin>(BLOCKCHAIN_STATISTICS_PLUGIN_NAME)->get_tracked_buckets();
                 auto size_itr = sizes.rbegin();
@@ -58,16 +55,15 @@ namespace steemit {
                 return result;
             }
 
-            statistics blockchain_statistics_api_impl::get_lifetime_stats() const {
+            statistics blockchain_statistics_api::blockchain_statistics_api_impl::get_lifetime_stats() const { 
                 statistics result;
                 result += _app.chain_database()->get(bucket_id_type());
 
                 return result;
             }
-        } // detail
 
-        blockchain_statistics_api::blockchain_statistics_api(const steemit::app::api_context &ctx) {
-            my = std::make_shared<detail::blockchain_statistics_api_impl>(ctx.app);
+
+        blockchain_statistics_api::blockchain_statistics_api(const golos::application::api_context &ctx):my(new blockchain_statistics_api_impl(ctx.app)){
         }
 
         void blockchain_statistics_api::on_api_startup() {
@@ -84,6 +80,8 @@ namespace steemit {
                 return my->get_stats_for_interval(start, end);
             });
         }
+
+        blockchain_statistics_api::~blockchain_statistics_api()=default;
 
         statistics blockchain_statistics_api::get_lifetime_stats() const {
             return my->_app.chain_database()->with_read_lock([&]() {
@@ -153,4 +151,4 @@ namespace steemit {
         }
 
     }
-} // steemit::blockchain_statistics
+} // golos::blockchain_statistics

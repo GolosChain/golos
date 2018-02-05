@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <graphene/utilities/git_revision.hpp>
+#include <golos/utilities/git_revision.hpp>
 
 #define GRAPHENE_GIT_REVISION_SHA "@GRAPHENE_GIT_REVISION_SHA@"
 #define GRAPHENE_GIT_REVISION_UNIX_TIMESTAMP @GRAPHENE_GIT_REVISION_UNIX_TIMESTAMP@
@@ -13,4 +13,4 @@ namespace graphene {
         const char *const git_revision_description = GRAPHENE_GIT_REVISION_DESCRIPTION;
 
     }
-} // end namespace graphene::utilities
+} // end namespace golos::utilities

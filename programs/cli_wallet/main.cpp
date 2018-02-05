@@ -1,30 +1,7 @@
-/*
- * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
- *
- * The MIT License
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <map>
 
 #include <fc/io/json.hpp>
 #include <fc/io/stdio.hpp>
@@ -35,10 +12,10 @@
 #include <fc/rpc/websocket_api.hpp>
 #include <fc/smart_ref_impl.hpp>
 
-#include <graphene/utilities/key_conversion.hpp>
+#include <golos/utilities/key_conversion.hpp>
 
-#include <steemit/app/api.hpp>
-#include <steemit/wallet/wallet.hpp>
+#include <golos/application/api.hpp>
+#include <golos/wallet/wallet.hpp>
 
 #include <fc/interprocess/signals.hpp>
 #include <boost/algorithm/string.hpp>
@@ -46,6 +23,10 @@
 #include <fc/log/console_appender.hpp>
 #include <fc/log/file_appender.hpp>
 #include <fc/log/logger_config.hpp>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#include <fc/variant.hpp>
 
 #ifdef WIN32
 # include <signal.h>
@@ -57,11 +38,26 @@
 
 
 using namespace graphene::utilities;
-using namespace steemit::app;
-using namespace steemit::chain;
-using namespace steemit::wallet;
+using namespace golos::application;
+using namespace golos::chain;
+using namespace golos::wallet;
 using namespace std;
-namespace bpo = boost::program_options;
+
+void daemon_mode();
+
+void nom_daemon_mode (
+    const boost::program_options::variables_map & options,
+    const std::vector < std::string > & commands,
+    const bool & interactive,
+    std::shared_ptr<fc::rpc::cli> wallet_cli,
+    const fc::api<wallet_api> & wapi
+);
+
+void parse_commands (
+    const boost::program_options::variables_map & options,
+    std::vector < std::string > & commands,
+    bool & interactive
+);
 
 int main(int argc, char **argv) {
     try {
@@ -69,29 +65,37 @@ int main(int argc, char **argv) {
         boost::program_options::options_description opts;
         opts.add_options()
                 ("help,h", "Print this help message and exit.")
-                ("server-rpc-endpoint,s", bpo::value<string>()->implicit_value("ws://127.0.0.1:8090"), "Server websocket RPC endpoint")
-                ("server-rpc-user,u", bpo::value<string>(), "Server Username")
-                ("server-rpc-password,p", bpo::value<string>(), "Server Password")
-                ("cert-authority,a", bpo::value<string>()->default_value("_default"), "Trusted CA bundle file for connecting to wss:// TLS server")
-                ("rpc-endpoint,r", bpo::value<string>()->implicit_value("127.0.0.1:8091"), "Endpoint for wallet websocket RPC to listen on")
-                ("rpc-tls-endpoint,t", bpo::value<string>()->implicit_value("127.0.0.1:8092"), "Endpoint for wallet websocket TLS RPC to listen on")
-                ("rpc-tls-certificate,c", bpo::value<string>()->implicit_value("server.pem"), "PEM certificate for wallet websocket TLS RPC")
-                ("rpc-http-endpoint,H", bpo::value<string>()->implicit_value("127.0.0.1:8093"), "Endpoint for wallet HTTP RPC to listen on")
+                ("server-rpc-endpoint,s", boost::program_options::value<string>()->implicit_value("ws://127.0.0.1:8090"), "Server websocket RPC endpoint")
+                ("server-rpc-user,u", boost::program_options::value<string>(), "Server Username")
+                ("server-rpc-password,p", boost::program_options::value<string>(), "Server Password")
+                ("cert-authority,a", boost::program_options::value<string>()->default_value("_default"), "Trusted CA bundle file for connecting to wss:// TLS server")
+                ("rpc-endpoint,r", boost::program_options::value<string>()->implicit_value("127.0.0.1:8091"), "Endpoint for wallet websocket RPC to listen on")
+                ("rpc-tls-endpoint,t", boost::program_options::value<string>()->implicit_value("127.0.0.1:8092"), "Endpoint for wallet websocket TLS RPC to listen on")
+                ("rpc-tls-certificate,c", boost::program_options::value<string>()->implicit_value("server.pem"), "PEM certificate for wallet websocket TLS RPC")
+                ("rpc-http-endpoint,H", boost::program_options::value<string>()->implicit_value("127.0.0.1:8093"), "Endpoint for wallet HTTP RPC to listen on")
                 ("daemon,d", "Run the wallet in daemon mode")
-                ("rpc-http-allowip", bpo::value<vector<string>>()->multitoken(), "Allows only specified IPs to connect to the HTTP endpoint")
-                ("wallet-file,w", bpo::value<string>()->implicit_value("wallet.json"), "wallet to load")
-                ("chain-id", bpo::value<string>(), "chain ID to connect to");
+                ("rpc-http-allowip", boost::program_options::value<vector<string>>()->multitoken(), "Allows only specified IPs to connect to the HTTP endpoint")
+                ("wallet-file,w", boost::program_options::value<string>()->implicit_value("wallet.json"), "wallet to load")
+                ("chain-id", boost::program_options::value<string>(), "chain ID to connect to")
+                ("commands,c", boost::program_options::value<string>(), "Enable non-interactive mode")
+                ;
 
         vector<string> allowed_ips;
 
-        bpo::variables_map options;
+        std::vector < std::string > commands;                
+        bool interactive = true;
 
-        bpo::store(bpo::parse_command_line(argc, argv, opts), options);
+        boost::program_options::variables_map options;
+
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, opts), options);
 
         if (options.count("help")) {
             std::cout << opts << "\n";
             return 0;
         }
+
+        parse_commands(options, commands, interactive);
+
         if (options.count("rpc-http-allowip") &&
             options.count("rpc-http-endpoint")) {
             allowed_ips = options["rpc-http-allowip"].as<vector<string>>();
@@ -150,6 +154,7 @@ int main(int argc, char **argv) {
             wdata.ws_password = options.at("server-rpc-password").as<std::string>();
         }
 
+
         fc::http::websocket_client client(options["cert-authority"].as<std::string>());
         idump((wdata.ws_server));
         auto con = client.connect(wdata.ws_server);
@@ -178,8 +183,7 @@ int main(int argc, char **argv) {
         (void)(closed_connection);
 
         if (wapiptr->is_new()) {
-            std::cout
-                    << "Please use the set_password method to initialize a new wallet before continuing\n";
+            std::cout << "Please use the set_password method to initialize a new wallet before continuing\n";
             wallet_cli->set_prompt("new >>> ");
         } else {
             wallet_cli->set_prompt("locked >>> ");
@@ -249,19 +253,10 @@ int main(int argc, char **argv) {
         }
 
         if (!options.count("daemon")) {
-            wallet_cli->register_api(wapi);
-            wallet_cli->start();
-            wallet_cli->wait();
+            nom_daemon_mode ( options, commands, interactive, wallet_cli, wapi );
         } else {
-            fc::promise<int>::ptr exit_promise = new fc::promise<int>("UNIX Signal Handler");
-            fc::set_signal_handler([&exit_promise](int signal) {
-                exit_promise->set_value(signal);
-            }, SIGINT);
-
-            ilog("Entering Daemon Mode, ^C to exit");
-            exit_promise->wait();
+            daemon_mode();
         }
-
         wapi->save_wallet_file(wallet_file.generic_string());
         locked_connection.disconnect();
         closed_connection.disconnect();
@@ -271,4 +266,71 @@ int main(int argc, char **argv) {
         return -1;
     }
     return 0;
+}
+
+void daemon_mode() {
+    fc::promise<int>::ptr exit_promise = new fc::promise<int>("UNIX Signal Handler");
+    fc::set_signal_handler([&exit_promise](int signal) {
+        exit_promise->set_value(signal);
+    }, SIGINT);
+
+    ilog("Entering Daemon Mode, ^C to exit");
+    exit_promise->wait();
+}
+
+void nom_daemon_mode (
+    const boost::program_options::variables_map & options,
+    const std::vector < std::string > & commands,
+    const bool & interactive,
+    std::shared_ptr<fc::rpc::cli> wallet_cli,
+    const fc::api<wallet_api> & wapi
+) {
+    wallet_cli->register_api(wapi);
+    if (!interactive) {
+        std::vector < std::pair < std::string, std::string > > commands_output;
+        for (auto const &command : commands) {
+            try {
+                auto result = wallet_cli->exec_command ( command );
+                commands_output.push_back ( {command, result} ) ;
+            }
+            catch ( const fc::exception& e ) {
+                std::cout << e.to_detail_string() << '\n';
+            }
+        }
+        for (auto i : commands_output) {
+            // Format of output  
+            std::cout << i.first << '\n' << fc::json::to_pretty_string( i.second ) << '\n';
+        }
+    }
+    else {
+        wallet_cli->start();
+        wallet_cli->wait();
+    }
+}
+
+void parse_commands (
+    const boost::program_options::variables_map & options,
+    std::vector < std::string > & commands, bool & interactive
+) {
+    if (options.count("commands")) {
+        // If you would like to enable non-interactive mode, then you should
+        // pass commands you like cli_wallet to execute via 'commands' program
+        // option. All commands should be separated with "&&". The order does matter!
+        // EXAMPLE: ./cli_wallet --commands="unlock verystrongpassword && some_command arg1 arg2 && another_command arg1 arg2 arg3"
+
+        interactive = false;
+        auto tmp_commmad_string = options["commands"].as<string>();
+
+        // Here will be stored the strings that will be parsed by the "&&"
+        std::vector < std::string > unchecked_commands;
+        auto delims = "&&";
+        boost::algorithm::split_regex( unchecked_commands, tmp_commmad_string, boost::regex( delims ) );
+
+        for (auto x : unchecked_commands ) {
+            boost::trim(x);
+            if (x != "") {
+                commands.push_back(x);
+            }
+        }
+    }
 }

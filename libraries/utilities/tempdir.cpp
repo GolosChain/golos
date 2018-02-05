@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include <graphene/utilities/tempdir.hpp>
+#include <golos/utilities/tempdir.hpp>
 
 namespace graphene {
     namespace utilities {
@@ -32,8 +32,8 @@ namespace graphene {
             if (graphene_tempdir != nullptr) {
                 return fc::path(graphene_tempdir);
             }
-            return fc::temp_directory_path() / "graphene-tmp";
+            return fc::temp_directory_path() / "golos-tmp";
         }
 
     }
-} // graphene::utilities
+} // golos::utilities

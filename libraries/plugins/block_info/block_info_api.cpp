@@ -1,11 +1,11 @@
 
-#include <steemit/app/api_context.hpp>
-#include <steemit/app/application.hpp>
+#include <golos/application/api_context.hpp>
+#include <golos/application/application.hpp>
 
-#include <steemit/plugins/block_info/block_info_api.hpp>
-#include <steemit/plugins/block_info/block_info_plugin.hpp>
+#include <golos/plugins/block_info/block_info_api.hpp>
+#include <golos/plugins/block_info/block_info_plugin.hpp>
 
-namespace steemit {
+namespace golos {
     namespace plugin {
         namespace block_info {
 
@@ -13,22 +13,22 @@ namespace steemit {
 
                 class block_info_api_impl {
                 public:
-                    block_info_api_impl(steemit::app::application &_app);
+                    block_info_api_impl(golos::application::application &_app);
 
-                    std::shared_ptr<steemit::plugin::block_info::block_info_plugin> get_plugin();
+                    std::shared_ptr<golos::plugin::block_info::block_info_plugin> get_plugin();
 
                     void get_block_info(const get_block_info_args &args, std::vector<block_info> &result);
 
                     void get_blocks_with_info(const get_block_info_args &args, std::vector<block_with_info> &result);
 
-                    steemit::app::application &app;
+                    golos::application::application &app;
                 };
 
-                block_info_api_impl::block_info_api_impl(steemit::app::application &_app)
+                block_info_api_impl::block_info_api_impl(golos::application::application &_app)
                         : app(_app) {
                 }
 
-                std::shared_ptr<steemit::plugin::block_info::block_info_plugin> block_info_api_impl::get_plugin() {
+                std::shared_ptr<golos::plugin::block_info::block_info_plugin> block_info_api_impl::get_plugin() {
                     return app.get_plugin<block_info_plugin>("block_info");
                 }
 
@@ -73,7 +73,7 @@ namespace steemit {
 
             } // detail
 
-            block_info_api::block_info_api(const steemit::app::api_context &ctx) {
+            block_info_api::block_info_api(const golos::application::api_context &ctx) {
                 my = std::make_shared<detail::block_info_api_impl>(ctx.app);
             }
 
@@ -94,4 +94,4 @@ namespace steemit {
 
         }
     }
-} // steemit::plugin::block_info
+} // golos::plugin::block_info

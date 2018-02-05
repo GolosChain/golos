@@ -1,4 +1,4 @@
-file(GLOB HEADERS "include/steemit/account_statistics/*.hpp")
+file(GLOB HEADERS "include/golos/account_statistics/*.hpp")
 
 if(BUILD_SHARED_LIBRARIES)
     add_library(golos_account_statistics SHARED
@@ -12,7 +12,7 @@ else()
             )
 endif()
 
-target_link_libraries(golos_account_statistics golos_chain golos_protocol golos_app)
+target_link_libraries(golos_account_statistics golos_chain golos_protocol golos::application)
 target_include_directories(golos_account_statistics
         PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 

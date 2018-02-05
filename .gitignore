@@ -3,7 +3,6 @@
 *.dylib
 *.sw*
 
-*.cmake
 CMakeCache.txt
 CMakeFiles
 Makefile
@@ -49,3 +48,7 @@ documentation/doxygen/latex
 *.pyc
 *.pyo
 *.egg-info/
+.idea/
+.vscode/
+cmake-build-debug/
+cmake-build-release/

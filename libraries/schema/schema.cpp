@@ -1,5 +1,5 @@
 
-#include <graphene/schema/schema.hpp>
+#include <golos/schema/schema.hpp>
 
 namespace graphene {
     namespace schema {

@@ -1,4 +1,4 @@
-file(GLOB HEADERS "include/steemit/follow/*.hpp")
+file(GLOB HEADERS "include/golos/follow/*.hpp")
 
 if(BUILD_SHARED_LIBRARIES)
     add_library(golos_follow SHARED
@@ -16,7 +16,7 @@ else()
             )
 endif()
 
-target_link_libraries(golos_follow golos_chain golos_protocol golos_app graphene_time)
+target_link_libraries(golos_follow golos_chain golos_protocol golos::application)
 target_include_directories(golos_follow
         PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 

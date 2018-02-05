@@ -1,4 +1,4 @@
-file(GLOB HEADERS "include/steemit/manifest/*.hpp")
+file(GLOB HEADERS "include/golos/manifest/*.hpp")
 
 ################# external plugins ###################
 

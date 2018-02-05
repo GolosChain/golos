@@ -5,25 +5,25 @@
 
 #include <fc/io/json.hpp>
 
-#include <graphene/utilities/key_conversion.hpp>
+#include <golos/utilities/key_conversion.hpp>
 
-#include <steemit/protocol/transaction.hpp>
+#include <golos/protocol/transaction.hpp>
 
 struct tx_signing_request {
-    steemit::protocol::transaction tx;
+    golos::protocol::transaction tx;
     std::string wif;
 };
 
 struct tx_signing_result {
-    steemit::protocol::transaction tx;
+    golos::protocol::transaction tx;
     fc::sha256 digest;
     fc::sha256 sig_digest;
-    steemit::protocol::public_key_type key;
-    steemit::protocol::signature_type sig;
+    golos::protocol::public_key_type key;
+    golos::protocol::signature_type sig;
 };
 
-FC_REFLECT(tx_signing_request, (tx)(wif))
-FC_REFLECT(tx_signing_result, (digest)(sig_digest)(key)(sig))
+FC_REFLECT((tx_signing_request), (tx)(wif))
+FC_REFLECT((tx_signing_result), (digest)(sig_digest)(key)(sig))
 
 int main(int argc, char **argv, char **envp) {
     // hash key pairs on stdin
@@ -46,7 +46,7 @@ int main(int argc, char **argv, char **envp) {
 
         fc::ecc::private_key priv_key = *graphene::utilities::wif_to_key(sreq.wif);
         sres.sig = priv_key.sign_compact(sres.sig_digest);
-        sres.key = steemit::protocol::public_key_type(priv_key.get_public_key());
+        sres.key = golos::protocol::public_key_type(priv_key.get_public_key());
         std::cout << fc::json::to_string(sres) << std::endl;
     }
     return 0;

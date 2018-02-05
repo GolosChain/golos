@@ -1,6 +1,9 @@
 add_executable(size_checker main.cpp)
+
 if(UNIX AND NOT APPLE)
     set(rt_library rt)
+elseif(APPLE)
+    list(APPEND PLATFORM_SPECIFIC_LIBS readline)
 endif()
 
 target_link_libraries(size_checker

@@ -1,8 +1,8 @@
-#include <steemit/chain/account_object.hpp>
+#include <golos/chain/objects/account_object.hpp>
 
-#include <steemit/follow/follow_api.hpp>
+#include <golos/follow/follow_api.hpp>
 
-namespace steemit {
+namespace golos {
     namespace follow {
 
         namespace detail {
@@ -18,7 +18,7 @@ namespace steemit {
 
             class follow_api_impl {
             public:
-                follow_api_impl(steemit::app::application &_app)
+                follow_api_impl(golos::application::application &_app)
                         : app(_app) {
                 }
 
@@ -38,7 +38,7 @@ namespace steemit {
 
                 vector<account_reputation> get_account_reputations(string lower_bound_name, uint32_t limit) const;
 
-                steemit::app::application &app;
+                golos::application::application &app;
             };
 
             vector<follow_api_obj> follow_api_impl::get_followers(string following, string start_follower, follow_type type, uint16_t limit) const {
@@ -268,7 +268,7 @@ namespace steemit {
 
         } // detail
 
-        follow_api::follow_api(const steemit::app::api_context &ctx) {
+        follow_api::follow_api(const golos::application::api_context &ctx) {
             my = std::make_shared<detail::follow_api_impl>(ctx.app);
         }
 
@@ -355,4 +355,4 @@ namespace steemit {
         }
 
     }
-} // steemit::follow
+} // golos::follow

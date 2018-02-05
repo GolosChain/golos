@@ -1,15 +1,15 @@
 
 #include <fc/container/flat.hpp>
 
-#include <steemit/app/api_context.hpp>
-#include <steemit/app/application.hpp>
+#include <golos/application/api_context.hpp>
+#include <golos/application/application.hpp>
 
-#include <steemit/chain/account_object.hpp>
+#include <golos/chain/objects/account_object.hpp>
 
-#include <steemit/plugins/auth_util/auth_util_api.hpp>
-#include <steemit/plugins/auth_util/auth_util_plugin.hpp>
+#include <golos/plugins/auth_util/auth_util_api.hpp>
+#include <golos/plugins/auth_util/auth_util_plugin.hpp>
 
-namespace steemit {
+namespace golos {
     namespace plugin {
         namespace auth_util {
 
@@ -19,20 +19,20 @@ namespace steemit {
 
                 class auth_util_api_impl {
                 public:
-                    auth_util_api_impl(steemit::app::application &_app);
+                    auth_util_api_impl(golos::application::application &_app);
 
                     void check_authority_signature(const check_authority_signature_params &args, check_authority_signature_result &result);
 
-                    std::shared_ptr<steemit::plugin::auth_util::auth_util_plugin> get_plugin();
+                    std::shared_ptr<golos::plugin::auth_util::auth_util_plugin> get_plugin();
 
-                    steemit::app::application &app;
+                    golos::application::application &app;
                 };
 
-                auth_util_api_impl::auth_util_api_impl(steemit::app::application &_app)
+                auth_util_api_impl::auth_util_api_impl(golos::application::application &_app)
                         : app(_app) {
                 }
 
-                std::shared_ptr<steemit::plugin::auth_util::auth_util_plugin> auth_util_api_impl::get_plugin() {
+                std::shared_ptr<golos::plugin::auth_util::auth_util_plugin> auth_util_api_impl::get_plugin() {
                     return app.get_plugin<auth_util_plugin>("auth_util");
                 }
 
@@ -69,7 +69,7 @@ namespace steemit {
 
             } // detail
 
-            auth_util_api::auth_util_api(const steemit::app::api_context &ctx) {
+            auth_util_api::auth_util_api(const golos::application::api_context &ctx) {
                 my = std::make_shared<detail::auth_util_api_impl>(ctx.app);
             }
 
@@ -84,4 +84,4 @@ namespace steemit {
 
         }
     }
-} // steemit::plugin::auth_util
+} // golos::plugin::auth_util

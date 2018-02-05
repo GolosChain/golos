@@ -1,9 +1,9 @@
-#include <steemit/account_statistics/account_statistics_api.hpp>
+#include <golos/account_statistics/account_statistics_api.hpp>
 
-#include <steemit/chain/account_object.hpp>
-#include <steemit/chain/comment_object.hpp>
+#include <golos/chain/objects/account_object.hpp>
+#include <golos/chain/objects/comment_object.hpp>
 
-namespace steemit {
+namespace golos {
     namespace account_statistics {
 
         namespace detail {
@@ -104,6 +104,6 @@ namespace steemit {
         }
 
     }
-} // steemit::account_statistics
+} // golos::account_statistics
 
-STEEMIT_DEFINE_PLUGIN(account_statistics, steemit::account_statistics::account_statistics_plugin);
+STEEMIT_DEFINE_PLUGIN(account_statistics, golos::account_statistics::account_statistics_plugin);

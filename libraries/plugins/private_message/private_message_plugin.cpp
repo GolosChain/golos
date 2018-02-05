@@ -1,37 +1,12 @@
-/*
- * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
- *
- * The MIT License
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+#include <golos/private_message/private_message_evaluators.hpp>
 
-#include <steemit/private_message/private_message_evaluators.hpp>
+#include <golos/application/impacted.hpp>
 
-#include <steemit/app/impacted.hpp>
-
-#include <steemit/chain/index.hpp>
-#include <steemit/chain/generic_custom_operation_interpreter.hpp>
+#include <golos/chain/generic_custom_operation_interpreter.hpp>
 
 #include <fc/smart_ref_impl.hpp>
 
-namespace steemit {
+namespace golos {
     namespace private_message {
 
         namespace detail {
@@ -42,18 +17,19 @@ namespace steemit {
 
                 virtual ~private_message_plugin_impl();
 
-                steemit::chain::database &database() {
+                golos::chain::database &database() {
                     return _self.database();
                 }
 
                 private_message_plugin &_self;
-                std::shared_ptr<generic_custom_operation_interpreter<steemit::private_message::private_message_plugin_operation>> _custom_operation_interpreter;
+                std::shared_ptr<generic_custom_operation_interpreter<
+                        golos::private_message::private_message_plugin_operation>> _custom_operation_interpreter;
                 flat_map<string, string> _tracked_accounts;
             };
 
-            private_message_plugin_impl::private_message_plugin_impl(private_message_plugin &_plugin)
-                    : _self(_plugin) {
-                _custom_operation_interpreter = std::make_shared<generic_custom_operation_interpreter<steemit::private_message::private_message_plugin_operation>>(database());
+            private_message_plugin_impl::private_message_plugin_impl(private_message_plugin &_plugin) : _self(_plugin) {
+                _custom_operation_interpreter = std::make_shared<generic_custom_operation_interpreter<
+                        golos::private_message::private_message_plugin_operation>>(database());
 
                 _custom_operation_interpreter->register_evaluator<private_message_evaluator>(&_self);
 
@@ -68,7 +44,7 @@ namespace steemit {
         } // end namespace detail
 
         void private_message_evaluator::do_apply(const private_message_operation &pm) {
-            database &d = db();
+            database &d = get_database();
 
             const flat_map<string, string> &tracked_accounts = _plugin->my->_tracked_accounts;
 
@@ -81,10 +57,8 @@ namespace steemit {
             FC_ASSERT(pm.encrypted_message.size() >= 32);
 
             if (!tracked_accounts.size() ||
-                (to_itr != tracked_accounts.end() && pm.to >= to_itr->first &&
-                 pm.to <= to_itr->second) ||
-                (from_itr != tracked_accounts.end() &&
-                 pm.from >= from_itr->first && pm.from <= from_itr->second)) {
+                (to_itr != tracked_accounts.end() && pm.to >= to_itr->first && pm.to <= to_itr->second) ||
+                (from_itr != tracked_accounts.end() && pm.from >= from_itr->first && pm.from <= from_itr->second)) {
                 d.create<message_object>([&](message_object &pmo) {
                     pmo.from = pm.from;
                     pmo.to = pm.to;
@@ -99,9 +73,8 @@ namespace steemit {
             }
         }
 
-        private_message_plugin::private_message_plugin(application *app)
-                : plugin(app),
-                  my(new detail::private_message_plugin_impl(*this)) {
+        private_message_plugin::private_message_plugin(application::application *app) : plugin(app),
+                my(new detail::private_message_plugin_impl(*this)) {
         }
 
         private_message_plugin::~private_message_plugin() {
@@ -111,19 +84,18 @@ namespace steemit {
             return "private_message";
         }
 
-        void private_message_plugin::plugin_set_program_options(
-                boost::program_options::options_description &cli,
-                boost::program_options::options_description &cfg
-        ) {
-            cli.add_options()
-                    ("pm-account-range", boost::program_options::value<std::vector<std::string>>()->composing()->multitoken(), "Defines a range of accounts to private messages to/from as a json pair [\"from\",\"to\"] [from,to)");
+        void private_message_plugin::plugin_set_program_options(boost::program_options::options_description &cli,
+                                                                boost::program_options::options_description &cfg) {
+            cli.add_options()("pm-account-range",
+                              boost::program_options::value<std::vector<std::string>>()->composing()->multitoken(),
+                              "Defines a range of accounts to private messages to/from as a json pair [\"from\",\"to\"] [from,to)");
             cfg.add(cli);
         }
 
         void private_message_plugin::plugin_initialize(const boost::program_options::variables_map &options) {
             ilog("Intializing private message plugin");
             chain::database &db = database();
-            add_plugin_index<message_index>(db);
+            db.add_plugin_index<message_index>();
 
             app().register_api_factory<private_message_api>("private_message_api");
 
@@ -169,6 +141,4 @@ namespace steemit {
     }
 }
 
-STEEMIT_DEFINE_PLUGIN(private_message, steemit::private_message::private_message_plugin)
-
-DEFINE_OPERATION_TYPE(steemit::private_message::private_message_plugin_operation)
+STEEMIT_DEFINE_PLUGIN(private_message, golos::private_message::private_message_plugin)

@@ -1,4 +1,4 @@
-file(GLOB HEADERS "include/steemit/account_history/*.hpp")
+file(GLOB HEADERS "include/golos/account_history/*.hpp")
 
 if(BUILD_SHARED_LIBRARIES)
     add_library(golos_account_history SHARED
@@ -10,7 +10,7 @@ else()
             )
 endif()
 
-target_link_libraries(golos_account_history golos_chain golos_protocol golos_app graphene_time)
+target_link_libraries(golos_account_history golos_chain golos_protocol golos::application)
 target_include_directories(golos_account_history
         PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 

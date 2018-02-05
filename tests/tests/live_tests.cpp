@@ -1,17 +1,17 @@
 #include <boost/test/unit_test.hpp>
 
-#include <steemit/protocol/exceptions.hpp>
+#include <golos/protocol/exceptions.hpp>
 
-#include <steemit/chain/database.hpp>
-#include <steemit/chain/steem_objects.hpp>
+#include <golos/chain/database.hpp>
+#include <golos/chain/objects/steem_objects.hpp>
 
 #include <fc/crypto/digest.hpp>
 
 #include "../common/database_fixture.hpp"
 
-using namespace steemit;
-using namespace steemit::chain;
-using namespace steemit::protocol;
+using namespace golos;
+using namespace golos::chain;
+using namespace golos::protocol;
 
 #ifndef STEEMIT_BUILD_TESTNET
 
@@ -49,9 +49,9 @@ BOOST_AUTO_TEST_CASE( vests_stock_split )
 
       flat_map< std::tuple< account_name_type, string >, share_type > comment_net_rshares;
       flat_map< std::tuple< account_name_type, string >, share_type > comment_abs_rshares;
-      flat_map< comment_id_type, uint64_t > total_vote_weights;
-      flat_map< comment_id_type, uint64_t > orig_vote_weight;
-      flat_map< comment_id_type, uint64_t > expected_reward;
+      flat_map< comment_object::id_type, uint64_t > total_vote_weights;
+      flat_map< comment_object::id_type, uint64_t > orig_vote_weight;
+      flat_map< comment_object::id_type, uint64_t > expected_reward;
       fc::uint128_t total_rshares2 = 0;
       const auto& com_idx = db.get_index< comment_index >().indices().get< by_permlink >();
       auto com_itr = com_idx.begin();
@@ -69,10 +69,10 @@ BOOST_AUTO_TEST_CASE( vests_stock_split )
          if( com_itr->net_rshares.value > 0 )
          {
             total_rshares2 += com_itr->net_rshares.value > 0 ? fc::uint128_t( com_itr->net_rshares.value ) * com_itr->net_rshares.value * magnitude * magnitude : 0;
-            u256 rs( com_itr->net_rshares.value );
-            u256 rf( gpo.total_reward_fund_steem.amount.value );
+            boost::multiprecision::uint256_t rs( com_itr->net_rshares.value );
+            boost::multiprecision::uint256_t rf( gpo.total_reward_fund_steem.amount.value );
             auto rs2 = rs * rs;
-            u256 rshares2 = old_rshares2.hi;
+            boost::multiprecision::uint256_t rshares2 = old_rshares2.hi;
             rshares2 = rshares2 << 64;
             rshares2 += old_rshares2.lo;
             expected_reward[ com_itr->id ] = static_cast< uint64_t >( rf * rs2 / rshares2 );
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE( vests_stock_split )
       BOOST_TEST_MESSAGE( "Saving category rshares" );
 
       const auto& cat_idx = db.get_index< category_index >().indices();
-      flat_map< category_id_type, share_type > category_rshares;
+      flat_map< category_object::id_type, share_type > category_rshares;
 
       for( auto cat_itr = cat_idx.begin(); cat_itr != cat_idx.end(); cat_itr++ )
       {
@@ -125,9 +125,9 @@ BOOST_AUTO_TEST_CASE( vests_stock_split )
 
          if( com_itr->net_rshares.value > 0 )
          {
-            u256 rs( com_itr->net_rshares.value );
-            u256 rf( gpo.total_reward_fund_steem.amount.value );
-            u256 rshares2 = total_rshares2.hi;
+            boost::multiprecision::uint256_t rs( com_itr->net_rshares.value );
+            boost::multiprecision::uint256_t rf( gpo.total_reward_fund_steem.amount.value );
+            boost::multiprecision::uint256_t rshares2 = total_rshares2.hi;
             rshares2 = ( rshares2 << 64 ) + total_rshares2.lo;
             auto rs2 = rs * rs;
 
@@ -148,15 +148,15 @@ BOOST_AUTO_TEST_CASE( vests_stock_split )
 
     BOOST_AUTO_TEST_CASE(retally_votes) {
         try {
-            flat_map<witness_id_type, share_type> expected_votes;
+            flat_map<account_name_type, share_type> expected_votes;
 
             const auto &by_account_witness_idx = db.get_index<witness_vote_index>().indices();
 
             for (auto vote: by_account_witness_idx) {
                 if (expected_votes.find(vote.witness) == expected_votes.end()) {
-                    expected_votes[vote.witness] = db.get(vote.account).witness_vote_weight();
+                    expected_votes[vote.witness] = db.get_account(vote.account).witness_vote_weight();
                 } else {
-                    expected_votes[vote.witness] += db.get(vote.account).witness_vote_weight();
+                    expected_votes[vote.witness] += db.get_account(vote.account).witness_vote_weight();
                 }
             }
 
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE( vests_stock_split )
             const auto &witness_idx = db.get_index<witness_index>().indices();
 
             for (auto witness: witness_idx) {
-                BOOST_REQUIRE_EQUAL(witness.votes.value, expected_votes[witness.id].value);
+                BOOST_REQUIRE_EQUAL(witness.votes.value, expected_votes[witness.owner].value);
             }
         }
         FC_LOG_AND_RETHROW()

@@ -1,10 +1,10 @@
-#include <steemit/chain/block_log.hpp>
+#include <golos/chain/block_log.hpp>
 #include <fstream>
 
 #define LOG_READ  (std::ios::in | std::ios::binary)
 #define LOG_WRITE (std::ios::out | std::ios::binary | std::ios::app)
 
-namespace steemit {
+namespace golos {
     namespace chain {
 
         namespace detail {
@@ -208,7 +208,7 @@ namespace steemit {
             if (!(my->head.valid() && block_num <=
                                       protocol::block_header::num_from_id(my->head_id) &&
                   block_num > 0)) {
-                      return npos;
+                return npos;
             }
             my->index_stream.seekg(sizeof(uint64_t) * (block_num - 1));
             uint64_t pos;

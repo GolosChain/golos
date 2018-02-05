@@ -1,4 +1,4 @@
-file(GLOB HEADERS "include/graphene/schema/*.hpp")
+file(GLOB HEADERS "include/golos/schema/*.hpp")
 
 if(BUILD_SHARED_LIBRARIES)
     add_library(graphene_schema SHARED schema.cpp ${HEADERS})
@@ -16,4 +16,4 @@ install(TARGETS
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
         )
-install(FILES ${HEADERS} DESTINATION "include/graphene/schema")
+install(FILES ${HEADERS} DESTINATION "include/golos/schema")

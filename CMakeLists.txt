@@ -1,6 +1,26 @@
-# Defines Golos library target.
-project(Golos)
 cmake_minimum_required(VERSION 2.8.12)
+
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
+project(Golos)
+
+get_property(RULE_LAUNCH_COMPILE GLOBAL PROPERTY RULE_LAUNCH_COMPILE)
+if(RULE_LAUNCH_COMPILE AND CMAKE_GENERATOR STREQUAL "Xcode")
+    # Set up wrapper scripts
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/contribution/launch-c.in launch-c)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/contribution/launch-cxx.in launch-cxx)
+    execute_process(COMMAND chmod a+rx "${CMAKE_BINARY_DIR}/launch-c" "${CMAKE_BINARY_DIR}/launch-cxx")
+
+    # Set Xcode project attributes to route compilation and linking
+    # through our scripts
+    set(CMAKE_XCODE_ATTRIBUTE_CC "${CMAKE_BINARY_DIR}/launch-c")
+    set(CMAKE_XCODE_ATTRIBUTE_CXX "${CMAKE_BINARY_DIR}/launch-cxx")
+    set(CMAKE_XCODE_ATTRIBUTE_LD "${CMAKE_BINARY_DIR}/launch-c")
+    set(CMAKE_XCODE_ATTRIBUTE_LDPLUSPLUS "${CMAKE_BINARY_DIR}/launch-cxx")
+endif()
 
 set(BLOCKCHAIN_NAME "Golos")
 
@@ -52,7 +72,7 @@ option(Boost_USE_STATIC_LIBS "Build with Boost static libraries usage" TRUE)
 
 option(BUILD_SHARED_LIBRARIES "Build shared libraries" FALSE)
 
-option(BUILD_GOLOS_TESTNET "Build source for test network (ON OR OFF)" OFF)
+option(BUILD_GOLOS_TESTNET "Build source for test network (ON OR OFF)" FALSE)
 message(STATUS "BUILD_GOLOS_TESTNET: ${BUILD_GOLOS_TESTNET}")
 if(BUILD_GOLOS_TESTNET)
     message(STATUS "     ")
@@ -68,8 +88,8 @@ if(LOW_MEMORY_NODE)
     message(STATUS "     ")
     message(STATUS "             CONFIGURING FOR LOW MEMORY NODE      ")
     message(STATUS "     ")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIS_LOW_MEM")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DIS_LOW_MEM")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSTEEMIT_BUILD_LOW_MEMORY")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSTEEMIT_BUILD_LOW_MEMORY")
 endif()
 
 option(CHAINBASE_CHECK_LOCKING "Check locks in chainbase (ON or OFF)" TRUE)
@@ -79,7 +99,7 @@ if(CHAINBASE_CHECK_LOCKING)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DCHAINBASE_CHECK_LOCKING")
 endif()
 
-option(CLEAR_VOTES "Build source to clear old votes from memory" ON)
+option(CLEAR_VOTES "Build source to clear old votes from memory" FALSE)
 if(CLEAR_VOTES)
     message(STATUS "   CONFIGURING TO CLEAR OLD VOTES FROM MEMORY")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCLEAR_VOTES")
@@ -137,7 +157,7 @@ if(WIN32)
         set(TCL_LIBRARY ${TCL_LIBS})
 
     elseif(MINGW)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fpermissive -msse4.2 -Wa,-mbig-obj")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fpermissive -msse4.2 -Wa,-mbig-obj")
         set(CMAKE_CXX_FLAGS_RELEASE "-O3")
         # Optimization flag apparently needed to get rid of "File too big" assembler errors when compiling in Debug mode
         # See: https://stackoverflow.com/questions/14125007/gcc-string-table-overflow-error-during-compilation/14601779#29479701
@@ -158,11 +178,11 @@ else(WIN32) # Apple AND Linux
     if(APPLE)
         # Apple Specific Options Here
         message(STATUS "Configuring Golos on OS X")
-        set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -stdlib=libc++ -Wall -Wno-conversion -Wno-deprecated-declarations")
+        set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++14 -stdlib=libc++ -Wall -Wno-conversion -Wno-deprecated-declarations -Wno-unused-local-typedef")
     else(APPLE)
         # Linux Specific Options Here
         message(STATUS "Configuring Golos on Linux")
-        set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -Wall")
+        set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++14 -Wall -Wno-unused-local-typedef")
         set(rt_library rt)
         set(pthread_library pthread)
         if(NOT DEFINED crypto_library)
@@ -199,8 +219,6 @@ if(ENABLE_COVERAGE_TESTING)
     set(CMAKE_CXX_FLAGS "--coverage ${CMAKE_CXX_FLAGS}")
 endif()
 
-# external_plugins needs to be compiled first because libraries/app depends on GOLOSIT_EXTERNAL_PLUGINS being fully populated
-add_subdirectory(external_plugins)
 add_subdirectory(libraries)
 add_subdirectory(programs)
 

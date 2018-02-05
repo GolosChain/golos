@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 #include <stdint.h>
-#include <graphene/utilities/words.hpp>
+#include <golos/utilities/words.hpp>
 
 namespace graphene {
     namespace words {
@@ -49784,4 +49784,4 @@ namespace graphene {
         }
 
     }
-} // graphene::words
+} // golos::words

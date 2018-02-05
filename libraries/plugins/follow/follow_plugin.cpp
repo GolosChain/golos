@@ -1,32 +1,32 @@
-#include <steemit/follow/follow_api.hpp>
-#include <steemit/follow/follow_objects.hpp>
-#include <steemit/follow/follow_operations.hpp>
+#include <golos/follow/follow_api.hpp>
+#include <golos/follow/follow_objects.hpp>
+#include <golos/follow/follow_operations.hpp>
+#include <golos/follow/follow_evaluators.hpp>
 
-#include <steemit/app/impacted.hpp>
+#include <golos/application/impacted.hpp>
 
-#include <steemit/protocol/config.hpp>
+#include <golos/protocol/config.hpp>
 
-#include <steemit/chain/database.hpp>
-#include <steemit/chain/index.hpp>
-#include <steemit/chain/generic_custom_operation_interpreter.hpp>
-#include <steemit/chain/operation_notification.hpp>
-#include <steemit/chain/account_object.hpp>
-#include <steemit/chain/comment_object.hpp>
+#include <golos/chain/database.hpp>
+#include <golos/chain/generic_custom_operation_interpreter.hpp>
+#include <golos/chain/operation_notification.hpp>
+#include <golos/chain/objects/account_object.hpp>
+#include <golos/chain/objects/comment_object.hpp>
 
-#include <graphene/schema/schema.hpp>
-#include <graphene/schema/schema_impl.hpp>
+#include <golos/schema/schema.hpp>
+#include <golos/schema/schema_impl.hpp>
 
 #include <fc/smart_ref_impl.hpp>
 #include <fc/thread/thread.hpp>
 
 #include <memory>
 
-namespace steemit {
+namespace golos {
     namespace follow {
 
         namespace detail {
 
-            using namespace steemit::protocol;
+            using namespace golos::protocol;
 
             class follow_plugin_impl {
             public:
@@ -35,7 +35,7 @@ namespace steemit {
 
                 void plugin_initialize();
 
-                steemit::chain::database &database() {
+                golos::chain::database &database() {
                     return _self.database();
                 }
 
@@ -44,12 +44,12 @@ namespace steemit {
                 void post_operation(const operation_notification &op_obj);
 
                 follow_plugin &_self;
-                std::shared_ptr<generic_custom_operation_interpreter<steemit::follow::follow_plugin_operation>> _custom_operation_interpreter;
+                std::shared_ptr<generic_custom_operation_interpreter<golos::follow::follow_plugin_operation>> _custom_operation_interpreter;
             };
 
             void follow_plugin_impl::plugin_initialize() {
                 // Each plugin needs its own evaluator registry.
-                _custom_operation_interpreter = std::make_shared<generic_custom_operation_interpreter<steemit::follow::follow_plugin_operation>>(database());
+                _custom_operation_interpreter = std::make_shared<generic_custom_operation_interpreter<golos::follow::follow_plugin_operation>>(database());
 
                 // Add each operation evaluator to the registry
                 _custom_operation_interpreter->register_evaluator<follow_evaluator>(&_self);
@@ -72,12 +72,14 @@ namespace steemit {
                 void operator()(const T &) const {
                 }
 
-                void operator()(const vote_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const vote_operation<Major, Hardfork, Release> &op) const {
                     try {
                         auto &db = _plugin.database();
                         const auto &c = db.get_comment(op.author, op.permlink);
 
-                        if (c.mode == archived) {
+                        if (db.calculate_discussion_payout_time(c) ==
+                            fc::time_point_sec::maximum()) {
                             return;
                         }
 
@@ -100,7 +102,8 @@ namespace steemit {
                     }
                 }
 
-                void operator()(const delete_comment_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const delete_comment_operation<Major, Hardfork, Release> &op) const {
                     try {
                         auto &db = _plugin.database();
                         const auto *comment = db.find_comment(op.author, op.permlink);
@@ -175,7 +178,8 @@ namespace steemit {
                     FC_CAPTURE_AND_RETHROW()
                 }
 
-                void operator()(const comment_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const comment_operation<Major, Hardfork, Release> &op) const {
                     try {
                         if (op.parent_author.size() > 0) {
                             return;
@@ -259,12 +263,14 @@ namespace steemit {
                     FC_LOG_AND_RETHROW()
                 }
 
-                void operator()(const vote_operation &op) const {
+                template<uint8_t Major, uint8_t Hardfork, uint16_t Release>
+                void operator()(const vote_operation<Major, Hardfork, Release> &op) const {
                     try {
                         auto &db = _plugin.database();
                         const auto &comment = db.get_comment(op.author, op.permlink);
 
-                        if (comment.mode == archived) {
+                        if (db.calculate_discussion_payout_time(comment) ==
+                            fc::time_point_sec::maximum()) {
                             return;
                         }
 
@@ -279,7 +285,7 @@ namespace steemit {
                         // Rule #1: Must have non-negative reputation to effect another user's reputation
                         if (voter_rep != rep_idx.end() &&
                             voter_rep->reputation < 0) {
-                                return;
+                            return;
                         }
 
                         if (author_rep == rep_idx.end()) {
@@ -288,7 +294,7 @@ namespace steemit {
                             if (cv->rshares < 0 &&
                                 !(voter_rep != rep_idx.end() &&
                                   voter_rep->reputation > 0)) {
-                                      return;
+                                return;
                             }
 
                             db.create<reputation_object>([&](reputation_object &r) {
@@ -302,7 +308,7 @@ namespace steemit {
                                 !(voter_rep != rep_idx.end() &&
                                   voter_rep->reputation >
                                   author_rep->reputation)) {
-                                      return;
+                                return;
                             }
 
                             db.modify(*author_rep, [&](reputation_object &r) {
@@ -360,12 +366,12 @@ namespace steemit {
 
                 db.pre_apply_operation.connect([&](const operation_notification &o) { my->pre_operation(o); });
                 db.post_apply_operation.connect([&](const operation_notification &o) { my->post_operation(o); });
-                add_plugin_index<follow_index>(db);
-                add_plugin_index<feed_index>(db);
-                add_plugin_index<blog_index>(db);
-                add_plugin_index<reputation_index>(db);
-                add_plugin_index<follow_count_index>(db);
-                add_plugin_index<blog_author_stats_index>(db);
+                db.add_plugin_index<follow_index>();
+                db.add_plugin_index<feed_index>();
+                db.add_plugin_index<blog_index>();
+                db.add_plugin_index<reputation_index>();
+                db.add_plugin_index<follow_count_index>();
+                db.add_plugin_index<blog_author_stats_index>();
 
                 if (options.count("follow-max-feed-size")) {
                     uint32_t feed_size = options["follow-max-feed-size"].as<uint32_t>();
@@ -380,8 +386,8 @@ namespace steemit {
         }
 
     }
-} // steemit::follow
+} // golos::follow
 
-STEEMIT_DEFINE_PLUGIN(follow, steemit::follow::follow_plugin)
+STEEMIT_DEFINE_PLUGIN(follow, golos::follow::follow_plugin)
 
-//DEFINE_OPERATION_TYPE( steemit::follow::follow_plugin_operation )
+//DEFINE_OPERATION_TYPE( golos::follow::follow_plugin_operation )

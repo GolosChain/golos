@@ -41,7 +41,6 @@ To run a node with *all* the data (e.g. for supporting a content website)
 that uses ca. 14GB of memory and growing:
 
     docker run \
-        --env USE_WAY_TOO_MUCH_RAM=1 \
         -d -p 2001:2001 -p 8090:8090 --name golos-full \
         goloschain/golos
 

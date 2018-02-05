@@ -1,9 +1,9 @@
 
 
-#include <steemit/plugins/raw_block/raw_block_api.hpp>
-#include <steemit/plugins/raw_block/raw_block_plugin.hpp>
+#include <golos/plugins/raw_block/raw_block_api.hpp>
+#include <golos/plugins/raw_block/raw_block_plugin.hpp>
 
-namespace steemit {
+namespace golos {
     namespace plugin {
         namespace raw_block {
 
@@ -29,6 +29,6 @@ namespace steemit {
 
         }
     }
-} // steemit::plugin::raw_block
+} // golos::plugin::raw_block
 
-STEEMIT_DEFINE_PLUGIN(raw_block, steemit::plugin::raw_block::raw_block_plugin)
+STEEMIT_DEFINE_PLUGIN(raw_block, golos::plugin::raw_block::raw_block_plugin)

@@ -1,23 +1,37 @@
-file(GLOB HEADERS "include/steemit/account_by_key/*.hpp")
+set(CURRENT_TARGET account_by_key)
+
+list(APPEND CURRENT_TARGET_HEADERS
+     include/golos/account_by_key/account_by_key_plugin.hpp
+     include/golos/account_by_key/account_by_key_api.hpp
+     include/golos/account_by_key/account_by_key_objects.hpp
+        )
+
+list(APPEND CURRENT_TARGET_SOURCES
+        account_by_key_plugin.cpp
+        account_by_key_api.cpp
+        )
 
 if(BUILD_SHARED_LIBRARIES)
-    add_library(golos_account_by_key SHARED
-            account_by_key_plugin.cpp
-            account_by_key_api.cpp
+    add_library(golos_${CURRENT_TARGET} SHARED
+            ${CURRENT_TARGET_HEADERS}
+            ${CURRENT_TARGET_SOURCES}
             )
 else()
-    add_library(golos_account_by_key STATIC
-            account_by_key_plugin.cpp
-            account_by_key_api.cpp
+    add_library(golos_${CURRENT_TARGET} STATIC
+            ${CURRENT_TARGET_HEADERS}
+            ${CURRENT_TARGET_SOURCES}
             )
 endif()
 
-target_link_libraries(golos_account_by_key golos_chain golos_protocol golos_app graphene_time)
-target_include_directories(golos_account_by_key
+add_library(golos::${CURRENT_TARGET} ALIAS golos_${CURRENT_TARGET})
+set_property(TARGET golos_${CURRENT_TARGET} PROPERTY EXPORT_NAME ${CURRENT_TARGET})
+
+target_link_libraries(golos_${CURRENT_TARGET} golos::chain golos::protocol golos::application)
+target_include_directories(golos_${CURRENT_TARGET}
         PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 install(TARGETS
-        golos_account_by_key
+        golos_${CURRENT_TARGET}
 
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib

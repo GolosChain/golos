@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <graphene/utilities/string_escape.hpp>
+#include <golos/utilities/string_escape.hpp>
 #include <sstream>
 
 namespace graphene {
@@ -68,5 +68,5 @@ namespace graphene {
         }
 
     }
-} // end namespace graphene::utilities
+} // end namespace golos::utilities
 

@@ -2,19 +2,19 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <steemit/app/plugin.hpp>
-#include <steemit/chain/generic_custom_operation_interpreter.hpp>
-#include <steemit/chain/account_object.hpp>
+#include <golos/application/plugin.hpp>
+#include <golos/chain/generic_custom_operation_interpreter.hpp>
+#include <golos/chain/objects/account_object.hpp>
 
 #include "../common/database_fixture.hpp"
 
-using namespace steemit::chain;
-using namespace steemit::chain::test;
+using namespace golos::chain;
+using namespace golos::chain::test;
 /*
-namespace steemit { namespace plugin_tests {
+namespace golos { namespace plugin_tests {
 
-using namespace steemit::app;
-using namespace steemit::chain;
+using namespace golos::application;
+using namespace golos::chain;
 
 struct test_a_operation : base_operation
 {
@@ -37,7 +37,7 @@ typedef fc::static_variant<
 class test_plugin : public plugin
 {
    public:
-      test_plugin( application* app );
+      test_plugin( application* application );
 
       std::string plugin_name()const override { return "TEST"; }
 
@@ -61,13 +61,13 @@ void test_b_evaluator::do_apply( const test_b_operation& o )
 {
    const auto& account = db().get_account( o.account );
 
-   db().modify( account, [&]( account_object& a )
+   get_database().modify( account, [&]( account_object& a )
    {
       a.json_metadata = "b";
    });
 }
 
-test_plugin::test_plugin( application* app ) : plugin( app )
+test_plugin::test_plugin( application* application ) : plugin( application )
 {
    _evaluator_registry = std::make_shared< generic_custom_operation_interpreter< test_op > >( database() );
 
@@ -77,16 +77,16 @@ test_plugin::test_plugin( application* app ) : plugin( app )
    database().set_custom_operation_interpreter( plugin_name(), _evaluator_registry );
 }
 
-} } // steemit::plugin_tests
+} } // golos::plugin_tests
 
-STEEMIT_DEFINE_PLUGIN( test, steemit::plugin_tests::test_plugin )
+STEEMIT_DEFINE_PLUGIN( test, golos::plugin_tests::test_plugin )
 
-FC_REFLECT( steemit::plugin_tests::test_a_operation, (account) )
-FC_REFLECT( steemit::plugin_tests::test_b_operation, (account) )
+FC_REFLECT( golos::plugin_tests::test_a_operation, (account) )
+FC_REFLECT( golos::plugin_tests::test_b_operation, (account) )
 
-DECLARE_OPERATION_TYPE( steemit::plugin_tests::test_op );
-FC_REFLECT_TYPENAME( steemit::plugin_tests::test_op );
-DEFINE_OPERATION_TYPE( steemit::plugin_tests::test_op );
+STEEMIT_DECLARE_OPERATION_TYPE( golos::plugin_tests::test_op );
+FC_REFLECT_TYPENAME( golos::plugin_tests::test_op );
+DEFINE_OPERATION_TYPE( golos::plugin_tests::test_op );
 */
 
 BOOST_FIXTURE_TEST_SUITE(plugin_ops, clean_database_fixture);

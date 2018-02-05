@@ -1,11 +1,11 @@
 
-#include <steemit/app/api_context.hpp>
-#include <steemit/app/application.hpp>
+#include <golos/application/api_context.hpp>
+#include <golos/application/application.hpp>
 
-#include <steemit/plugins/raw_block/raw_block_api.hpp>
-#include <steemit/plugins/raw_block/raw_block_plugin.hpp>
+#include <golos/plugins/raw_block/raw_block_api.hpp>
+#include <golos/plugins/raw_block/raw_block_plugin.hpp>
 
-namespace steemit {
+namespace golos {
     namespace plugin {
         namespace raw_block {
 
@@ -13,30 +13,30 @@ namespace steemit {
 
                 class raw_block_api_impl {
                 public:
-                    raw_block_api_impl(steemit::app::application &_app);
+                    raw_block_api_impl(golos::application::application &_app);
 
-                    std::shared_ptr<steemit::plugin::raw_block::raw_block_plugin> get_plugin();
+                    std::shared_ptr<golos::plugin::raw_block::raw_block_plugin> get_plugin();
 
-                    steemit::app::application &app;
+                    golos::application::application &app;
                 };
 
-                raw_block_api_impl::raw_block_api_impl(steemit::app::application &_app)
+                raw_block_api_impl::raw_block_api_impl(golos::application::application &_app)
                         : app(_app) {
                 }
 
-                std::shared_ptr<steemit::plugin::raw_block::raw_block_plugin> raw_block_api_impl::get_plugin() {
+                std::shared_ptr<golos::plugin::raw_block::raw_block_plugin> raw_block_api_impl::get_plugin() {
                     return app.get_plugin<raw_block_plugin>("raw_block");
                 }
 
             } // detail
 
-            raw_block_api::raw_block_api(const steemit::app::api_context &ctx) {
+            raw_block_api::raw_block_api(const golos::application::api_context &ctx) {
                 my = std::make_shared<detail::raw_block_api_impl>(ctx.app);
             }
 
             get_raw_block_result raw_block_api::get_raw_block(get_raw_block_args args) {
                 get_raw_block_result result;
-                std::shared_ptr<steemit::chain::database> db = my->app.chain_database();
+                std::shared_ptr<golos::chain::database> db = my->app.chain_database();
 
                 fc::optional<chain::signed_block> block = db->fetch_block_by_number(args.block_num);
                 if (!block.valid()) {
@@ -53,7 +53,7 @@ namespace steemit {
             }
 
             void raw_block_api::push_raw_block(std::string block_b64) {
-                std::shared_ptr<steemit::chain::database> db = my->app.chain_database();
+                std::shared_ptr<golos::chain::database> db = my->app.chain_database();
 
                 std::string block_bin = fc::base64_decode(block_b64);
                 fc::datastream<const char *> ds(block_bin.c_str(), block_bin.size());
@@ -70,4 +70,4 @@ namespace steemit {
 
         }
     }
-} // steemit::plugin::raw_block
+} // golos::plugin::raw_block

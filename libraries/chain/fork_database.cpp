@@ -1,8 +1,8 @@
-#include <steemit/chain/fork_database.hpp>
+#include <golos/chain/fork_database.hpp>
 
-#include <steemit/chain/database_exceptions.hpp>
+#include <golos/chain/database_exceptions.hpp>
 
-namespace steemit {
+namespace golos {
     namespace chain {
 
         fork_database::fork_database() {
@@ -35,7 +35,7 @@ namespace steemit {
             try {
                 _push_block(item);
             }
-            catch (const unlinkable_block_exception &e) {
+            catch (const exceptions::chain::unlinkable_block<> &e) {
                 wlog("Pushing block to fork database that failed to link: ${id}, ${num}", ("id", b.id())("num", b.block_num()));
                 wlog("Head: ${num}, ${id}", ("num", _head->data.block_num())("id", _head->data.id()));
                 throw;
@@ -57,7 +57,7 @@ namespace steemit {
                 auto &index = _index.get<block_id>();
                 auto itr = index.find(item->previous_id());
                 STEEMIT_ASSERT(itr !=
-                               index.end(), unlinkable_block_exception, "block does not link to known chain");
+                               index.end(), typename BOOST_IDENTITY_TYPE((exceptions::chain::unlinkable_block<>)), "block does not link to known chain");
                 FC_ASSERT(!(*itr)->invalid);
                 item->prev = *itr;
             }
@@ -239,4 +239,4 @@ namespace steemit {
         }
 
     }
-} // steemit::chain
+} // golos::chain

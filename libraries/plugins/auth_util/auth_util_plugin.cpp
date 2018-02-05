@@ -1,9 +1,9 @@
 
 
-#include <steemit/plugins/auth_util/auth_util_api.hpp>
-#include <steemit/plugins/auth_util/auth_util_plugin.hpp>
+#include <golos/plugins/auth_util/auth_util_api.hpp>
+#include <golos/plugins/auth_util/auth_util_plugin.hpp>
 
-namespace steemit {
+namespace golos {
     namespace plugin {
         namespace auth_util {
 
@@ -29,6 +29,6 @@ namespace steemit {
 
         }
     }
-} // steemit::plugin::auth_util
+} // golos::plugin::auth_util
 
-STEEMIT_DEFINE_PLUGIN(auth_util, steemit::plugin::auth_util::auth_util_plugin)
+STEEMIT_DEFINE_PLUGIN(auth_util, golos::plugin::auth_util::auth_util_plugin)
