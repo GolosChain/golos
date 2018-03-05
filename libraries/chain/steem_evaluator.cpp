@@ -534,7 +534,6 @@ namespace golos {
                             from_string(com.parent_permlink, o.parent_permlink);
                             from_string(com.category, o.parent_permlink);
                             com.root_comment = com.id;
-                            com.root_comment_created = com.created;
                             com.cashout_time = _db.has_hardfork(STEEMIT_HARDFORK_0_12__177)
                                                ?
                                                _db.head_block_time() +
@@ -546,7 +545,6 @@ namespace golos {
                             com.depth = parent->depth + 1;
                             com.category = parent->category;
                             com.root_comment = parent->root_comment;
-                            com.root_comment_created = parent->root_comment_created;
                             com.cashout_time = fc::time_point_sec::maximum();
                         }
 
@@ -1301,8 +1299,8 @@ namespace golos {
                     fc::uint128_t new_rshares = std::max(comment.net_rshares.value, int64_t(0));
 
                     /// calculate rshares2 value
-                    new_rshares = _db.calculate_vshares(new_rshares, comment.root_comment_created);
-                    old_rshares = _db.calculate_vshares(old_rshares, comment.root_comment_created);
+                    new_rshares = _db.calculate_vshares(new_rshares, comment.created);
+                    old_rshares = _db.calculate_vshares(old_rshares, comment.created);
 
                     const auto &cat = _db.get_category(comment.category);
                     _db.modify(cat, [&](category_object &c) {
@@ -1511,8 +1509,8 @@ namespace golos {
                     fc::uint128_t new_rshares = std::max(comment.net_rshares.value, int64_t(0));
 
                     /// calculate rshares2 value
-                    new_rshares = _db.calculate_vshares(new_rshares, comment.root_comment_created);
-                    old_rshares = _db.calculate_vshares(old_rshares, comment.root_comment_created);
+                    new_rshares = _db.calculate_vshares(new_rshares, comment.created);
+                    old_rshares = _db.calculate_vshares(old_rshares, comment.created);
 
                     _db.modify(comment, [&](comment_object &c) {
                         c.total_vote_weight -= itr->weight;
