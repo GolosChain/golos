@@ -1948,7 +1948,7 @@ namespace golos {
             if (c.children_rshares2 > 0) {
                 const auto &comment_by_parent = get_index<comment_index>().indices().get<by_parent>();
                 fc::uint128_t total_rshares2 =
-                    c.children_rshares2 - calculate_vshares(c.net_rshares.value, c.root_comment_created);
+                    c.children_rshares2 - calculate_vshares(c.net_rshares.value, c.created);
                 child_queue.push_back(c.id);
 
                 // Pre-order traversal of the tree of child comments
@@ -1958,7 +1958,7 @@ namespace golos {
 
                     if (cur.net_rshares > 0) {
                         auto claim = static_cast< uint64_t >(
-                                (to256(calculate_vshares(cur.net_rshares.value, c.root_comment_created)) *
+                                (to256(calculate_vshares(cur.net_rshares.value, c.created)) *
                                  max_rewards.value) / to256(total_rshares2));
                         unclaimed_rewards -= claim;
 
@@ -2041,7 +2041,7 @@ namespace golos {
                              comment.net_rshares,
                              comment.reward_weight,
                              to_steem(comment.max_accepted_payout),
-                             comment.root_comment_created).value);
+                             comment.created).value);
 
                     asset total_payout;
                     if (reward_tokens > 0) {
@@ -2122,7 +2122,7 @@ namespace golos {
 
                     }
 
-                    fc::uint128_t old_rshares2 = calculate_vshares(comment.net_rshares.value, comment.root_comment_created);
+                    fc::uint128_t old_rshares2 = calculate_vshares(comment.net_rshares.value, comment.created);
                     adjust_rshares2(comment, old_rshares2, 0);
                 }
 
@@ -4473,7 +4473,7 @@ namespace golos {
                 for (auto itr = comment_idx.begin();
                      itr != comment_idx.end(); ++itr) {
                     if (itr->net_rshares.value > 0) {
-                        auto delta = calculate_vshares(itr->net_rshares.value, itr->root_comment_created);
+                        auto delta = calculate_vshares(itr->net_rshares.value, itr->created);
                         total_rshares2 += delta;
                     }
                     if (itr->parent_author == STEEMIT_ROOT_POST_PARENT) {
@@ -4548,7 +4548,7 @@ namespace golos {
 
                 for (const auto &c : comments) {
                     if (c.net_rshares.value > 0) {
-                        adjust_rshares2(c, 0, calculate_vshares(c.net_rshares.value, c.root_comment_created));
+                        adjust_rshares2(c, 0, calculate_vshares(c.net_rshares.value, c.created));
                     }
                 }
 

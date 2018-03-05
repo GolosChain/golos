@@ -378,7 +378,7 @@ namespace golos {
                 if (props.total_reward_shares2 > 0) {
                     auto vshares = database().calculate_vshares(
                             d.net_rshares.value > 0 ? d.net_rshares.value : 0,
-                            d.root_comment_created);
+                            d.created);
 
                     //int64_t abs_net_rshares = llabs(d.net_rshares.value);
 
