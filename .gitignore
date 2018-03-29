@@ -49,3 +49,5 @@ documentation/doxygen/latex
 *.pyc
 *.pyo
 *.egg-info/
+
+.vscode
