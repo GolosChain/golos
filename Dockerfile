@@ -35,6 +35,7 @@ ADD . /usr/local/src/golos
 
 RUN \
     cd /usr/local/src/golos && \
+    git submodule update --init --recursive && \
     mkdir build && \
     cd build && \
     cmake \
