@@ -417,6 +417,7 @@ void plugin::plugin_initialize(const boost::program_options::variables_map &opti
     {
         my->_start_block = 0;
     }
+    ilog("Account History: start_block ${s}", ("s", my->_start_block));
     ilog("account_history plugin: plugin_initialize() end");
     // init(options);
 }
