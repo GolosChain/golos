@@ -72,7 +72,7 @@ namespace golos {
                     }
                 }
 
-                return condition(c) || query.filter_tags.find(c.category) != query.filter_tags.end();
+                return condition(c);
             }
 
 
@@ -356,7 +356,26 @@ namespace golos {
 
             void social_network_t::impl::set_url(discussion &d) const {
                 const comment_api_object root(database().get<comment_object, by_id>(d.root_comment));
-                d.url = "/" + root.category + "/@" + root.author + "/" + root.permlink;
+
+                std::vector< std::string > tags;
+                    if( root.json_metadata.size() ) {
+                        try {
+                            tags  = fc::json::from_string( root.json_metadata )["tags"].as< std::vector< std::string > >();
+                            if(tags.at(0) != ""){
+                                d.url = "/" + tags.at(0) + "/@" + root.author + "/" + root.permlink;
+                            }
+                            else {
+                                d.url = "/" + tags.at(1) + "/@" + root.author + "/" + root.permlink;
+                            }
+                        }
+                        catch( const fc::exception& e ) {
+                        // Do nothing on malformed json_metadata
+                        }
+                    }
+                    if(!tags.size()) {
+                        d.url = "/@" + root.author + "/" + root.permlink;
+                    }
+
                 d.root_title = root.title;
                 if (root.id != d.id) {
                     d.url += "#@" + d.author + "/" + d.permlink;
@@ -723,73 +742,6 @@ namespace golos {
                     return result;
                 });
             }
-
-            DEFINE_API(social_network_t, get_trending_categories) {
-                CHECK_ARG_SIZE(2)
-                auto after = args.args->at(0).as<string>();
-                auto limit = args.args->at(1).as<uint32_t>();
-                return pimpl->database().with_weak_read_lock([&]() {
-                    limit = std::min(limit, uint32_t(100));
-                    std::vector<category_api_object> result;
-                    result.reserve(limit);
-
-                    const auto &nidx = pimpl->database().get_index<golos::chain::category_index>().indices().get<by_name>();
-
-                    const auto &ridx = pimpl->database().get_index<golos::chain::category_index>().indices().get<by_rshares>();
-                    auto itr = ridx.begin();
-                    if (after != "" && nidx.size()) {
-                        auto nitr = nidx.lower_bound(after);
-                        if (nitr == nidx.end()) {
-                            itr = ridx.end();
-                        } else {
-                            itr = ridx.iterator_to(*nitr);
-                        }
-                    }
-
-                    while (itr != ridx.end() && result.size() < limit) {
-                        result.emplace_back(category_api_object(*itr));
-                        ++itr;
-                    }
-                    return result;
-                });
-            }
-
-            DEFINE_API(social_network_t, get_best_categories) {
-                CHECK_ARG_SIZE(2)
-                auto after = args.args->at(0).as<string>();
-                auto limit = args.args->at(1).as<uint32_t>();
-                return pimpl->database().with_weak_read_lock([&]() {
-                    limit = std::min(limit, uint32_t(100));
-                    std::vector<category_api_object> result;
-                    result.reserve(limit);
-                    return result;
-                });
-            }
-
-            DEFINE_API(social_network_t, get_active_categories) {
-                CHECK_ARG_SIZE(2)
-                auto after = args.args->at(0).as<string>();
-                auto limit = args.args->at(1).as<uint32_t>();
-                return pimpl->database().with_weak_read_lock([&]() {
-                    limit = std::min(limit, uint32_t(100));
-                    std::vector<category_api_object> result;
-                    result.reserve(limit);
-                    return result;
-                });
-            }
-
-            DEFINE_API(social_network_t, get_recent_categories) {
-                CHECK_ARG_SIZE(2)
-                auto after = args.args->at(0).as<string>();
-                auto limit = args.args->at(1).as<uint32_t>();
-                return pimpl->database().with_weak_read_lock([&]() {
-                    limit = std::min(limit, uint32_t(100));
-                    std::vector<category_api_object> result;
-                    result.reserve(limit);
-                    return result;
-                });
-            }
-
 
             template<
                     typename Object,
@@ -1457,7 +1409,6 @@ namespace golos {
             }
 
 
-
             discussion social_network_t::impl::get_discussion(comment_object::id_type id, uint32_t truncate_body) const {
                 discussion d = database().get(id);
                 set_url(d);
@@ -1473,10 +1424,6 @@ namespace golos {
 
                     if (!fc::is_utf8(d.body)) {
                         d.body = fc::prune_invalid_utf8(d.body);
-                    }
-
-                    if (!fc::is_utf8(d.category)) {
-                        d.category = fc::prune_invalid_utf8(d.category);
                     }
 
                     if (!fc::is_utf8(d.json_metadata)) {

@@ -5,7 +5,6 @@ namespace golos {
     namespace plugins {
         namespace social_network {
             struct discussion_index {
-                std::string category;    /// category by which everything is filtered
                 std::vector<std::string> trending;    /// pending lifetime payout
                 std::vector<std::string> trending30;  /// pending lifetime payout
                 std::vector<std::string> created;     /// creation date
@@ -24,4 +23,4 @@ namespace golos {
     }
 }
 
-FC_REFLECT((golos::plugins::social_network::discussion_index), (category)(trending)(trending30)(updated)(created)(responses)(active)(votes)(maturing)(best)(hot)(promoted)(cashout))
+FC_REFLECT((golos::plugins::social_network::discussion_index), (trending)(trending30)(updated)(created)(responses)(active)(votes)(maturing)(best)(hot)(promoted)(cashout))
