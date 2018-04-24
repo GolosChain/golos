@@ -100,54 +100,53 @@ namespace golos { namespace wallet {
                 return derived_key;
             }
 
-            string normalize_brain_key( string s ) {
+            string normalize_brain_key(string s) {
                 size_t i = 0, n = s.length();
                 std::string result;
-                char c;
-                result.reserve( n );
+                result.reserve(n);
 
                 bool preceded_by_whitespace = false;
                 bool non_empty = false;
-                while( i < n )
-                {
-                    c = s[i++];
-                    switch( c )
-                    {
+                while (i < n) {
+                    char c = s[i++];
+                    switch (c) {
                         case ' ':  case '\t': case '\r': case '\n': case '\v': case '\f':
                             preceded_by_whitespace = true;
                             continue;
 
-                        case 'a': c = 'A'; break;
-                        case 'b': c = 'B'; break;
-                        case 'c': c = 'C'; break;
-                        case 'd': c = 'D'; break;
-                        case 'e': c = 'E'; break;
-                        case 'f': c = 'F'; break;
-                        case 'g': c = 'G'; break;
-                        case 'h': c = 'H'; break;
-                        case 'i': c = 'I'; break;
-                        case 'j': c = 'J'; break;
-                        case 'k': c = 'K'; break;
-                        case 'l': c = 'L'; break;
-                        case 'm': c = 'M'; break;
-                        case 'n': c = 'N'; break;
-                        case 'o': c = 'O'; break;
-                        case 'p': c = 'P'; break;
-                        case 'q': c = 'Q'; break;
-                        case 'r': c = 'R'; break;
-                        case 's': c = 'S'; break;
-                        case 't': c = 'T'; break;
-                        case 'u': c = 'U'; break;
-                        case 'v': c = 'V'; break;
-                        case 'w': c = 'W'; break;
-                        case 'x': c = 'X'; break;
-                        case 'y': c = 'Y'; break;
-                        case 'z': c = 'Z'; break;
+                        case 'a':
+                        case 'b':
+                        case 'c':
+                        case 'd':
+                        case 'e':
+                        case 'f':
+                        case 'g':
+                        case 'h':
+                        case 'i':
+                        case 'j':
+                        case 'k':
+                        case 'l':
+                        case 'm':
+                        case 'n':
+                        case 'o':
+                        case 'p':
+                        case 'q':
+                        case 'r':
+                        case 's':
+                        case 't':
+                        case 'u':
+                        case 'v':
+                        case 'w':
+                        case 'x':
+                        case 'y':
+                        case 'z':
+                            c ^= 'a' ^ 'A';     // ASCII upper/lowercase diffs only in 1 bit
+                            break;
 
                         default:
                             break;
                     }
-                    if( preceded_by_whitespace && non_empty )
+                    if (preceded_by_whitespace && non_empty)
                         result.push_back(' ');
                     result.push_back(c);
                     preceded_by_whitespace = false;
@@ -212,7 +211,8 @@ namespace golos { namespace wallet {
                     _remote_network_broadcast_api( con.get_remote_api< golos::wallet::remote_network_broadcast_api >( 0, "network_broadcast_api" ) ),
                     _remote_follow( con.get_remote_api< golos::wallet::remote_follow >( 0, "follow" ) ),
                     _remote_market_history( con.get_remote_api< golos::wallet::remote_market_history >( 0, "market_history" ) ),
-                    _remote_private_message( con.get_remote_api< golos::wallet::remote_private_message>( 0, "private_message" ) )
+                    _remote_private_message( con.get_remote_api< golos::wallet::remote_private_message>( 0, "private_message" ) ),
+                    _remote_account_by_key( con.get_remote_api< golos::wallet::remote_account_by_key>( 0, "account_by_key" ) )
                 {
                     init_prototype_ops();
 
@@ -266,18 +266,52 @@ namespace golos { namespace wallet {
                 }
 
                 variant info() const {
-                    //auto dynamic_props = _remote_database_api->get_dynamic_global_properties();
-                    //fc::mutable_variant_object result(fc::variant(dynamic_props).get_object());
+                    auto dynamic_props = _remote_database_api->get_dynamic_global_properties();
+                    fc::mutable_variant_object result(fc::variant(dynamic_props).get_object());
+                    result["witness_majority_version"] =
+                        std::string(_remote_database_api->get_witness_schedule().majority_version);
+                    result["hardfork_version"] =
+                        std::string(_remote_database_api->get_hardfork_version());
+                    result["head_block_num"] = dynamic_props.head_block_number;
+                    result["head_block_id"] = dynamic_props.head_block_id;
+                    result["head_block_age"] =
+                        fc::get_approximate_relative_time_string(
+                            dynamic_props.time, time_point_sec(time_point::now()), " old");
+                    result["participation"] =
+                        (100 * dynamic_props.recent_slots_filled.popcount()) / 128.0;
+                    result["median_sbd_price"] = _remote_database_api->get_current_median_history_price();
+                    result["account_creation_fee"] = _remote_database_api->get_chain_properties().account_creation_fee;
+
+                    return result;
+                }
+
+                variant_object database_info() const {
+                    auto info = _remote_database_api->get_database_info();
+
+                    auto convert = [](std::size_t value) {
+                        auto gb = value / (1024 * 1024 * 1024);
+                        auto mb = value / (1024 * 1024);
+                        auto kb = value / (1024);
+
+                        if (gb) {
+                            return std::to_string(gb) + "G";
+                        } else if (mb) {
+                            return std::to_string(mb) + "M";
+                        } else if (kb) {
+                            return std::to_string(kb) + "K";
+                        }
+
+                        return std::to_string(value);
+                    };
+
                     fc::mutable_variant_object result;
-                    //result["witness_majority_version"] = std::string( _remote_database_api->get_witness_schedule().majority_version );
-                    //result["hardfork_version"] = std::string( _remote_database_api->get_hardfork_version() );
-                    //result["head_block_num"] = dynamic_props.head_block_number;
-                    //result["head_block_id"] = dynamic_props.head_block_id;
-                    //result["head_block_age"] = fc::get_approximate_relative_time_string(dynamic_props.time, time_point_sec(time_point::now()), " old");
-                    //result["participation"] = (100*dynamic_props.recent_slots_filled.popcount()) / 128.0;
-                    //result["median_sbd_price"] = _remote_database_api->get_current_median_history_price();
-                    //result["account_creation_fee"] = _remote_database_api->get_chain_properties().account_creation_fee;
-                    //result["post_reward_fund"] = fc::variant(_remote_api->get_reward_fund( STEEM_POST_REWARD_FUND_NAME )).get_object();
+
+                    result["total_size"] = convert(info.total_size);
+                    result["used_size"] = convert(info.used_size);
+                    result["free_size"] = convert(info.free_size);
+                    result["reserved_size"] = convert(info.reserved_size);
+                    result["index_list"] = info.index_list;
+
                     return result;
                 }
 
@@ -825,6 +859,7 @@ namespace golos { namespace wallet {
                 fc::api< remote_follow >                _remote_follow;
                 fc::api< remote_market_history >        _remote_market_history;
                 fc::api< remote_private_message >       _remote_private_message;
+                fc::api< remote_account_by_key >        _remote_account_by_key;
                 uint32_t                                _tx_expiration_seconds = 30;
 
                 flat_map<string, operation>             _prototype_ops;
@@ -854,7 +889,7 @@ namespace golos { namespace wallet {
             return my->copy_wallet_file(destination_filename);
         }
 
-        optional< database_api::signed_block> wallet_api::get_block(uint32_t num) {
+        optional<signed_block_with_info> wallet_api::get_block(uint32_t num) {
             return my->_remote_database_api->get_block( num );
         }
 
@@ -872,7 +907,7 @@ namespace golos { namespace wallet {
             for( const auto& item : my->_keys )
                 pub_keys.push_back(item.first);
 
-            auto refs = my->_remote_database_api->get_key_references( pub_keys );
+            auto refs = my->_remote_account_by_key->get_key_references( pub_keys );
             set<string> names;
             for( const auto& item : refs )
                 for( const auto& name : item )
@@ -963,9 +998,14 @@ namespace golos { namespace wallet {
             return detail::normalize_brain_key( s );
         }
 
-        variant wallet_api::info()
+        variant wallet_api::info() const
         {
             return my->info();
+        }
+
+        variant_object wallet_api::database_info() const
+        {
+            return my->database_info();
         }
 
         variant_object wallet_api::about() const
@@ -1067,6 +1107,10 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             my->encrypt_keys();
         }
 
+        void wallet_api::quit() {
+            my->self.quit_command();
+        }
+
         void wallet_api::lock() {
             try {
                 FC_ASSERT( !is_locked() );
@@ -1115,6 +1159,15 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             auto secret = fc::sha256::hash( seed.c_str(), seed.size() );
             auto priv = fc::ecc::private_key::regenerate( secret );
             return std::make_pair( public_key_type( priv.get_public_key() ), key_to_wif( priv ) );
+        }
+
+        signed_block_with_info::signed_block_with_info(const signed_block& block): signed_block(block) {
+            block_id = id();
+            signing_key = signee();
+            transaction_ids.reserve(transactions.size());
+            for (const signed_transaction& tx : transactions) {
+                transaction_ids.push_back(tx.id());
+            }
         }
 
         database_api::feed_history_api_object wallet_api::get_feed_history()const {

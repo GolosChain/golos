@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <memory>
 #include <golos/plugins/json_rpc/plugin.hpp>
+#include <golos/plugins/follow/plugin.hpp>
 
 #define GET_REQUIRED_FEES_MAX_RECURSION 4
 
@@ -54,6 +55,10 @@ namespace golos {
                 api_impl();
 
                 ~api_impl();
+
+                void startup() {
+                    _follow_api = appbase::app().find_plugin<golos::plugins::follow::plugin>();
+                }
 
                 // Subscriptions
                 void set_subscribe_callback(std::function<void(const variant &)> cb, bool clear_filter);
@@ -117,6 +122,20 @@ namespace golos {
 
                 std::vector<account_name_type> get_miner_queue() const;
 
+                share_type get_account_reputation(const account_name_type& account) const {
+                    if (!_follow_api) {
+                        return 0;
+                    }
+
+                    auto &rep_idx = database().get_index<follow::reputation_index>().indices().get<follow::by_account>();
+                    auto itr = rep_idx.find(account);
+
+                    if (rep_idx.end() != itr) {
+                        return itr->reputation;
+                    }
+
+                    return 0;
+                }
 
                 template<typename T>
                 void subscribe_to_item(const T &i) const {
@@ -158,6 +177,7 @@ namespace golos {
             private:
 
                 golos::chain::database &_db;
+                golos::plugins::follow::plugin *_follow_api = nullptr;
             };
 
 
@@ -172,7 +192,7 @@ namespace golos {
             //////////////////////////////////////////////////////////////////////
 
             void plugin::set_subscribe_callback(std::function<void(const variant &)> cb, bool clear_filter) {
-                my->database().with_read_lock([&]() {
+                my->database().with_weak_read_lock([&]() {
                     my->set_subscribe_callback(cb, clear_filter);
                 });
             }
@@ -193,7 +213,7 @@ namespace golos {
             }
 
             void plugin::set_pending_transaction_callback(std::function<void(const variant &)> cb) {
-                my->database().with_read_lock([&]() {
+                my->database().with_weak_read_lock([&]() {
                     my->set_pending_transaction_callback(cb);
                 });
             }
@@ -203,7 +223,7 @@ namespace golos {
             }
 
             void plugin::cancel_all_subscriptions() {
-                my->database().with_read_lock([&]() {
+                my->database().with_weak_read_lock([&]() {
                     my->cancel_all_subscriptions();
                 });
             }
@@ -224,14 +244,14 @@ namespace golos {
             plugin::~plugin() {
             }
 
-            plugin::api_impl::api_impl() : _db(appbase::app().get_plugin<chain::plugin>().db()) {
+            plugin::api_impl::api_impl() : _db(appbase::app().get_plugin<chain::plugin>().db())
+            {
                 wlog("creating database plugin ${x}", ("x", int64_t(this)));
             }
 
             plugin::api_impl::~api_impl() {
                 elog("freeing database plugin ${x}", ("x", int64_t(this)));
             }
-
 
             //////////////////////////////////////////////////////////////////////
             //                                                                  //
@@ -241,7 +261,7 @@ namespace golos {
 
             DEFINE_API(plugin, get_block_header) {
                 CHECK_ARG_SIZE(1)
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_block_header(args.args->at(0).as<uint32_t>());
                 });
             }
@@ -256,7 +276,7 @@ namespace golos {
 
             DEFINE_API(plugin, get_block) {
                 CHECK_ARG_SIZE(1)
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_block(args.args->at(0).as<uint32_t>());
                 });
             }
@@ -269,7 +289,7 @@ namespace golos {
                 CHECK_ARG_SIZE(2)
                 auto block_num = args.args->at(0).as<uint32_t>();
                 auto only_virtual = args.args->at(1).as<bool>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_ops_in_block(block_num, only_virtual);
                 });
             }
@@ -295,9 +315,9 @@ namespace golos {
                 // Delegate connection handlers to callback
                 msg_pack_transfer transfer(args);
 
-                my->database().with_read_lock([&]{
+                my->database().with_weak_read_lock([&]{
                     my->set_block_applied_callback([msg = transfer.msg()](const fc::variant & block_header) {
-                        msg->result(fc::variant(block_header));
+                        msg->unsafe_result(fc::variant(block_header));
                     });
                 });
 
@@ -333,7 +353,7 @@ namespace golos {
             //////////////////////////////////////////////////////////////////////
 
             DEFINE_API(plugin, get_config) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_config();
                 });
             }
@@ -343,25 +363,25 @@ namespace golos {
             }
 
             DEFINE_API(plugin, get_dynamic_global_properties) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_dynamic_global_properties();
                 });
             }
 
             DEFINE_API(plugin, get_chain_properties) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->database().get_witness_schedule_object().median_props;
                 });
             }
 
             DEFINE_API(plugin, get_feed_history) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return feed_history_api_object(my->database().get_feed_history());
                 });
             }
 
             DEFINE_API(plugin, get_current_median_history_price) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->database().get_feed_history().current_median_history;
                 });
             }
@@ -371,19 +391,19 @@ namespace golos {
             }
 
             DEFINE_API(plugin, get_witness_schedule) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->database().get(witness_schedule_object::id_type());
                 });
             }
 
             DEFINE_API(plugin, get_hardfork_version) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->database().get(hardfork_property_object::id_type()).current_hardfork_version;
                 });
             }
 
             DEFINE_API(plugin, get_next_scheduled_hardfork) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     scheduled_hardfork shf;
                     const auto &hpo = my->database().get(hardfork_property_object::id_type());
                     shf.hf_version = hpo.next_hardfork;
@@ -400,7 +420,7 @@ namespace golos {
 
             DEFINE_API(plugin, get_accounts) {
                 CHECK_ARG_SIZE(1)
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_accounts(args.args->at(0).as<vector<std::string> >());
                 });
             }
@@ -414,6 +434,7 @@ namespace golos {
                     auto itr = idx.find(name);
                     if (itr != idx.end()) {
                         results.push_back(extended_account(*itr, _db));
+                        results.back().reputation = get_account_reputation(name);
                         auto vitr = vidx.lower_bound(boost::make_tuple(itr->id, witness_id_type()));
                         while (vitr != vidx.end() && vitr->account == itr->id) {
                             results.back().witness_votes.insert(_db.get(vitr->witness).owner);
@@ -428,7 +449,7 @@ namespace golos {
 
             DEFINE_API(plugin, lookup_account_names) {
                 CHECK_ARG_SIZE(1)
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->lookup_account_names(args.args->at(0).as<vector<std::string> >());
                 });
             }
@@ -456,7 +477,7 @@ namespace golos {
                 CHECK_ARG_SIZE(2)
                 account_name_type lower_bound_name = args.args->at(0).as<account_name_type>();
                 uint32_t limit = args.args->at(1).as<uint32_t>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->lookup_accounts(lower_bound_name, limit);
                 });
             }
@@ -478,7 +499,7 @@ namespace golos {
             }
 
             DEFINE_API(plugin, get_account_count) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_account_count();
                 });
             }
@@ -490,7 +511,7 @@ namespace golos {
             DEFINE_API(plugin, get_owner_history) {
                 CHECK_ARG_SIZE(1)
                 auto account = args.args->at(0).as<string>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     std::vector<owner_authority_history_api_object> results;
                     const auto &hist_idx = my->database().get_index<owner_authority_history_index>().indices().get<
                             by_account>();
@@ -508,7 +529,7 @@ namespace golos {
             DEFINE_API(plugin, get_recovery_request) {
                 CHECK_ARG_SIZE(1)
                 auto account = args.args->at(0).as<account_name_type>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     optional<account_recovery_request_api_object> result;
 
                     const auto &rec_idx = my->database().get_index<account_recovery_request_index>().indices().get<
@@ -527,7 +548,7 @@ namespace golos {
                 CHECK_ARG_SIZE(2)
                 auto from = args.args->at(0).as<account_name_type>();
                 auto escrow_id = args.args->at(1).as<uint32_t>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     optional<escrow_api_object> result;
 
                     try {
@@ -591,7 +612,7 @@ namespace golos {
                           ("n", args.args->size()));
                 auto account = args.args->at(0).as<string>();
                 auto type = args.args->at(1).as<withdraw_route_type>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_withdraw_routes(account, type);
                 });
             }
@@ -619,7 +640,7 @@ namespace golos {
             DEFINE_API(plugin, get_witnesses) {
                 CHECK_ARG_SIZE(1)
                 auto witness_ids = args.args->at(0).as<vector<witness_object::id_type> >();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_witnesses(witness_ids);
                 });
             }
@@ -642,7 +663,7 @@ namespace golos {
             DEFINE_API(plugin, get_witness_by_account) {
                 CHECK_ARG_SIZE(1)
                 auto account_name = args.args->at(0).as<std::string>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_witness_by_account(account_name);
                 });
             }
@@ -691,7 +712,7 @@ namespace golos {
                 CHECK_ARG_SIZE(2)
                 auto from = args.args->at(0).as<std::string>();
                 auto limit = args.args->at(1).as<uint32_t>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_witnesses_by_vote(from, limit);
                 });
             }
@@ -701,7 +722,7 @@ namespace golos {
                 CHECK_ARG_SIZE(2)
                 auto lower_bound_name = args.args->at(0).as<std::string>();
                 auto limit = args.args->at(1).as<uint32_t>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->lookup_witness_accounts(lower_bound_name, limit);
                 });
             }
@@ -732,7 +753,7 @@ namespace golos {
             }
 
             DEFINE_API(plugin, get_witness_count) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_witness_count();
                 });
             }
@@ -750,7 +771,7 @@ namespace golos {
             DEFINE_API(plugin, get_transaction_hex) {
                 CHECK_ARG_SIZE(1)
                 auto trx = args.args->at(0).as<signed_transaction>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_transaction_hex(trx);
                 });
             }
@@ -763,7 +784,7 @@ namespace golos {
                 CHECK_ARG_SIZE(2)
                 auto trx = args.args->at(0).as<signed_transaction>();
                 auto available_keys = args.args->at(1).as<flat_set<public_key_type>>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_required_signatures(trx, available_keys);
                 });
             }
@@ -792,7 +813,7 @@ namespace golos {
 
             DEFINE_API(plugin, get_potential_signatures) {
                 CHECK_ARG_SIZE(1)
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_potential_signatures(args.args->at(0).as<signed_transaction>());
                 });
             }
@@ -831,7 +852,7 @@ namespace golos {
 
             DEFINE_API(plugin, verify_authority) {
                 CHECK_ARG_SIZE(1)
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->verify_authority(args.args->at(0).as<signed_transaction>());
                 });
             }
@@ -849,7 +870,7 @@ namespace golos {
 
             DEFINE_API(plugin, verify_account_authority) {
                 CHECK_ARG_SIZE(2)
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->verify_account_authority(args.args->at(0).as<account_name_type>(),
                                                         args.args->at(1).as<flat_set<public_key_type> >());
                 });
@@ -875,7 +896,7 @@ namespace golos {
             DEFINE_API(plugin, get_conversion_requests) {
                 CHECK_ARG_SIZE(1)
                 auto account = args.args->at(0).as<std::string>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     const auto &idx = my->database().get_index<convert_request_index>().indices().get<by_owner>();
                     std::vector<convert_request_api_object> result;
                     auto itr = idx.lower_bound(account);
@@ -918,7 +939,7 @@ namespace golos {
                 auto from = args.args->at(1).as<uint64_t>();
                 auto limit = args.args->at(2).as<uint32_t>();
 
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_account_history(account, from, limit);
                 });
             }
@@ -941,13 +962,13 @@ namespace golos {
 
 
             DEFINE_API(plugin, get_miner_queue) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     return my->get_miner_queue();
                 });
             }
 
             DEFINE_API(plugin, get_active_witnesses) {
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     const auto &wso = my->database().get_witness_schedule_object();
                     size_t n = wso.current_shuffled_witnesses.size();
                     vector<account_name_type> result;
@@ -964,7 +985,7 @@ namespace golos {
             DEFINE_API(plugin, get_savings_withdraw_from) {
                 CHECK_ARG_SIZE(1)
                 auto account = args.args->at(0).as<string>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     std::vector<savings_withdraw_api_object> result;
 
                     const auto &from_rid_idx = my->database().get_index<savings_withdraw_index>().indices().get<by_from_rid>();
@@ -980,7 +1001,7 @@ namespace golos {
             DEFINE_API(plugin, get_savings_withdraw_to) {
                 CHECK_ARG_SIZE(1)
                 auto account = args.args->at(0).as<string>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     std::vector<savings_withdraw_api_object> result;
 
                     const auto &to_complete_idx = my->database().get_index<savings_withdraw_index>().indices().get<by_to_complete>();
@@ -996,7 +1017,7 @@ namespace golos {
             DEFINE_API(plugin, get_transaction) {
                 CHECK_ARG_SIZE(1)
                 auto id = args.args->at(0).as<transaction_id_type>();
-                return my->database().with_read_lock([&]() {
+                return my->database().with_weak_read_lock([&]() {
                     const auto &idx = my->database().get_index<operation_index>().indices().get<by_transaction_id>();
                     auto itr = idx.lower_bound(id);
                     if (itr != idx.end() && itr->trx_id == id) {
@@ -1012,6 +1033,27 @@ namespace golos {
                 });
             }
 
+            DEFINE_API(plugin, get_database_info) {
+                CHECK_ARG_SIZE(0);
+
+                // read lock doesn't seem needed...
+
+                database_info info;
+                auto& db = my->database();
+
+                info.free_size = db.free_memory();
+                info.total_size = db.max_memory();
+                info.reserved_size = db.reserved_memory();
+                info.used_size = info.total_size - info.free_size - info.reserved_size;
+
+                info.index_list.reserve(db.index_list_size());
+
+                for (auto it = db.index_list_begin(), et = db.index_list_end(); et != it; ++it) {
+                    info.index_list.push_back({(*it)->name(), (*it)->size()});
+                }
+
+                return info;
+            }
 
             void plugin::plugin_initialize(const boost::program_options::variables_map &options) {
                 ilog("database_api plugin: plugin_initialize() begin");
@@ -1023,6 +1065,9 @@ namespace golos {
                 ilog("database_api plugin: plugin_initialize() end");
             }
 
+            void plugin::plugin_startup() {
+                my->startup();
+            }
         }
     }
 } // golos::plugins::database_api
