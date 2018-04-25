@@ -490,6 +490,8 @@ namespace golos {
 
             bool has_hardfork(uint32_t hardfork) const;
 
+            uint32_t current_hardfork() const;
+
             /* For testing and debugging only. Given a hardfork
                with id N, applies all hardforks with id <= N */
             void set_hardfork(uint32_t hardfork, bool process_now = true);

@@ -10,11 +10,9 @@
 #include <golos/chain/database.hpp>
 #include <golos/chain/database_exceptions.hpp>
 #include <golos/chain/db_with.hpp>
-#include <golos/chain/evaluator_registry.hpp>
 #include <golos/chain/history_object.hpp>
 #include <golos/chain/index.hpp>
 #include <golos/chain/snapshot_state.hpp>
-#include <golos/chain/steem_evaluator.hpp>
 #include <golos/chain/steem_objects.hpp>
 #include <golos/chain/transaction_object.hpp>
 #include <golos/chain/shared_db_merkle.hpp>
@@ -26,6 +24,9 @@
 
 #include <fc/io/fstream.hpp>
 #include <fc/io/json.hpp>
+
+#include <golos/chain/evaluator/hf17/steem_evaluator.hpp>
+#include <golos/chain/evaluator_registry.hpp>
 
 #define VIRTUAL_SCHEDULE_LAP_LENGTH  ( fc::uint128_t(uint64_t(-1)) )
 #define VIRTUAL_SCHEDULE_LAP_LENGTH2 ( fc::uint128_t::max_value() )
@@ -2835,6 +2836,7 @@ namespace golos {
             _my->_evaluator_registry.register_evaluator<decline_voting_rights_evaluator>();
             _my->_evaluator_registry.register_evaluator<reset_account_evaluator>();
             _my->_evaluator_registry.register_evaluator<set_reset_account_evaluator>();
+
         }
 
         void database::set_custom_operation_interpreter(const std::string &id, std::shared_ptr<custom_operation_interpreter> registry) {
@@ -3514,7 +3516,8 @@ namespace golos {
         void database::apply_operation(const operation &op) {
             operation_notification note(op);
             notify_pre_apply_operation(note);
-            _my->_evaluator_registry.get_evaluator(op).apply(op);
+            auto current_hardfork_ = current_hardfork();
+            _my->_evaluator_registry.get_evaluator(op,current_hardfork_).apply(op);
             notify_post_apply_operation(note);
         }
 
@@ -4715,6 +4718,10 @@ namespace golos {
                     });
                 }
             }
+        }
+
+        uint32_t database::current_hardfork() const {
+            return get_hardfork_property_object().current_hardfork_version.hardfork_number();
         }
     }
 } //golos::chain

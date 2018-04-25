@@ -118,6 +118,10 @@ namespace golos {
             bool operator>=(const version &o) const {
                 return v_num >= (o.v_num & 0xFFFF0000);
             }
+
+            uint32_t hardfork_number() const {
+                return ((v_num >> 16) & 0x000000FF);
+            }
         };
 
         struct hardfork_version_vote {

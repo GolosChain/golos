@@ -1,4 +1,4 @@
-#include <golos/chain/steem_evaluator.hpp>
+#include <golos/chain/evaluator/hf17/steem_evaluator.hpp>
 #include <golos/chain/database.hpp>
 #include <golos/chain/custom_operation_interpreter.hpp>
 #include <golos/chain/steem_objects.hpp>
