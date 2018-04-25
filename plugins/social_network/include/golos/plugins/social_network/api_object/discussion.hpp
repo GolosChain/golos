@@ -14,7 +14,7 @@ namespace golos { namespace plugins { namespace social_network {
         }
 
         string url; /// /category/@rootauthor/root_permlink#author/permlink
-        string root_title;
+        string root_title; 
         asset pending_payout_value = asset(0, SBD_SYMBOL); ///< sbd
         asset total_pending_payout_value = asset(0, SBD_SYMBOL); ///< sbd including replies
         std::vector<vote_state> active_votes;
@@ -25,9 +25,6 @@ namespace golos { namespace plugins { namespace social_network {
         double hot = 0;
         double trending = 0;
         uint32_t body_length = 0;
-        std::vector<account_name_type> reblogged_by;
-        optional <account_name_type> first_reblogged_by;
-        optional <time_point_sec> first_reblogged_on;
     };
 
 } } } // golos::plugins::social_network
@@ -35,4 +32,5 @@ namespace golos { namespace plugins { namespace social_network {
 FC_REFLECT_DERIVED((
     golos::plugins::social_network::discussion), ((golos::plugins::social_network::comment_api_object)),
         (url)(root_title)(pending_payout_value)(total_pending_payout_value)(active_votes)(active_votes_count)(replies)
-        (author_reputation)(promoted)(body_length)(reblogged_by)(first_reblogged_by)(first_reblogged_on))
+        (author_reputation)(promoted)(body_length)
+    )
