@@ -112,8 +112,8 @@ namespace mongo_db {
             auto doc2 = create_document("comment_content_object");
             auto& body2 = doc2->doc;
 
-            //format_value(body2, "comment", comment.id);
-            format_value(body2, "comment_permlink", perm);
+            format_value(body2, "comment", oid);
+            //format_value(body2, "comment_permlink", perm);
             format_value(body2, "title", content.title);
             format_value(body2, "body", content.body);
             format_value(body2, "json_metadata", content.json_metadata);
@@ -190,6 +190,7 @@ fclose(f22);
 
 mongo_db_deleter del;
 del.initialize("mongodb://127.0.0.1:27017/Golos");
+del.delete_votes_of_comment(author, op.permlink);
 del.delete_comment(author, op.permlink);
 
         return result_type();
