@@ -34,6 +34,7 @@ target_link_libraries(
         golos::follow
         golos::network_broadcast_api
         golos::witness_api
+        golos::mongo_db
         fc
         ${readline_libraries}
         ${CMAKE_DL_LIBS}
