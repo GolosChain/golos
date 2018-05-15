@@ -180,16 +180,17 @@ namespace mongo_db {
     }
     
     auto state_writer::operator()(const delete_comment_operation& op) -> result_type {
-	std::string author = op.author;
+	    std::string author = op.author;
 	
         mongo_db_deleter del;
         del.initialize("mongodb://127.0.0.1:27017/Golos");
-        del.delete_author_reward(author, op.permlink);
-        del.delete_benefactor_reward(author, op.permlink);
-        del.delete_comment_content(author, op.permlink);
-        del.delete_comment_reward(author, op.permlink);
-        del.delete_comment_vote(author, op.permlink);
-        del.delete_curation_reward(author, op.permlink);
+        auto id = del.get_comment_oid(author, op.permlink);
+        del.delete_author_reward(id);
+        del.delete_benefactor_reward(id);
+        del.delete_comment_content(id);
+        del.delete_comment_reward(id);
+        del.delete_comment_vote(id);
+        del.delete_curation_reward(id);
         del.delete_comment(author, op.permlink);
 
         return result_type();

@@ -59,49 +59,29 @@ namespace mongo_db {
         }
         removed_blocks.clear();
     }
-    
-    bsoncxx::types::b_oid mongo_db_deleter::get_comment_oid(const std::string& auth, const std::string& permlink) {
-        auto comments = mongo_database["comment_object"];
-        auto comment_doc = comments.find_one(document{} << "author" << auth << "permlink" << permlink << finalize);
-        auto comment = comment_doc->view();
-        auto id = comment["_id"].get_oid();
-        return id;
+
+    void mongo_db_deleter::delete_author_reward(bsoncxx::types::b_oid comment_oid) {
+        mongo_database["author_reward"].delete_one(document{} << "comment" << comment_oid << finalize);
     }
 
-    void mongo_db_deleter::delete_author_reward(const std::string& auth, const std::string& permlink) {
-        auto id = get_comment_oid(auth, permlink);
-        
-        mongo_database["author_reward"].delete_one(document{} << "comment" << id << finalize);
+    void mongo_db_deleter::delete_benefactor_reward(bsoncxx::types::b_oid comment_oid) {
+        mongo_database["benefactor_reward"].delete_one(document{} << "comment" << comment_oid << finalize);
     }
 
-    void mongo_db_deleter::delete_benefactor_reward(const std::string& auth, const std::string& permlink) {
-        auto id = get_comment_oid(auth, permlink);
-        
-        mongo_database["benefactor_reward"].delete_one(document{} << "comment" << id << finalize);
+    void mongo_db_deleter::delete_comment_content(bsoncxx::types::b_oid comment_oid) {
+        mongo_database["comment_content_object"].delete_one(document{} << "comment" << comment_oid << finalize);
     }
 
-    void mongo_db_deleter::delete_comment_content(const std::string& auth, const std::string& permlink) {
-        auto id = get_comment_oid(auth, permlink);
-        
-        mongo_database["comment_content_object"].delete_one(document{} << "comment" << id << finalize);
+    void mongo_db_deleter::delete_comment_reward(bsoncxx::types::b_oid comment_oid) {
+        mongo_database["comment_reward"].delete_one(document{} << "comment" << comment_oid << finalize);
     }
 
-    void mongo_db_deleter::delete_comment_reward(const std::string& auth, const std::string& permlink) {
-        auto id = get_comment_oid(auth, permlink);
-        
-        mongo_database["comment_reward"].delete_one(document{} << "comment" << id << finalize);
+    void mongo_db_deleter::delete_comment_vote(bsoncxx::types::b_oid comment_oid) {
+        mongo_database["comment_vote_object"].delete_many(document{} << "comment" << comment_oid << finalize);
     }
 
-    void mongo_db_deleter::delete_comment_vote(const std::string& auth, const std::string& permlink) {
-        auto id = get_comment_oid(auth, permlink);
-
-        mongo_database["comment_vote_object"].delete_many(document{} << "comment" << id << finalize);
-    }
-
-    void mongo_db_deleter::delete_curation_reward(const std::string& auth, const std::string& permlink) {
-        auto id = get_comment_oid(auth, permlink);
-        
-        mongo_database["curation_reward"].delete_one(document{} << "comment" << id << finalize);
+    void mongo_db_deleter::delete_curation_reward(bsoncxx::types::b_oid comment_oid) {
+        mongo_database["curation_reward"].delete_one(document{} << "comment" << comment_oid << finalize);
     }
 
     void mongo_db_deleter::delete_comment(const std::string& auth, const std::string& permlink) {

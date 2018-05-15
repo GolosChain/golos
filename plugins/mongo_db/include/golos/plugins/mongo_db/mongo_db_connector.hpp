@@ -20,6 +20,8 @@ namespace mongo_db {
 
         virtual bool initialize(const std::string& uri_str);
 
+        bsoncxx::types::b_oid get_comment_oid(const std::string &auth, const std::string &permlink);
+
     protected:
         std::string db_name;
 
