@@ -76,15 +76,10 @@ if (libmongoc-1.0_FOUND)
   install( FILES ${HEADERS} DESTINATION "include/golos/plugins/mongo_db" )
 else()
   message("Could NOT find MongoDB. mongo_db_plugin with MongoDB support will not be included.")
-  # Actual guides are
-  # mongoc.org/libmongoc/current/installing.html
-  # and
-  # mongodb.github.io/mongo-cxx-driver/mongocxx-v3/installation/
-  #
   # sudo apt-get install pkg-config libssl-dev libsasl2-dev
-  # wget https://github.com/mongodb/mongo-c-driver/releases/download/1.9.5/mongo-c-driver-1.9.5.tar.gz
-  # tar xzf mongo-c-driver-1.9.5.tar.gz
-  # cd mongo-c-driver-1.9.5
+  # wget https://github.com/mongodb/mongo-c-driver/releases/download/1.8.0/mongo-c-driver-1.8.0.tar.gz
+  # tar xzf mongo-c-driver-1.8.0.tar.gz
+  # cd mongo-c-driver-1.8.0
   # ./configure --disable-automatic-init-and-cleanup --enable-static
   # make
   # sudo make install

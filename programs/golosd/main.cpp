@@ -22,7 +22,7 @@
 #include <golos/plugins/block_info/plugin.hpp>
 #include <golos/plugins/tags/plugin.hpp>
 #include <golos/plugins/witness_api/plugin.hpp>
-#include <golos/plugins/mongo_db/include/golos/plugins/mongo_db/mongo_db_plugin.hpp>
+#include <golos/plugins/mongo_db/mongo_db_plugin.hpp>
 
 #include <fc/interprocess/signals.hpp>
 #include <fc/log/console_appender.hpp>

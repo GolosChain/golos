@@ -25,11 +25,25 @@ namespace mongo_db {
 
         void write_changes();
 
+        void delete_author_reward(const std::string& auth, const std::string& permlink);
+
+        void delete_benefactor_reward(const std::string& auth, const std::string& permlink);
+
+        void delete_comment_content(const std::string& auth, const std::string& permlink);
+
+        void delete_comment_reward(const std::string& auth, const std::string& permlink);
+
+        void delete_comment_vote(const std::string& auth, const std::string& permlink);
+
+        void delete_curation_reward(const std::string& auth, const std::string& permlink);
+
         void delete_comment(const std::string& auth, const std::string& permlink);
 
     private:
         // Table name, bulk remove
         std::map<std::string, bulk_ptr> removed_blocks;
+    protected:
+        bsoncxx::types::b_oid get_comment_oid(const std::string& auth, const std::string& permlink);
     };
 }}}
 

@@ -112,7 +112,8 @@ namespace mongo_db {
             auto doc2 = create_document("comment_content_object");
             auto& body2 = doc2->doc;
 
-            format_value(body2, "comment", oid);
+            format_oid(body2, oid);
+            format_oid(body2, "comment", oid);
             //format_value(body2, "comment_permlink", perm);
             format_value(body2, "title", content.title);
             format_value(body2, "body", content.body);
@@ -179,19 +180,17 @@ namespace mongo_db {
     }
     
     auto state_writer::operator()(const delete_comment_operation& op) -> result_type {
-FILE *f22;
-f22 = fopen("/vite/mondel_dco-1.txt", "a");
-std::string author = op.author;
-fprintf(f22, author.c_str());
-fprintf(f22, "\n");
-fprintf(f22, op.permlink.c_str());
-fprintf(f22, "\n");
-fclose(f22);
-
-mongo_db_deleter del;
-del.initialize("mongodb://127.0.0.1:27017/Golos");
-del.delete_votes_of_comment(author, op.permlink);
-del.delete_comment(author, op.permlink);
+	std::string author = op.author;
+	
+        mongo_db_deleter del;
+        del.initialize("mongodb://127.0.0.1:27017/Golos");
+        del.delete_author_reward(author, op.permlink);
+        del.delete_benefactor_reward(author, op.permlink);
+        del.delete_comment_content(author, op.permlink);
+        del.delete_comment_reward(author, op.permlink);
+        del.delete_comment_vote(author, op.permlink);
+        del.delete_curation_reward(author, op.permlink);
+        del.delete_comment(author, op.permlink);
 
         return result_type();
     }
