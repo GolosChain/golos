@@ -8,6 +8,34 @@ services:
 before_install:
   - echo "$TRAVIS_TAG"
   - echo "$TRAVIS_BRANCH"
+  - echo "Installing mongo-c-driver"
+  - echo "apt-get update"
+  - sudo apt-get -qq update
+  - echo "apt-get install pkg-config libssl-dev libsasl2-dev"
+  - sudo apt-get -y install pkg-config libssl-dev libsasl2-dev
+  - echo "wget mongo-c-driver"
+  - wget https://github.com/mongodb/mongo-c-driver/releases/download/1.9.5/mongo-c-driver-1.9.5.tar.gz
+  - echo "tar xzf"
+  - tar xzf mongo-c-driver-1.9.5.tar.gz
+  - echo "./configure"
+  - ./configure --disable-automatic-init-and-cleanup --enable-static
+  - echo "make"
+  - make
+  - echo "make install"
+  - sudo make install
+  - echo "Installing mongo-cxx-driver"
+  - echo "git clone"
+  - git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v3.2 --depth 1
+  - echo "cmake"
+  - cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+  - echo "sudo mmake"
+  - sudo make EP_mnmlstc_core
+  - echo "make"
+  - make
+  - echo "sudo make install"
+  - sudo make install
+  - echo "sudo apt-get install mongodb"
+  - sudo apt-get -y install mongodb
 
 script:
   - if [ -n "${TRAVIS_TAG}" ]; then
