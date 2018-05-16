@@ -24,7 +24,6 @@ before_install:
   - sudo make EP_mnmlstc_core
   - make
   - sudo make install
-  - sudo apt-get -y install mongodb
 
 script:
   - if [ -n "${TRAVIS_TAG}" ]; then
