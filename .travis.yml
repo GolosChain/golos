@@ -19,7 +19,7 @@ before_install:
   - sudo make install
   - echo "Installing mongo-cxx-driver"
   - git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v3.2 --depth 1
-  - cd mongo-cxx-driver
+  - cd mongo-cxx-driver/build
   - cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
   - sudo make EP_mnmlstc_core
   - make
