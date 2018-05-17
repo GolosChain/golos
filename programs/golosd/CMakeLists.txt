@@ -28,7 +28,6 @@ target_link_libraries(
         golos::social_network
         golos::tags
         golos::market_history
-        golos::operation_history
         golos::statsd
         golos::account_by_key
         golos::account_history
@@ -38,6 +37,7 @@ target_link_libraries(
         golos::raw_block
         golos::block_info
         golos::json_rpc
+        golos::mongo_db
         golos_protocol
         fc
         ${CMAKE_DL_LIBS}
