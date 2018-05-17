@@ -69,7 +69,7 @@ RUN \
     cd build && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
-        -DBUILD_GOLOS_TESTNET=TRUE \
+        -DBUILD_GOLOS_TESTNET=FALSE \
         -DBUILD_SHARED_LIBRARIES=FALSE \
         -DLOW_MEMORY_NODE=FALSE \
         -DCHAINBASE_CHECK_LOCKING=FALSE \
