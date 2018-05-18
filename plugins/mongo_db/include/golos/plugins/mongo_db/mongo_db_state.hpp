@@ -86,7 +86,9 @@ namespace mongo_db {
 
         result_type format_comment(const std::string& auth, const std::string& perm);
 
-        named_document_ptr create_document(const std::string& name);
+        mongo_document_ptr create_document(const std::string& name);
+
+        removal_document_ptr create_removal_document(const std::string& name);
     };
 
 }}} // golos::plugins::mongo_db

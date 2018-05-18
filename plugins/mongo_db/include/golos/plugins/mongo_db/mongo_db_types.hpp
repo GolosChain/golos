@@ -31,11 +31,21 @@ namespace mongo_db {
 
     struct named_document {
         named_document() = default;
-        document doc;
         std::string collection_name;
+        bool is_removal;
+    };
+    struct mongo_document : named_document {
+        document doc;
+    };
+    struct removal_document : named_document {
+        std::string id_author;
+        std::string id_permlink;
+        std::string id_comment;
     };
 
     using named_document_ptr = std::unique_ptr<named_document>;
+    using mongo_document_ptr = std::unique_ptr<mongo_document>;
+    using removal_document_ptr = std::unique_ptr<removal_document>;
 
     inline void format_oid(document& doc, const std::string& name, const std::string& value) {
         auto oid = fc::sha1::hash(value).str().substr(0, 24);

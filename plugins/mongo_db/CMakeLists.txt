@@ -22,9 +22,7 @@ if (libmongoc-1.0_FOUND)
   set(CURRENT_TARGET mongo_db)
   
   list(APPEND CURRENT_TARGET_HEADERS
-    include/golos/plugins/mongo_db/mongo_db_connector.hpp
     include/golos/plugins/mongo_db/mongo_db_plugin.hpp
-    include/golos/plugins/mongo_db/mongo_db_deleter.hpp
     include/golos/plugins/mongo_db/mongo_db_writer.hpp
     include/golos/plugins/mongo_db/mongo_db_operations.hpp
     include/golos/plugins/mongo_db/mongo_db_state.hpp
@@ -32,9 +30,7 @@ if (libmongoc-1.0_FOUND)
     )
 
   list(APPEND CURRENT_TARGET_SOURCES
-    mongo_db_connector.cpp
     mongo_db_plugin.cpp
-    mongo_db_deleter.cpp
     mongo_db_writer.cpp
     mongo_db_operations.cpp
     mongo_db_state.cpp
