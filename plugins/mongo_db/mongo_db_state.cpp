@@ -22,8 +22,9 @@ namespace mongo_db {
     using namespace golos::plugins::follow;
 
 
-    state_writer::state_writer() :
+    state_writer::state_writer(const signed_block& block) :
         db_(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
+        state_block = block;
     }
 
     auto state_writer::create_document(const std::string& name) -> named_document_ptr {
@@ -404,6 +405,7 @@ namespace mongo_db {
             format_oid(body, "comment", comment_oid);
             format_value(body, "author", op.author);
             format_value(body, "permlink", op.permlink);
+            format_value(body, "timestamp", state_block.timestamp);
             format_value(body, "sbd_payout", op.sbd_payout);
             format_value(body, "steem_payout", op.steem_payout);
             format_value(body, "vesting_payout", op.vesting_payout);
@@ -427,6 +429,7 @@ namespace mongo_db {
             format_oid(body, "vote", vote_oid);
             format_value(body, "author", op.comment_author);
             format_value(body, "permlink", op.comment_permlink);
+            format_value(body, "timestamp", state_block.timestamp);
             format_value(body, "reward", op.reward);
             format_value(body, "curator", op.curator);
 
@@ -447,6 +450,7 @@ namespace mongo_db {
             format_oid(body, "comment", comment_oid);
             format_value(body, "author", op.author);
             format_value(body, "permlink", op.permlink);
+            format_value(body, "timestamp", state_block.timestamp);
             format_value(body, "payout", op.payout);
 
             result.push_back(std::move(doc));
@@ -467,6 +471,7 @@ namespace mongo_db {
             format_oid(body, "comment", comment_oid);
             format_value(body, "author", op.author);
             format_value(body, "permlink", op.permlink);
+            format_value(body, "timestamp", state_block.timestamp);
             format_value(body, "reward", op.reward);
             format_value(body, "benefactor", op.benefactor);
 

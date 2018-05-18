@@ -35,10 +35,11 @@ RUN \
 RUN \
     echo "Installing mongo-c-driver" && \
     apt-get -qq update && \
-    apt-get  install -y \
+    apt-get install -y \
         pkg-config \
         libssl-dev \
-        libsasl2-dev
+        libsasl2-dev \
+        wget \
     && \
     wget https://github.com/mongodb/mongo-c-driver/releases/download/1.9.5/mongo-c-driver-1.9.5.tar.gz && \
     tar xzf mongo-c-driver-1.9.5.tar.gz && \
@@ -47,6 +48,7 @@ RUN \
     make && \
     make install && \
     cd .. && \
+    rm -rf mongo-c-driver-1.9.5 && \
     echo "Installing mongo-cxx-driver" && \
     git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v3.2 --depth 1 && \
     cd mongo-cxx-driver/build && \
@@ -54,14 +56,15 @@ RUN \
     make EP_mnmlstc_core && \
     make && \
     make install && \
-    cd ../..
+    cd ../.. && \
+    rm -rf mongo-cxx-driver
 # end
 
 ADD . /usr/local/src/golos
 
 RUN \
     cd /usr/local/src/golos && \
-    git submodule update --init --recursive && \
+    git submodule update --init --recursive -f && \
     mkdir build && \
     cd build && \
     cmake \
