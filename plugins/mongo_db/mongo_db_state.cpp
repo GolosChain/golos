@@ -10,8 +10,6 @@
 #include <bsoncxx/builder/basic/document.hpp>
 #include <appbase/plugin.hpp>
 
-#include <golos/plugins/mongo_db/mongo_db_deleter.hpp>
-
 
 namespace golos {
 namespace plugins {
@@ -27,9 +25,17 @@ namespace mongo_db {
         state_block = block;
     }
 
-    auto state_writer::create_document(const std::string& name) -> named_document_ptr {
-        auto doc = std::make_unique<named_document>();
+    auto state_writer::create_document(const std::string& name) -> mongo_document_ptr {
+        auto doc = std::make_unique<mongo_document>();
         doc->collection_name = name;
+        doc->is_removal = false;
+        return doc;
+    }
+
+    auto state_writer::create_removal_document(const std::string& name) -> removal_document_ptr {
+        auto doc = std::make_unique<removal_document>();
+        doc->collection_name = name;
+        doc->is_removal = true;
         return doc;
     }
 
@@ -43,6 +49,8 @@ namespace mongo_db {
             auto& body = doc->doc;
 
             format_oid(body, oid);
+
+            format_value(body, "removed", false);
 
             format_value(body, "author", auth);
             format_value(body, "permlink", perm);
@@ -113,6 +121,8 @@ namespace mongo_db {
             auto doc2 = create_document("comment_content_object");
             auto& body2 = doc2->doc;
 
+            format_value(body2, "removed", false);
+
             format_oid(body2, oid);
             format_oid(body2, "comment", oid);
             //format_value(body2, "comment_permlink", perm);
@@ -147,6 +157,7 @@ namespace mongo_db {
                 auto oid = comment_oid + "/" + op.voter;
 
                 format_oid(body, oid);
+                format_value(body, "removed", false);
                 format_oid(body, "comment", comment_oid);
 
                 format_value(body, "author", op.author);
@@ -181,20 +192,72 @@ namespace mongo_db {
     }
     
     auto state_writer::operator()(const delete_comment_operation& op) -> result_type {
-	    std::string author = op.author;
-	
-        mongo_db_deleter del;
-        del.initialize("mongodb://127.0.0.1:27017/Golos");
-        auto id = del.get_comment_oid(author, op.permlink);
-        del.delete_author_reward(id);
-        del.delete_benefactor_reward(id);
-        del.delete_comment_content(id);
-        del.delete_comment_reward(id);
-        del.delete_comment_vote(id);
-        del.delete_curation_reward(id);
-        del.delete_comment(author, op.permlink);
+        result_type result;
 
-        return result_type();
+	std::string author = op.author;
+
+        auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+
+        //
+
+	auto comment = create_removal_document("comment_object");
+
+	comment->id_author = author;
+	comment->id_permlink = op.permlink;
+
+	result.push_back(std::move(comment));
+
+        //
+
+	auto comment_content = create_removal_document("comment_content_object");
+        
+	comment_content->id_comment = comment_oid;
+
+	result.push_back(std::move(comment_content));
+
+        //
+
+	auto author_reward = create_removal_document("author_reward");
+        
+	author_reward->id_comment = comment_oid;
+        
+	result.push_back(std::move(author_reward));
+
+        //
+
+	auto benefactor_reward = create_removal_document("benefactor_reward");
+        
+	benefactor_reward->id_comment = comment_oid;
+        
+	result.push_back(std::move(benefactor_reward));
+
+        //
+
+	auto comment_reward = create_removal_document("comment_reward");
+        
+	comment_reward->id_comment = comment_oid;
+        
+	result.push_back(std::move(comment_reward));
+
+        //
+
+	auto comment_vote = create_removal_document("comment_vote_object");
+        
+	comment_vote->id_comment = comment_oid;
+        
+	result.push_back(std::move(comment_vote));
+
+        //
+
+	auto curation_reward = create_removal_document("curation_reward");
+        
+	curation_reward->id_comment = comment_oid;
+        
+	result.push_back(std::move(curation_reward));
+
+        //
+
+        return result;
     }
 
     auto state_writer::operator()(const transfer_operation& op) -> result_type {
@@ -395,6 +458,7 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const author_reward_operation& op) -> result_type {
+
         result_type result;
         try {
             auto doc = create_document("author_reward");
@@ -402,6 +466,7 @@ namespace mongo_db {
 
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
 
+            format_value(body, "removed", false);
             format_oid(body, "comment", comment_oid);
             format_value(body, "author", op.author);
             format_value(body, "permlink", op.permlink);
@@ -425,6 +490,7 @@ namespace mongo_db {
             auto comment_oid = std::string(op.comment_author).append("/").append(op.comment_permlink);
             auto vote_oid = comment_oid + "/" + op.curator;
 
+            format_value(body, "removed", false);
             format_oid(body, "comment", comment_oid);
             format_oid(body, "vote", vote_oid);
             format_value(body, "author", op.comment_author);
@@ -447,6 +513,7 @@ namespace mongo_db {
             auto &body = doc->doc;
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
 
+            format_value(body, "removed", false);
             format_oid(body, "comment", comment_oid);
             format_value(body, "author", op.author);
             format_value(body, "permlink", op.permlink);
@@ -468,6 +535,7 @@ namespace mongo_db {
             auto &body = doc->doc;
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
 
+            format_value(body, "removed", false);
             format_oid(body, "comment", comment_oid);
             format_value(body, "author", op.author);
             format_value(body, "permlink", op.permlink);

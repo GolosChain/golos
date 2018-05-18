@@ -21,6 +21,8 @@ namespace mongo_db {
     using bsoncxx::builder::stream::array;
     using bsoncxx::builder::basic::kvp;
     using bsoncxx::builder::stream::finalize;
+    using bsoncxx::builder::stream::open_document;
+    using bsoncxx::builder::stream::close_document;
 
     mongo_db_writer::mongo_db_writer() :
             _db(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
@@ -180,15 +182,16 @@ namespace mongo_db {
     }
 
     void mongo_db_writer::write_document(const named_document_ptr& named_doc) {
+        auto mongo_doc = static_cast<mongo_document*>(named_doc.get());
         if (formatted_blocks.find(named_doc->collection_name) == formatted_blocks.end()) {
             formatted_blocks[named_doc->collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
         }
 
-        auto view = named_doc->doc.view();
-	      auto exists = mongo_database[named_doc->collection_name].find_one(document{} << "_id" << view["_id"].get_oid() << finalize);
+        auto view = mongo_doc->doc.view();
+	auto exists = mongo_database[named_doc->collection_name].find_one(document{} << "_id" << view["_id"].get_oid() << finalize);
         if (!exists) {
             mongocxx::model::insert_one msg{std::move(view)};
-            formatted_blocks[named_doc->collection_name]->append(msg);
+            formatted_blocks[mongo_doc->collection_name]->append(msg);
         } else {
             document filter;
             filter << "_id" << view["_id"].get_oid();
@@ -196,7 +199,27 @@ namespace mongo_db {
             mongocxx::model::replace_one msg{filter.view(), std::move(view)};
             msg.upsert(true);
 
-            formatted_blocks[named_doc->collection_name]->append(msg);
+            formatted_blocks[mongo_doc->collection_name]->append(msg);
+        }
+    }
+
+    void mongo_db_writer::remove_document(const named_document_ptr& named_doc) {
+        auto rem_doc = static_cast<removal_document*>(named_doc.get());
+        if (rem_doc->id_comment.empty()) {
+            mongo_database[rem_doc->collection_name].update_many(
+                document{} << "author" << rem_doc->id_author << "permlink" << rem_doc->id_permlink << finalize,
+                document{} << "$set" << open_document << "removed" << true << close_document << finalize);
+            // Or, to remove permanently:
+            //mongo_database[rem_doc->collection_name].delete_many(
+            //    document{} << "author" << rem_doc->id_author << "permlink" << rem_doc->id_permlink << finalize);
+        } else {
+            auto oid = fc::sha1::hash(rem_doc->id_comment).str().substr(0, 24);
+            mongo_database[rem_doc->collection_name].update_many(
+                document{} << "comment" << bsoncxx::oid(oid) << finalize,
+                document{} << "$set" << open_document << "removed" << true << close_document << finalize);
+            // Or, to remove permanently:
+            //mongo_database[rem_doc->collection_name].delete_many(
+            //    document{} << "comment" << bsoncxx::oid(oid) << finalize);
         }
     }
 
@@ -211,7 +234,11 @@ namespace mongo_db {
                 auto docs = op.visit(st_writer);
 
                 for (auto& named_doc : docs) {
-                    write_document(named_doc);
+                    if (!named_doc->is_removal) {
+                        write_document(named_doc);
+                    } else {
+                        remove_document(named_doc);
+                    }
                 }
             }
         }
@@ -219,7 +246,11 @@ namespace mongo_db {
         for (auto& op: ops) {
             auto docs = op.visit(st_writer);
             for (auto& named_doc: docs) {
-                write_document(named_doc);
+                if (!named_doc->is_removal) {
+                    write_document(named_doc);
+                } else {
+                    remove_document(named_doc);
+                }
             }
         }
     }
