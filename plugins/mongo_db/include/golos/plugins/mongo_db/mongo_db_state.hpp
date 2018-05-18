@@ -13,7 +13,7 @@ namespace mongo_db {
     public:
         using result_type = std::vector<named_document_ptr>;
 
-        state_writer();
+        state_writer(const signed_block& block);
 
         result_type operator()(const vote_operation& op);
         result_type operator()(const comment_operation& op);
@@ -81,6 +81,8 @@ namespace mongo_db {
 
     private:
         database &db_;
+
+        signed_block state_block;
 
         result_type format_comment(const std::string& auth, const std::string& perm);
 

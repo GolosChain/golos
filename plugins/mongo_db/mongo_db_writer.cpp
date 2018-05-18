@@ -20,6 +20,7 @@ namespace mongo_db {
     using namespace bsoncxx::builder;
     using bsoncxx::builder::stream::array;
     using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::stream::finalize;
 
     mongo_db_writer::mongo_db_writer() :
             _db(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
@@ -184,8 +185,8 @@ namespace mongo_db {
         }
 
         auto view = named_doc->doc.view();
-        auto itr = view.find("_id");
-        if (view.end() == itr) {
+	      auto exists = mongo_database[named_doc->collection_name].find_one(document{} << "_id" << view["_id"].get_oid() << finalize);
+        if (!exists) {
             mongocxx::model::insert_one msg{std::move(view)};
             formatted_blocks[named_doc->collection_name]->append(msg);
         } else {
@@ -200,7 +201,7 @@ namespace mongo_db {
     }
 
     void mongo_db_writer::write_block_operations(const signed_block& block, const operations& ops) {
-        state_writer st_writer;
+        state_writer st_writer(block);
         //ilog("mongo_db_writer::write_block_operations ${e}", ("e", block.block_num()));
 
         // Now write every transaction from Block
