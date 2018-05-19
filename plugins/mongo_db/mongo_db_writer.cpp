@@ -188,18 +188,24 @@ namespace mongo_db {
         }
 
         auto view = mongo_doc->doc.view();
-	auto exists = mongo_database[named_doc->collection_name].find_one(document{} << "_id" << view["_id"].get_oid() << finalize);
-        if (!exists) {
+        auto itr = view.find("_id");
+        if (view.end() == itr) {
             mongocxx::model::insert_one msg{std::move(view)};
-            formatted_blocks[mongo_doc->collection_name]->append(msg);
+            formatted_blocks[named_doc->collection_name]->append(msg);
         } else {
-            document filter;
-            filter << "_id" << view["_id"].get_oid();
+	    auto exists = mongo_database[named_doc->collection_name].find_one(document{} << "_id" << view["_id"].get_oid() << finalize);
+            if (!exists) {
+                mongocxx::model::insert_one msg{std::move(view)};
+                formatted_blocks[mongo_doc->collection_name]->append(msg);
+            } else {
+                document filter;
+                filter << "_id" << view["_id"].get_oid();
 
-            mongocxx::model::replace_one msg{filter.view(), std::move(view)};
-            msg.upsert(true);
+                mongocxx::model::replace_one msg{filter.view(), std::move(view)};
+                msg.upsert(true);
 
-            formatted_blocks[mongo_doc->collection_name]->append(msg);
+                formatted_blocks[mongo_doc->collection_name]->append(msg);
+            }
         }
     }
 
