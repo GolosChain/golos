@@ -31,6 +31,7 @@ namespace mongo_db {
 
     struct named_document {
         named_document() = default;
+        virtual ~named_document() {}
         std::string collection_name;
         bool is_removal;
     };
