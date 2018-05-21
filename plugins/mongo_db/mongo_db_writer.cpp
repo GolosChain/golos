@@ -234,23 +234,57 @@ namespace mongo_db {
         //ilog("mongo_db_writer::write_block_operations ${e}", ("e", block.block_num()));
 
         // Now write every transaction from Block
-        for (const auto& tran : block.transactions) {
 
+        std::vector<named_document_ptr> all_docs;
+        std::vector<named_document_ptr> all_docs_grouped;
+
+        for (const auto& tran : block.transactions) {
             for (const auto& op : tran.operations) {
                 auto docs = op.visit(st_writer);
+                for (auto& doc : docs) {
+                    all_docs.insert(all_docs.begin(), std::move(doc));
+                }
+            }
+        }
 
-                for (auto& named_doc : docs) {
-                    if (!named_doc->is_removal) {
-                        write_document(named_doc);
-                    } else {
-                        remove_document(named_doc);
+        for (vector<named_document_ptr>::reverse_iterator i = all_docs.rbegin();
+            i != all_docs.rend(); ++i) {
+            named_document* doc = (*i).release();
+            if (!doc->is_removal) {
+                auto mongo_doc = static_cast<mongo_document*>(doc);
+                auto cur_view = mongo_doc->doc.view();
+                bool already_have = false;
+                for (auto& old_doc : all_docs_grouped) {
+                    auto mongo_old_doc = static_cast<mongo_document*>(old_doc.get());
+                    if (!mongo_old_doc->is_removal) {
+                        auto view = mongo_old_doc->doc.view();
+                        if (old_doc->collection_name == mongo_doc->collection_name && view["_id"].get_oid() == cur_view["_id"].get_oid()) {
+                            already_have = true;
+                            break;
+                        }
                     }
                 }
+                if (!already_have) {
+                    all_docs_grouped.insert(all_docs_grouped.begin(), named_document_ptr(doc));
+                }
+            } else {
+                named_document_ptr pp;
+                pp.reset(doc);
+                all_docs_grouped.insert(all_docs_grouped.begin(), std::move(pp));
+            }
+        }
+
+        for (auto& named_doc : all_docs_grouped) {
+            if (!named_doc->is_removal) {
+                write_document(named_doc);
+            } else {
+                remove_document(named_doc);
             }
         }
 
         for (auto& op: ops) {
             auto docs = op.visit(st_writer);
+
             for (auto& named_doc: docs) {
                 if (!named_doc->is_removal) {
                     write_document(named_doc);
