@@ -23,7 +23,7 @@
 
 #define STEEMIT_GENESIS_TIME                    (fc::time_point_sec(1476788400))
 #define STEEMIT_MINING_TIME                     (fc::time_point_sec(1451606400))
-#define STEEMIT_CASHOUT_WINDOW_SECONDS          (60*5) /// 5 minutes
+#define STEEMIT_CASHOUT_WINDOW_SECONDS          (60*60) /// 1 hour
 #define STEEMIT_CASHOUT_WINDOW_SECONDS_PRE_HF12 (STEEMIT_CASHOUT_WINDOW_SECONDS * 2)
 #define STEEMIT_CASHOUT_WINDOW_SECONDS_PRE_HF17 (STEEMIT_CASHOUT_WINDOW_SECONDS * 2)
 #define STEEMIT_SECOND_CASHOUT_WINDOW           (60*60*5) /// 5 hours
