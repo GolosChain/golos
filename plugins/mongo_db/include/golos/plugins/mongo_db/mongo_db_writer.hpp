@@ -5,6 +5,7 @@
 #include <golos/protocol/operations.hpp>
 
 #include <golos/plugins/mongo_db/mongo_db_types.hpp>
+#include <golos/plugins/mongo_db/mongo_db_state.hpp>
 
 #include <libraries/chain/include/golos/chain/operation_notification.hpp>
 
@@ -53,9 +54,9 @@ namespace mongo_db {
 
         void write_blocks();
         void write_raw_block(const signed_block& block, const operations&);
-        void write_block_operations(const signed_block& block, const operations&);
+        void write_block_operations(state_writer st_writer, const signed_block& block, const operations&);
         void write_document(const named_document_ptr& named_doc);
-        void remove_document(const named_document_ptr& named_doc);
+        void remove_document(const std::string& key, const std::string& key_value, const named_document_ptr& named_doc);
 
         void format_block_info(const signed_block& block, document& doc);
         void format_transaction_info(const signed_transaction& tran, document& doc);
@@ -83,6 +84,8 @@ namespace mongo_db {
         mongocxx::uri uri;
         mongocxx::client mongo_conn;
         mongocxx::options::bulk_write bulk_opts;
+
+        std::unordered_map<std::string, std::string> indexes; // Prevent repeative create_index() calls. Only in current session 
 
         golos::chain::database &_db;
     };

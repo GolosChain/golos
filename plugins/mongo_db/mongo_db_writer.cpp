@@ -1,6 +1,5 @@
 #include <golos/plugins/mongo_db/mongo_db_writer.hpp>
 #include <golos/plugins/mongo_db/mongo_db_operations.hpp>
-#include <golos/plugins/mongo_db/mongo_db_state.hpp>
 #include <golos/plugins/chain/plugin.hpp>
 #include <golos/protocol/operations.hpp>
 
@@ -51,11 +50,11 @@ namespace mongo_db {
             return true;
         }
         catch (mongocxx::exception & ex) {
-            ilog("Exception in MongoDB initialize: ${p}", ("p", ex.what()));
+            wlog("Exception in MongoDB initialize: ${p}", ("p", ex.what()));
             return false;
         }
         catch (...) {
-            ilog("Unknown exception in MongoDB writer");
+            wlog("Unknown exception in MongoDB writer");
             return false;
         }
     }
@@ -81,7 +80,35 @@ namespace mongo_db {
                             write_raw_block(head_iter->second, virtual_ops[head_iter->first]);
                         }
 
-                        write_block_operations(head_iter->second, virtual_ops[head_iter->first]);
+                        state_writer st_writer(block);
+                        
+                        std::unordered_map<std::tuple<std::string, std::string, std::string>,
+                            named_document_ptr, string_tuple_hasher> all_docs;
+
+                        // Collecting all operations of block to single map and vector
+
+                        for (const auto& tran : head_iter->second.transactions) {
+                            for (const auto& op : tran.operations) {
+                                auto result = op.visit(st_writer);
+                                for (auto it = result.begin(); it != result.end(); ++it) {
+                                    all_docs[it->first] = std::move(it->second);
+                                }
+                            }
+                        }
+
+                        // Writing all to mongo
+
+                        for (auto it = all_docs.begin(); it != all_docs.end(); ++it) {
+                            if (!it->second->is_removal) {
+                                write_document(it->second);
+                            } else {
+                                std::string collection_name, key_name, key_value;
+                                std::tie(collection_name, key_name, key_value) = it->first;
+                                remove_document(key_name, key_value, it->second);
+                            }
+                        }
+                        
+                        write_block_operations(st_writer, head_iter->second, virtual_ops[head_iter->first]);
                     }
                     catch (...) {
                         // If some block causes any problems lets remove it from buffer and move on
@@ -98,7 +125,7 @@ namespace mongo_db {
             ++processed_blocks;
         }
         catch (const std::exception& e) {
-            ilog("Unknown exception in MongoDB ${e}", ("e", e.what()));
+            wlog("Unknown exception in MongoDB ${e}", ("e", e.what()));
         }
     }
 
@@ -137,15 +164,15 @@ namespace mongo_db {
                         operations_array << op.visit(op_writer);
                     }
 //                    catch (fc::exception& ex) {
-//                        ilog("MongoDB write_raw_block fc::exception ${e}", ("e", ex.what()));
+//                        wlog("MongoDB write_raw_block fc::exception ${e}", ("e", ex.what()));
 //                    }
 //                    catch (mongocxx::exception& ex) {
-//                        ilog("Mongodb write_raw_block Mongo exception ${e}", ("e", ex.what()));
+//                        wlog("Mongodb write_raw_block Mongo exception ${e}", ("e", ex.what()));
 //                    }
                     catch (std::exception& ex) {
-                        ilog("Mongodb write_raw_block std exception ${e}", ("e", ex.what()));
+                        wlog("Mongodb write_raw_block std exception ${e}", ("e", ex.what()));
                     } catch (...) {
-                        ilog("Mongodb write_raw_block unknown exception ");
+                        wlog("Mongodb write_raw_block unknown exception ");
                     }
                 }
 
@@ -193,103 +220,47 @@ namespace mongo_db {
             mongocxx::model::insert_one msg{std::move(view)};
             formatted_blocks[named_doc->collection_name]->append(msg);
         } else {
-	    auto exists = mongo_database[named_doc->collection_name].find_one(document{} << "_id" << view["_id"].get_oid() << finalize);
-            if (!exists) {
-                mongocxx::model::insert_one msg{std::move(view)};
-                formatted_blocks[mongo_doc->collection_name]->append(msg);
-            } else {
-                document filter;
-                filter << "_id" << view["_id"].get_oid();
+            document filter;
+            filter << "_id" << view["_id"].get_oid();
 
-                mongocxx::model::replace_one msg{filter.view(), std::move(view)};
-                msg.upsert(true);
+            mongocxx::model::replace_one msg{filter.view(), std::move(view)};
+            msg.upsert(true);
 
-                formatted_blocks[mongo_doc->collection_name]->append(msg);
+            if (!named_doc->index_to_create.empty()) {
+                if (indexes.find(named_doc->collection_name) == indexes.end()) {
+                    mongo_database[named_doc->collection_name].create_index(document{} << named_doc->index_to_create << 1 << finalize);
+                    indexes[named_doc->collection_name] = named_doc->index_to_create;
+                }
             }
+
+            formatted_blocks[mongo_doc->collection_name]->append(msg);
         }
     }
 
-    void mongo_db_writer::remove_document(const named_document_ptr& named_doc) {
+    void mongo_db_writer::remove_document(const std::string& key, const std::string& key_value, const named_document_ptr& named_doc) {
         auto rem_doc = static_cast<removal_document*>(named_doc.get());
-        if (rem_doc->id_comment.empty()) {
-            mongo_database[rem_doc->collection_name].update_many(
-                document{} << "author" << rem_doc->id_author << "permlink" << rem_doc->id_permlink << finalize,
-                document{} << "$set" << open_document << "removed" << true << close_document << finalize);
-            // Or, to remove permanently:
-            //mongo_database[rem_doc->collection_name].delete_many(
-            //    document{} << "author" << rem_doc->id_author << "permlink" << rem_doc->id_permlink << finalize);
-        } else {
-            auto oid = fc::sha1::hash(rem_doc->id_comment).str().substr(0, 24);
-            mongo_database[rem_doc->collection_name].update_many(
-                document{} << "comment" << bsoncxx::oid(oid) << finalize,
-                document{} << "$set" << open_document << "removed" << true << close_document << finalize);
-            // Or, to remove permanently:
-            //mongo_database[rem_doc->collection_name].delete_many(
-            //    document{} << "comment" << bsoncxx::oid(oid) << finalize);
-        }
+        auto oid_hash = fc::sha1::hash(key_value).str().substr(0, 24);
+        mongo_database[rem_doc->collection_name].update_many(
+            document{} << key << bsoncxx::oid(oid_hash) << finalize,
+            document{} << "$set" << open_document << "removed" << true << close_document << finalize);
+        // Or, to remove permanently:
+        //mongo_database[rem_doc->collection_name].delete_many(
+        //    document{} << "_id" << bsoncxx::oid(oid_hash) << finalize);
     }
 
-    void mongo_db_writer::write_block_operations(const signed_block& block, const operations& ops) {
-        state_writer st_writer(block);
+    void mongo_db_writer::write_block_operations(state_writer st_writer, const signed_block& block, const operations& ops) {
         //ilog("mongo_db_writer::write_block_operations ${e}", ("e", block.block_num()));
 
-        // Now write every transaction from Block
-
-        std::vector<named_document_ptr> all_docs;
-        std::vector<named_document_ptr> all_docs_grouped;
-
-        for (const auto& tran : block.transactions) {
-            for (const auto& op : tran.operations) {
-                auto docs = op.visit(st_writer);
-                for (auto& doc : docs) {
-                    all_docs.insert(all_docs.begin(), std::move(doc));
-                }
-            }
-        }
-
-        for (vector<named_document_ptr>::reverse_iterator i = all_docs.rbegin();
-            i != all_docs.rend(); ++i) {
-            named_document* doc = (*i).release();
-            if (!doc->is_removal) {
-                auto mongo_doc = static_cast<mongo_document*>(doc);
-                auto cur_view = mongo_doc->doc.view();
-                bool already_have = false;
-                for (auto& old_doc : all_docs_grouped) {
-                    auto mongo_old_doc = static_cast<mongo_document*>(old_doc.get());
-                    if (!mongo_old_doc->is_removal) {
-                        auto view = mongo_old_doc->doc.view();
-                        if (old_doc->collection_name == mongo_doc->collection_name && view["_id"].get_oid() == cur_view["_id"].get_oid()) {
-                            already_have = true;
-                            break;
-                        }
-                    }
-                }
-                if (!already_have) {
-                    all_docs_grouped.insert(all_docs_grouped.begin(), named_document_ptr(doc));
-                }
-            } else {
-                named_document_ptr pp;
-                pp.reset(doc);
-                all_docs_grouped.insert(all_docs_grouped.begin(), std::move(pp));
-            }
-        }
-
-        for (auto& named_doc : all_docs_grouped) {
-            if (!named_doc->is_removal) {
-                write_document(named_doc);
-            } else {
-                remove_document(named_doc);
-            }
-        }
-
         for (auto& op: ops) {
-            auto docs = op.visit(st_writer);
+            auto result = op.visit(st_writer);
 
-            for (auto& named_doc: docs) {
-                if (!named_doc->is_removal) {
-                    write_document(named_doc);
+            for (auto it = result.begin(); it != result.end(); ++it) {
+                if (!it->second->is_removal) {
+                    write_document(it->second);
                 } else {
-                    remove_document(named_doc);
+                    std::string collection_name, key_name, key_value;
+                    std::tie(collection_name, key_name, key_value) = it->first;
+                    remove_document(key_name, key_value, it->second);
                 }
             }
         }
@@ -321,11 +292,11 @@ namespace mongo_db {
 
                 auto& bulkp = oper.second;
                 if (!_collection.bulk_write(*bulkp)) {
-                    ilog("Failed to write blocks to Mongo DB");
+                    wlog("Failed to write blocks to Mongo DB");
                 }
             }
             catch (const std::exception& e) {
-                ilog("Unknown exception while writing blocks to mongo: ${e}", ("e", e.what()));
+                wlog("Unknown exception while writing blocks to mongo: ${e}", ("e", e.what()));
                 // If we got some errors writing block into mongo just skip this block and move on
                 formatted_blocks.erase(iter);
                 throw;
