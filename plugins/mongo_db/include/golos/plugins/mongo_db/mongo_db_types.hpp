@@ -34,6 +34,7 @@ namespace mongo_db {
         virtual ~named_document() {}
         std::string collection_name;
         bool is_removal;
+        std::string index_to_create;
     };
     struct mongo_document : named_document {
         document doc;

@@ -9,9 +9,20 @@ namespace golos {
 namespace plugins {
 namespace mongo_db {
 
+    struct string_tuple_hasher
+    {
+        std::size_t operator()(const std::tuple<std::string, std::string, std::string>& t) const
+        {
+            std::string str1, str2, str3;
+            std::tie(str1, str2, str3) = t;
+            return  std::hash<std::string>()(str1) ^ std::hash<std::string>()(str2) ^ std::hash<std::string>()(str3);
+        }
+    };
+
     class state_writer {
     public:
-        using result_type = std::vector<named_document_ptr>;
+        using result_type = std::unordered_map<std::tuple<std::string, std::string, std::string>,
+                                named_document_ptr, string_tuple_hasher>;
 
         state_writer(const signed_block& block);
 
