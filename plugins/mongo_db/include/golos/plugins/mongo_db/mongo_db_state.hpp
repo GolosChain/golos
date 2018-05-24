@@ -93,7 +93,7 @@ namespace mongo_db {
     private:
         database &db_;
 
-        signed_block state_block;
+        const signed_block &state_block;
 
         result_type format_comment(const std::string& auth, const std::string& perm);
 
