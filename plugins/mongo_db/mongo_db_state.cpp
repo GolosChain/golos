@@ -21,8 +21,8 @@ namespace mongo_db {
 
 
     state_writer::state_writer(const signed_block& block) :
-        db_(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
-        state_block = block;
+        db_(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()),
+        state_block(block) {
     }
 
     auto state_writer::create_document(const std::string& name) -> mongo_document_ptr {
@@ -170,7 +170,7 @@ namespace mongo_db {
                 format_value(body, "last_update", itr->last_update);
                 format_value(body, "num_changes", itr->num_changes);
 
-                result[std::make_tuple(doc->collection_name, "_id", oid)] = std::move(doc);
+                result[std::make_tuple(doc->collection_name, "comment", comment_oid)] = std::move(doc);
             }
         }
 //        catch (fc::exception& ex) {
@@ -501,7 +501,7 @@ namespace mongo_db {
             format_value(body, "reward", op.reward);
             format_value(body, "curator", op.curator);
 
-            result[std::make_tuple(doc->collection_name, "_id", vote_oid)] = std::move(doc);
+            result[std::make_tuple(doc->collection_name, "comment", comment_oid)] = std::move(doc);
         } catch (...) {
             //
         }
@@ -548,7 +548,7 @@ namespace mongo_db {
             format_value(body, "reward", op.reward);
             format_value(body, "benefactor", op.benefactor);
 
-            result[std::make_tuple(doc->collection_name, "_id", benefactor_oid)] = std::move(doc);
+            result[std::make_tuple(doc->collection_name, "comment", comment_oid)] = std::move(doc);
         } catch (...) {
             //
         }
