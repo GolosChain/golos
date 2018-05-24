@@ -239,10 +239,24 @@ namespace mongo_db {
 
     void mongo_db_writer::remove_document(const std::string& key, const std::string& key_value, const named_document_ptr& named_doc) {
         auto rem_doc = static_cast<removal_document*>(named_doc.get());
+        if (formatted_blocks.find(rem_doc->collection_name) == formatted_blocks.end()) {
+            formatted_blocks[rem_doc->collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
+        }
         auto oid_hash = fc::sha1::hash(key_value).str().substr(0, 24);
-        mongo_database[rem_doc->collection_name].update_many(
-            document{} << key << bsoncxx::oid(oid_hash) << finalize,
-            document{} << "$set" << open_document << "removed" << true << close_document << finalize);
+
+        //mongo_database[rem_doc->collection_name].update_many(
+        //    document{} << key << bsoncxx::oid(oid_hash) << finalize,
+        //    document{} << "$set" << open_document << "removed" << true << close_document << finalize);
+        
+        document filter;
+        filter << key << bsoncxx::oid(oid_hash);
+        auto v1 = filter.view();
+        document newval;
+        newval << "$set" << open_document << "removed" << true << close_document;
+        auto v2 = newval.view();
+        mongocxx::model::update_many msg{v1, v2};
+        formatted_blocks[rem_doc->collection_name]->append(msg);
+        
         // Or, to remove permanently:
         //mongo_database[rem_doc->collection_name].delete_many(
         //    document{} << "_id" << bsoncxx::oid(oid_hash) << finalize);
