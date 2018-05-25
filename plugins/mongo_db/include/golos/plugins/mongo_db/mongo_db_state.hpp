@@ -1,5 +1,12 @@
 #pragma once
 
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/random_access_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+
 #include <golos/protocol/operations.hpp>
 #include <golos/chain/database.hpp>
 
@@ -9,20 +16,10 @@ namespace golos {
 namespace plugins {
 namespace mongo_db {
 
-    struct string_tuple_hasher
-    {
-        std::size_t operator()(const std::tuple<std::string, std::string, std::string>& t) const
-        {
-            std::string str1, str2, str3;
-            std::tie(str1, str2, str3) = t;
-            return  std::hash<std::string>()(str1) ^ std::hash<std::string>()(str2) ^ std::hash<std::string>()(str3);
-        }
-    };
-
     class state_writer {
     public:
-        using result_type = std::unordered_map<std::tuple<std::string, std::string, std::string>,
-                                named_document_ptr, string_tuple_hasher>;
+
+        using result_type = db_map;
 
         state_writer(const signed_block& block);
 
@@ -97,9 +94,11 @@ namespace mongo_db {
 
         result_type format_comment(const std::string& auth, const std::string& perm);
 
-        mongo_document_ptr create_document(const std::string& name);
+        named_document create_document(const std::string& name,
+            const std::string& key, const std::string& keyval);
 
-        removal_document_ptr create_removal_document(const std::string& name);
+        named_document create_removal_document(const std::string& name,
+            const std::string& key, const std::string& keyval);
     };
 
 }}} // golos::plugins::mongo_db

@@ -34,6 +34,7 @@ if (libmongoc-1.0_FOUND)
     mongo_db_writer.cpp
     mongo_db_operations.cpp
     mongo_db_state.cpp
+    mongo_db_types.cpp
     )
 
   if(BUILD_SHARED_LIBRARIES)
