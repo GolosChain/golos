@@ -17,6 +17,13 @@
 #include <mongocxx/stdx.hpp>
 #include <mongocxx/uri.hpp>
 
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/random_access_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+
 #include <fc/crypto/sha1.hpp>
 
 namespace golos {
@@ -30,24 +37,39 @@ namespace mongo_db {
     using bsoncxx::builder::stream::document;
 
     struct named_document {
-        named_document() = default;
+        named_document() {
+            doc = std::make_shared<document>();
+        }
         virtual ~named_document() {}
         std::string collection_name;
+        std::shared_ptr<document> doc;
         bool is_removal;
         std::string index_to_create;
-    };
-    struct mongo_document : named_document {
-        document doc;
-    };
-    struct removal_document : named_document {
-        std::string id_author;
-        std::string id_permlink;
-        std::string id_comment;
+        std::string key;
+        std::string keyval;
     };
 
+	typedef boost::multi_index_container<
+	    named_document,
+	    boost::multi_index::indexed_by<
+	        boost::multi_index::random_access<>,
+	        boost::multi_index::hashed_unique<
+	            boost::multi_index::composite_key<
+	                named_document,
+	                boost::multi_index::member<named_document,std::string,&named_document::collection_name>,
+	                boost::multi_index::member<named_document,std::string,&named_document::key>,
+	                boost::multi_index::member<named_document,std::string,&named_document::keyval>,
+	                boost::multi_index::member<named_document,bool,&named_document::is_removal>
+	            >
+	        >
+	    >
+	> db_map;
+
+    void bmi_insert_or_replace(db_map& bmi, named_document doc);
+
+    void bmi_merge(db_map& bmi_what, const db_map& bmi_with);
+
     using named_document_ptr = std::unique_ptr<named_document>;
-    using mongo_document_ptr = std::unique_ptr<mongo_document>;
-    using removal_document_ptr = std::unique_ptr<removal_document>;
 
     inline void format_oid(document& doc, const std::string& name, const std::string& value) {
         auto oid = fc::sha1::hash(value).str().substr(0, 24);
