@@ -10,6 +10,12 @@
 #include <bsoncxx/array/element.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/random_access_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
 
 namespace golos {
 namespace plugins {
@@ -82,29 +88,27 @@ namespace mongo_db {
 
                         state_writer st_writer(block);
                         
-                        std::unordered_map<std::tuple<std::string, std::string, std::string>,
-                            named_document_ptr, string_tuple_hasher> all_docs;
+
+        db_map all_docs;
 
                         // Collecting all operations of block to single map and vector
 
                         for (const auto& tran : head_iter->second.transactions) {
                             for (const auto& op : tran.operations) {
                                 auto result = op.visit(st_writer);
-                                for (auto it = result.begin(); it != result.end(); ++it) {
-                                    all_docs[it->first] = std::move(it->second);
-                                }
+                                bmi_merge(all_docs, result);
                             }
                         }
 
                         // Writing all to mongo
 
                         for (auto it = all_docs.begin(); it != all_docs.end(); ++it) {
-                            if (!it->second->is_removal) {
-                                write_document(it->second);
+                            if (!it->is_removal) {
+                               //wlog((*it).collection_name);
+                                write_document(*it);
                             } else {
-                                std::string collection_name, key_name, key_value;
-                                std::tie(collection_name, key_name, key_value) = it->first;
-                                remove_document(key_name, key_value, it->second);
+                                //wlog((*it).collection_name + std::string("_REM"));
+                                remove_document(*it);
                             }
                         }
                         
@@ -208,73 +212,70 @@ namespace mongo_db {
         formatted_blocks[blocks]->append(insert_msg);
     }
 
-    void mongo_db_writer::write_document(const named_document_ptr& named_doc) {
-        auto mongo_doc = static_cast<mongo_document*>(named_doc.get());
-        if (formatted_blocks.find(named_doc->collection_name) == formatted_blocks.end()) {
-            formatted_blocks[named_doc->collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
+    void mongo_db_writer::write_document(const named_document& named_doc) {
+        if (formatted_blocks.find(named_doc.collection_name) == formatted_blocks.end()) {
+            formatted_blocks[named_doc.collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
         }
 
-        auto view = mongo_doc->doc.view();
+        auto view = named_doc.doc->view();
         auto itr = view.find("_id");
-        if (view.end() == itr) {
+        /*if (view.end() == itr) {
             mongocxx::model::insert_one msg{std::move(view)};
-            formatted_blocks[named_doc->collection_name]->append(msg);
-        } else {
+            formatted_blocks[named_doc.collection_name]->append(msg);
+        } else {*/
             document filter;
-            filter << "_id" << view["_id"].get_oid();
+        auto oid_hash = fc::sha1::hash(named_doc.keyval).str().substr(0, 24);
+            filter << "_id" << bsoncxx::oid(oid_hash); 
 
-            mongocxx::model::replace_one msg{filter.view(), std::move(view)};
+            mongocxx::model::update_one msg{filter.view(), named_doc.doc->view()};
             msg.upsert(true);
 
-            if (!named_doc->index_to_create.empty()) {
-                if (indexes.find(named_doc->collection_name) == indexes.end()) {
-                    mongo_database[named_doc->collection_name].create_index(document{} << named_doc->index_to_create << 1 << finalize);
-                    indexes[named_doc->collection_name] = named_doc->index_to_create;
+            if (!named_doc.index_to_create.empty()) {
+                if (indexes.find(named_doc.collection_name) == indexes.end()) {
+                    mongo_database[named_doc.collection_name].create_index(document{} << named_doc.index_to_create << 1 << finalize);
+                    indexes[named_doc.collection_name] = named_doc.index_to_create;
                 }
             }
 
-            formatted_blocks[mongo_doc->collection_name]->append(msg);
-        }
+            formatted_blocks[named_doc.collection_name]->append(msg);
+        //}
     }
 
-    void mongo_db_writer::remove_document(const std::string& key, const std::string& key_value, const named_document_ptr& named_doc) {
-        auto rem_doc = static_cast<removal_document*>(named_doc.get());
-        if (formatted_blocks.find(rem_doc->collection_name) == formatted_blocks.end()) {
-            formatted_blocks[rem_doc->collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
+    void mongo_db_writer::remove_document(const named_document& named_doc) {
+        if (formatted_blocks.find(named_doc.collection_name) == formatted_blocks.end()) {
+            formatted_blocks[named_doc.collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
         }
-        auto oid_hash = fc::sha1::hash(key_value).str().substr(0, 24);
+        auto oid_hash = fc::sha1::hash(named_doc.keyval).str().substr(0, 24);
 
-        //mongo_database[rem_doc->collection_name].update_many(
+        //mongo_database[named_doc.collection_name].update_many(
         //    document{} << key << bsoncxx::oid(oid_hash) << finalize,
         //    document{} << "$set" << open_document << "removed" << true << close_document << finalize);
         
         document filter;
-        filter << key << bsoncxx::oid(oid_hash);
+        filter << named_doc.key << bsoncxx::oid(oid_hash);
         auto v1 = filter.view();
         document newval;
         newval << "$set" << open_document << "removed" << true << close_document;
         auto v2 = newval.view();
         mongocxx::model::update_many msg{v1, v2};
-        formatted_blocks[rem_doc->collection_name]->append(msg);
+        formatted_blocks[named_doc.collection_name]->append(msg);
         
         // Or, to remove permanently:
-        //mongo_database[rem_doc->collection_name].delete_many(
+        //mongo_database[named_doc.collection_name].delete_many(
         //    document{} << "_id" << bsoncxx::oid(oid_hash) << finalize);
     }
 
-    void mongo_db_writer::write_block_operations(state_writer st_writer, const signed_block& block, const operations& ops) {
+    void mongo_db_writer::write_block_operations(state_writer& st_writer, const signed_block& block, const operations& ops) {
         //ilog("mongo_db_writer::write_block_operations ${e}", ("e", block.block_num()));
 
         for (auto& op: ops) {
             auto result = op.visit(st_writer);
 
             for (auto it = result.begin(); it != result.end(); ++it) {
-                if (!it->second->is_removal) {
-                    write_document(it->second);
+                if (!it->is_removal) {
+                    write_document(*it);
                 } else {
-                    std::string collection_name, key_name, key_value;
-                    std::tie(collection_name, key_name, key_value) = it->first;
-                    remove_document(key_name, key_value, it->second);
+                    remove_document(*it);
                 }
             }
         }

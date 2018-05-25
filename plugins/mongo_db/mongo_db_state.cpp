@@ -17,6 +17,8 @@ namespace mongo_db {
 
     using bsoncxx::builder::stream::array;
     using bsoncxx::builder::stream::document;
+    using bsoncxx::builder::stream::open_document;
+    using bsoncxx::builder::stream::close_document;
     using namespace golos::plugins::follow;
 
 
@@ -25,17 +27,23 @@ namespace mongo_db {
         state_block(block) {
     }
 
-    auto state_writer::create_document(const std::string& name) -> mongo_document_ptr {
-        auto doc = std::make_unique<mongo_document>();
-        doc->collection_name = name;
-        doc->is_removal = false;
+    named_document state_writer::create_document(const std::string& name,
+            const std::string& key, const std::string& keyval) {
+        named_document doc;
+        doc.collection_name = name;
+        doc.key = key;
+        doc.keyval = keyval;
+        doc.is_removal = false;
         return doc;
     }
 
-    auto state_writer::create_removal_document(const std::string& name) -> removal_document_ptr {
-        auto doc = std::make_unique<removal_document>();
-        doc->collection_name = name;
-        doc->is_removal = true;
+    named_document state_writer::create_removal_document(const std::string& name,
+            const std::string& key, const std::string& keyval) {
+        named_document doc;
+        doc.collection_name = name;
+        doc.key = key;
+        doc.keyval = keyval;
+        doc.is_removal = true;
         return doc;
     }
 
@@ -45,8 +53,10 @@ namespace mongo_db {
             auto& comment = db_.get_comment(auth, perm);
             auto oid = std::string(auth).append("/").append(perm);
             
-            auto doc = create_document("comment_object");
-            auto& body = doc->doc;
+            auto doc = create_document("comment_object", "_id", oid);
+            auto& body = *(doc.doc.get());
+
+            body << "$set" << open_document;
 
             format_oid(body, oid);
 
@@ -112,14 +122,19 @@ namespace mongo_db {
             }
 
             format_value(body, "mode", comment_mode);
-            result[std::make_tuple(doc->collection_name, "_id", oid)] = std::move(doc);
+
+            body << close_document;
+
+            bmi_insert_or_replace(result, doc);
 
             // comment_content_object
 
             auto& content = db_.get_comment_content(comment_id_type(comment.id));
 
-            auto doc2 = create_document("comment_content_object");
-            auto& body2 = doc2->doc;
+            auto doc2 = create_document("comment_content_object", "_id", oid);
+            auto& body2 = *(doc2.doc.get());
+
+            body2 << "$set" << open_document;
 
             format_value(body2, "removed", false);
 
@@ -130,7 +145,9 @@ namespace mongo_db {
             format_value(body2, "body", content.body);
             format_value(body2, "json_metadata", content.json_metadata);
 
-            result[std::make_tuple(doc2->collection_name, "_id", oid)] = std::move(doc2);
+            body2 << close_document;
+
+            bmi_insert_or_replace(result, doc2);
         }
 //        catch (fc::exception& ex) {
 //            ilog("MongoDB operations fc::exception during formatting comment. ${e}", ("e", ex.what()));
@@ -150,12 +167,15 @@ namespace mongo_db {
             auto& voter = db_.get_account(op.voter);
             auto itr = vote_idx.find(std::make_tuple(comment.id, voter.id));
             if (vote_idx.end() != itr) {
-                auto doc = create_document("comment_vote_object");
-                doc->index_to_create = "comment";
-                auto &body = doc->doc;
 
                 auto comment_oid = std::string(op.author).append("/").append(op.permlink);
                 auto oid = comment_oid + "/" + op.voter;
+
+                auto doc = create_document("comment_vote_object", "_id", oid);
+                doc.index_to_create = "comment";
+                auto &body = *(doc.doc.get());
+
+                body << "$set" << open_document;
 
                 format_oid(body, oid);
                 format_oid(body, "comment", comment_oid);
@@ -170,7 +190,9 @@ namespace mongo_db {
                 format_value(body, "last_update", itr->last_update);
                 format_value(body, "num_changes", itr->num_changes);
 
-                result[std::make_tuple(doc->collection_name, "comment", comment_oid)] = std::move(doc);
+                body << close_document;
+
+                bmi_insert_or_replace(result, doc);
             }
         }
 //        catch (fc::exception& ex) {
@@ -184,7 +206,8 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const comment_operation& op) -> result_type {
-        return format_comment(op.author, op.permlink);
+        auto result = format_comment(op.author, op.permlink);
+        return result;
     }
 
     auto state_writer::operator()(const comment_options_operation& op) -> result_type {
@@ -200,60 +223,49 @@ namespace mongo_db {
 
         //
 
-	auto comment = create_removal_document("comment_object");
+        // Will be updated with the following fields. If no one - created with these fields.
+	auto comment = create_document("comment_object", "_id", comment_oid);
 
-	comment->id_author = author;
-	comment->id_permlink = op.permlink;
+        auto& body = *(comment.doc.get());
 
-        result[std::make_tuple(comment->collection_name, "_id", comment_oid)] = std::move(comment);
+        body << "$set" << open_document;
 
-        //
+        format_oid(body, comment_oid);
 
-	auto comment_content = create_removal_document("comment_content_object");
-        
-	comment_content->id_comment = comment_oid;
+        format_value(body, "removed", true);
 
-        result[std::make_tuple(comment_content->collection_name, "_id", comment_oid)] = std::move(comment_content);
+        format_value(body, "author", op.author);
+        format_value(body, "permlink", op.permlink);
 
-        //
+        body << close_document;
 
-	auto author_reward = create_removal_document("author_reward");
-        
-	author_reward->id_comment = comment_oid;
-
-        result[std::make_tuple(author_reward->collection_name, "_id", comment_oid)] = std::move(author_reward);
+        bmi_insert_or_replace(result, comment);
 
         //
 
-	auto benefactor_reward = create_removal_document("benefactor_reward");
-        
-	benefactor_reward->id_comment = comment_oid;
-        
-	result[std::make_tuple(benefactor_reward->collection_name, "comment", comment_oid)] = std::move(benefactor_reward);
+        // Will be updated with the following fields. If no one - created with these fields.
+	auto comment_content = create_document("comment_content_object", "_id", comment_oid);
+
+        auto& body2 = *(comment_content.doc.get());
+
+        body2 << "$set" << open_document;
+
+        format_oid(body2, comment_oid);
+
+        format_value(body2, "removed", true);
+
+        format_oid(body2, "comment", comment_oid);
+
+        body2 << close_document;
+
+        bmi_insert_or_replace(result, comment_content);
 
         //
 
-	auto comment_reward = create_removal_document("comment_reward");
+        // Will be updated with removed = true. If no one - nothing to do.
+	auto comment_vote = create_removal_document("comment_vote_object", "comment", comment_oid);
         
-	comment_reward->id_comment = comment_oid;
-
-        result[std::make_tuple(comment_reward->collection_name, "_id", comment_oid)] = std::move(comment_reward);
-
-        //
-
-	auto comment_vote = create_removal_document("comment_vote_object");
-        
-	comment_vote->id_comment = comment_oid;
-        
-	result[std::make_tuple(comment_vote->collection_name, "comment", comment_oid)] = std::move(comment_vote);
-
-        //
-
-	auto curation_reward = create_removal_document("curation_reward");
-        
-	curation_reward->id_comment = comment_oid;
-        
-	result[std::make_tuple(curation_reward->collection_name, "comment", comment_oid)] = std::move(curation_reward);
+        bmi_insert_or_replace(result, comment_vote);
 
         //
 
@@ -460,10 +472,12 @@ namespace mongo_db {
     auto state_writer::operator()(const author_reward_operation& op) -> result_type {
         result_type result;
         try {
-            auto doc = create_document("author_reward");
-            auto &body = doc->doc;
-
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+
+            auto doc = create_document("author_reward", "_id", comment_oid);
+            auto &body = *(doc.doc.get());
+
+            body << "$set" << open_document;
 
             format_value(body, "removed", false);
             format_oid(body, comment_oid);
@@ -475,7 +489,10 @@ namespace mongo_db {
             format_value(body, "steem_payout", op.steem_payout);
             format_value(body, "vesting_payout", op.vesting_payout);
 
-            result[std::make_tuple(doc->collection_name, "_id", comment_oid)] = std::move(doc);
+            body << close_document;
+
+            bmi_insert_or_replace(result, doc);
+
         } catch (...) {
             //
         }
@@ -485,11 +502,14 @@ namespace mongo_db {
     auto state_writer::operator()(const curation_reward_operation& op) -> result_type {
         result_type result;
         try {
-            auto doc = create_document("curation_reward");
-            doc->index_to_create = "comment";
-            auto &body = doc->doc;
             auto comment_oid = std::string(op.comment_author).append("/").append(op.comment_permlink);
             auto vote_oid = comment_oid + "/" + op.curator;
+
+            auto doc = create_document("curation_reward", "_id", vote_oid);
+            doc.index_to_create = "comment";
+            auto &body = *(doc.doc.get());
+
+            body << "$set" << open_document;
 
             format_value(body, "removed", false);
             format_oid(body, vote_oid);
@@ -501,7 +521,9 @@ namespace mongo_db {
             format_value(body, "reward", op.reward);
             format_value(body, "curator", op.curator);
 
-            result[std::make_tuple(doc->collection_name, "comment", comment_oid)] = std::move(doc);
+            body << close_document;
+
+            bmi_insert_or_replace(result, doc);
         } catch (...) {
             //
         }
@@ -511,9 +533,12 @@ namespace mongo_db {
     auto state_writer::operator()(const comment_reward_operation& op) -> result_type {
         result_type result;
         try {
-            auto doc = create_document("comment_reward");
-            auto &body = doc->doc;
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+
+            auto doc = create_document("comment_reward", "_id", comment_oid);
+            auto &body = *(doc.doc.get());
+
+            body << "$set" << open_document;
 
             format_value(body, "removed", false);
             format_oid(body, comment_oid);
@@ -523,7 +548,9 @@ namespace mongo_db {
             format_value(body, "timestamp", state_block.timestamp);
             format_value(body, "payout", op.payout);
 
-            result[std::make_tuple(doc->collection_name, "_id", comment_oid)] = std::move(doc);
+            body << close_document;
+
+            bmi_insert_or_replace(result, doc);
         } catch (...) {
             //
         }
@@ -533,11 +560,14 @@ namespace mongo_db {
     auto state_writer::operator()(const comment_benefactor_reward_operation& op) -> result_type {
         result_type result;
         try {
-            auto doc = create_document("benefactor_reward");
-            doc->index_to_create = "comment";
-            auto &body = doc->doc;
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
             auto benefactor_oid = comment_oid + "/" + op.benefactor;
+
+            auto doc = create_document("benefactor_reward", "_id", benefactor_oid);
+            doc.index_to_create = "comment";
+            auto &body = *(doc.doc.get());
+
+            body << "$set" << open_document;
 
             format_value(body, "removed", false);
             format_oid(body, benefactor_oid);
@@ -548,7 +578,9 @@ namespace mongo_db {
             format_value(body, "reward", op.reward);
             format_value(body, "benefactor", op.benefactor);
 
-            result[std::make_tuple(doc->collection_name, "comment", comment_oid)] = std::move(doc);
+            body << close_document;
+
+            bmi_insert_or_replace(result, doc);
         } catch (...) {
             //
         }
