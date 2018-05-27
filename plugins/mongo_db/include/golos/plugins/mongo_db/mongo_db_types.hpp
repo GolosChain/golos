@@ -23,6 +23,7 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/random_access_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+#include <boost/optional.hpp>
 
 #include <fc/crypto/sha1.hpp>
 
@@ -37,37 +38,39 @@ namespace mongo_db {
     using bsoncxx::builder::stream::document;
 
     struct named_document {
-        named_document() {
-            doc = std::make_shared<document>();
-        }
-        virtual ~named_document() {}
         std::string collection_name;
-        std::shared_ptr<document> doc;
+        document doc;
         bool is_removal;
+        //bool is_virtual;
         std::string index_to_create;
         std::string key;
         std::string keyval;
     };
 
-	typedef boost::multi_index_container<
-	    named_document,
-	    boost::multi_index::indexed_by<
-	        boost::multi_index::random_access<>,
-	        boost::multi_index::hashed_unique<
-	            boost::multi_index::composite_key<
-	                named_document,
-	                boost::multi_index::member<named_document,std::string,&named_document::collection_name>,
-	                boost::multi_index::member<named_document,std::string,&named_document::key>,
-	                boost::multi_index::member<named_document,std::string,&named_document::keyval>,
-	                boost::multi_index::member<named_document,bool,&named_document::is_removal>
-	            >
-	        >
-	    >
-	> db_map;
+    struct hashed_idx;
+
+        typedef boost::multi_index_container<
+            named_document,
+            boost::multi_index::indexed_by<
+                boost::multi_index::random_access<
+                >,
+                boost::multi_index::hashed_unique<
+                    boost::multi_index::tag<hashed_idx>,
+                    boost::multi_index::composite_key<
+                        named_document,
+                        boost::multi_index::member<named_document,std::string,&named_document::collection_name>,
+                        boost::multi_index::member<named_document,std::string,&named_document::key>,
+                        boost::multi_index::member<named_document,std::string,&named_document::keyval>,
+                        boost::multi_index::member<named_document,bool,&named_document::is_removal>//,
+                        //boost::multi_index::member<named_document,bool,&named_document::is_virtual>
+                    >
+                >
+            >
+        > db_map;
 
     void bmi_insert_or_replace(db_map& bmi, named_document doc);
 
-    void bmi_merge(db_map& bmi_what, const db_map& bmi_with);
+    //void bmi_merge(db_map& bmi_what, db_map& bmi_with);
 
     using named_document_ptr = std::unique_ptr<named_document>;
 
