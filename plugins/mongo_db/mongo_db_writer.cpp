@@ -77,6 +77,8 @@ namespace mongo_db {
             last_irreversible_block_num = _db.last_non_undoable_block_num();
             if (last_irreversible_block_num >= blocks.begin()->first) {
 
+                db_map all_docs;
+
                 // Write all the blocks that has num less then last irreversible block
                 while (!blocks.empty() && blocks.begin()->first <= last_irreversible_block_num) {
                     auto head_iter = blocks.begin();
@@ -86,29 +88,13 @@ namespace mongo_db {
                             write_raw_block(head_iter->second, virtual_ops[head_iter->first]);
                         }
 
-                        state_writer st_writer(block);
-                        
+                        state_writer st_writer(all_docs, block);
 
-        db_map all_docs;
-
-                        // Collecting all operations of block to single map and vector
+                        // Parsing all transactions. st_writer writes all results to all_docs
 
                         for (const auto& tran : head_iter->second.transactions) {
                             for (const auto& op : tran.operations) {
-                                auto result = op.visit(st_writer);
-                                bmi_merge(all_docs, result);
-                            }
-                        }
-
-                        // Writing all to mongo
-
-                        for (auto it = all_docs.begin(); it != all_docs.end(); ++it) {
-                            if (!it->is_removal) {
-                               //wlog((*it).collection_name);
-                                write_document(*it);
-                            } else {
-                                //wlog((*it).collection_name + std::string("_REM"));
-                                remove_document(*it);
+                                op.visit(st_writer);
                             }
                         }
                         
@@ -123,6 +109,21 @@ namespace mongo_db {
                     blocks.erase(head_iter);
                     virtual_ops.erase(head_iter->first);
                 }
+
+                // End of blocks series. Writing all docs to bulk
+
+                for (auto& it : all_docs) {
+                    if (!it.is_removal) {
+                        //wlog(it.collection_name);
+                        write_document(it);
+                    } else {
+                        //wlog(it.collection_name + std::string("_REM"));
+                        remove_document(it);
+                    }
+                }
+
+                // Writing bulk to mongo
+
                 write_data();
             }
 
@@ -212,21 +213,23 @@ namespace mongo_db {
         formatted_blocks[blocks]->append(insert_msg);
     }
 
-    void mongo_db_writer::write_document(const named_document& named_doc) {
+    void mongo_db_writer::write_document(named_document const& named_doc) {
         if (formatted_blocks.find(named_doc.collection_name) == formatted_blocks.end()) {
             formatted_blocks[named_doc.collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
         }
 
-        auto view = named_doc.doc->view();
+        //auto view = named_doc.doc.view();
         //auto itr = view.find("_id");
         //if (view.end() == itr) {
         //    mongocxx::model::insert_one msg{std::move(view)};
         //    formatted_blocks[named_doc.collection_name]->append(msg);
         //} else {
             document filter;
+
             filter << "_id" << bsoncxx::oid(named_doc.keyval); 
 
-            mongocxx::model::update_one msg{filter.view(), named_doc.doc->view()};
+            mongocxx::model::update_one msg{filter.view(), 
+                named_doc.doc.view()};
             msg.upsert(true);
 
             if (!named_doc.index_to_create.empty()) {
@@ -240,7 +243,7 @@ namespace mongo_db {
         //}
     }
 
-    void mongo_db_writer::remove_document(const named_document& named_doc) {
+    void mongo_db_writer::remove_document(named_document const& named_doc) {
         if (formatted_blocks.find(named_doc.collection_name) == formatted_blocks.end()) {
             formatted_blocks[named_doc.collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
         }
@@ -267,15 +270,7 @@ namespace mongo_db {
         //ilog("mongo_db_writer::write_block_operations ${e}", ("e", block.block_num()));
 
         for (auto& op: ops) {
-            auto result = op.visit(st_writer);
-
-            for (auto it = result.begin(); it != result.end(); ++it) {
-                if (!it->is_removal) {
-                    write_document(*it);
-                } else {
-                    remove_document(*it);
-                }
-            }
+            op.visit(st_writer);
         }
     }
 

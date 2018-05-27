@@ -18,10 +18,9 @@ namespace mongo_db {
 
     class state_writer {
     public:
+        using result_type = void;
 
-        using result_type = db_map;
-
-        state_writer(const signed_block& block);
+        state_writer(db_map& bmi_to_add, const signed_block& block);
 
         result_type operator()(const vote_operation& op);
         result_type operator()(const comment_operation& op);
@@ -92,7 +91,9 @@ namespace mongo_db {
 
         const signed_block &state_block;
 
-        result_type format_comment(const std::string& auth, const std::string& perm);
+        db_map &all_docs;
+
+        void format_comment(const std::string& auth, const std::string& perm);
 
         named_document create_document(const std::string& name,
             const std::string& key, const std::string& keyval);
