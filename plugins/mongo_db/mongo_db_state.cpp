@@ -22,9 +22,10 @@ namespace mongo_db {
     using namespace golos::plugins::follow;
 
 
-    state_writer::state_writer(const signed_block& block) :
+    state_writer::state_writer(db_map& bmi_to_add, const signed_block& block) :
         db_(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()),
-        state_block(block) {
+        state_block(block),
+        all_docs(bmi_to_add) {
     }
 
     named_document state_writer::create_document(const std::string& name,
@@ -47,14 +48,14 @@ namespace mongo_db {
         return doc;
     }
 
-    auto state_writer::format_comment(const std::string& auth, const std::string& perm) -> result_type {
-        result_type result;
+    void state_writer::format_comment(const std::string& auth, const std::string& perm) {
         try {
             auto& comment = db_.get_comment(auth, perm);
             auto oid = std::string(auth).append("/").append(perm);
-            
-            auto doc = create_document("comment_object", "_id", oid);
-            auto& body = *(doc.doc.get());
+            auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
+
+            auto doc = create_document("comment_object", "_id", oid_hash);
+            auto& body = doc.doc;
 
             body << "$set" << open_document;
 
@@ -125,14 +126,14 @@ namespace mongo_db {
 
             body << close_document;
 
-            bmi_insert_or_replace(result, doc);
+            bmi_insert_or_replace(all_docs, std::move(doc));
 
             // comment_content_object
 
             auto& content = db_.get_comment_content(comment_id_type(comment.id));
 
-            auto doc2 = create_document("comment_content_object", "_id", oid);
-            auto& body2 = *(doc2.doc.get());
+            auto doc2 = create_document("comment_content_object", "_id", oid_hash);
+            auto& body2 = doc2.doc;
 
             body2 << "$set" << open_document;
 
@@ -147,7 +148,7 @@ namespace mongo_db {
 
             body2 << close_document;
 
-            bmi_insert_or_replace(result, doc2);
+            bmi_insert_or_replace(all_docs, std::move(doc2));
         }
 //        catch (fc::exception& ex) {
 //            ilog("MongoDB operations fc::exception during formatting comment. ${e}", ("e", ex.what()));
@@ -155,11 +156,10 @@ namespace mongo_db {
         catch (...) {
             // ilog("Unknown exception during formatting comment.");
         }
-        return result;
     }
 
     auto state_writer::operator()(const vote_operation& op) -> result_type {
-        auto result = format_comment(op.author, op.permlink);
+        format_comment(op.author, op.permlink);
         
         try {
             auto& vote_idx = db_.get_index<comment_vote_index>().indices().get<by_comment_voter>();
@@ -170,10 +170,11 @@ namespace mongo_db {
 
                 auto comment_oid = std::string(op.author).append("/").append(op.permlink);
                 auto oid = comment_oid + "/" + op.voter;
+                auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
 
-                auto doc = create_document("comment_vote_object", "_id", oid);
+                auto doc = create_document("comment_vote_object", "_id", oid_hash);
                 doc.index_to_create = "comment";
-                auto &body = *(doc.doc.get());
+                auto &body = doc.doc;
 
                 body << "$set" << open_document;
 
@@ -192,7 +193,7 @@ namespace mongo_db {
 
                 body << close_document;
 
-                bmi_insert_or_replace(result, doc);
+                bmi_insert_or_replace(all_docs, std::move(doc));
             }
         }
 //        catch (fc::exception& ex) {
@@ -201,32 +202,29 @@ namespace mongo_db {
         catch (...) {
             // ilog("Unknown exception during formatting vote.");
         }
-
-        return result;
     }
 
     auto state_writer::operator()(const comment_operation& op) -> result_type {
-        auto result = format_comment(op.author, op.permlink);
-        return result;
+        format_comment(op.author, op.permlink);
     }
 
     auto state_writer::operator()(const comment_options_operation& op) -> result_type {
-        return format_comment(op.author, op.permlink);
+        format_comment(op.author, op.permlink);
     }
     
     auto state_writer::operator()(const delete_comment_operation& op) -> result_type {
-        result_type result;
 
 	std::string author = op.author;
 
         auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+        auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
 
         //
 
         // Will be updated with the following fields. If no one - created with these fields.
-	auto comment = create_document("comment_object", "_id", comment_oid);
+	auto comment = create_document("comment_object", "_id", comment_oid_hash);
 
-        auto& body = *(comment.doc.get());
+        auto& body = comment.doc;
 
         body << "$set" << open_document;
 
@@ -239,14 +237,14 @@ namespace mongo_db {
 
         body << close_document;
 
-        bmi_insert_or_replace(result, comment);
+        bmi_insert_or_replace(all_docs, std::move(comment));
 
         //
 
         // Will be updated with the following fields. If no one - created with these fields.
-	auto comment_content = create_document("comment_content_object", "_id", comment_oid);
+	auto comment_content = create_document("comment_content_object", "_id", comment_oid_hash);
 
-        auto& body2 = *(comment_content.doc.get());
+        auto& body2 = comment_content.doc;
 
         body2 << "$set" << open_document;
 
@@ -258,224 +256,220 @@ namespace mongo_db {
 
         body2 << close_document;
 
-        bmi_insert_or_replace(result, comment_content);
+        bmi_insert_or_replace(all_docs, std::move(comment_content));
 
         //
 
         // Will be updated with removed = true. If no one - nothing to do.
-	auto comment_vote = create_removal_document("comment_vote_object", "comment", comment_oid);
+	auto comment_vote = create_removal_document("comment_vote_object", "comment", comment_oid_hash);
         
-        bmi_insert_or_replace(result, comment_vote);
-
-        //
-
-        return result;
+        bmi_insert_or_replace(all_docs, std::move(comment_vote));
     }
 
     auto state_writer::operator()(const transfer_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const transfer_to_vesting_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const withdraw_vesting_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const limit_order_create_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const limit_order_cancel_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const feed_publish_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const convert_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const account_create_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const account_update_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const witness_update_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const account_witness_vote_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const account_witness_proxy_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const pow_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const custom_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const report_over_production_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const custom_json_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const set_withdraw_vesting_route_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const limit_order_create2_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const challenge_authority_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const prove_authority_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const request_account_recovery_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const recover_account_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const change_recovery_account_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const escrow_transfer_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const escrow_dispute_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const escrow_release_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const pow2_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const escrow_approve_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const transfer_to_savings_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const transfer_from_savings_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const cancel_transfer_from_savings_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const custom_binary_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const decline_voting_rights_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const reset_account_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const set_reset_account_operation& op) -> result_type {
-        return result_type();
+        
     }
 
 //masl
     auto state_writer::operator()(const delegate_vesting_shares_operation& op) -> result_type {
-        return result_type();
+        
     }
     auto state_writer::operator()(const account_create_with_delegation_operation& op) -> result_type {
-        return result_type();
+        
     }
     auto state_writer::operator()(const account_metadata_operation& op) -> result_type {
-        return result_type();
+        
     }
     auto state_writer::operator()(const proposal_create_operation& op) -> result_type {
-        return result_type();
+        
     }
     auto state_writer::operator()(const proposal_update_operation& op) -> result_type {
-        return result_type();
+        
     }
     auto state_writer::operator()(const proposal_delete_operation& op) -> result_type {
-        return result_type();
+        
     }
 //
 
     auto state_writer::operator()(const fill_convert_request_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const liquidity_reward_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const interest_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const fill_vesting_withdraw_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const fill_order_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const shutdown_witness_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const fill_transfer_from_savings_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const hardfork_operation& op) -> result_type {
-        return result_type();
+        
     }
 
     auto state_writer::operator()(const comment_payout_update_operation& op) -> result_type {
-        return format_comment(op.author, op.permlink);
+        format_comment(op.author, op.permlink);
     }
 
     auto state_writer::operator()(const author_reward_operation& op) -> result_type {
-        result_type result;
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+            auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
 
-            auto doc = create_document("author_reward", "_id", comment_oid);
-            auto &body = *(doc.doc.get());
+            auto doc = create_document("author_reward", "_id", comment_oid_hash);
+            auto &body = doc.doc;
 
             body << "$set" << open_document;
 
@@ -491,23 +485,22 @@ namespace mongo_db {
 
             body << close_document;
 
-            bmi_insert_or_replace(result, doc);
+            bmi_insert_or_replace(all_docs, std::move(doc));
 
         } catch (...) {
             //
         }
-        return result;
     }
 
     auto state_writer::operator()(const curation_reward_operation& op) -> result_type {
-        result_type result;
         try {
             auto comment_oid = std::string(op.comment_author).append("/").append(op.comment_permlink);
             auto vote_oid = comment_oid + "/" + op.curator;
+            auto vote_oid_hash = fc::sha1::hash(vote_oid).str().substr(0, 24);
 
-            auto doc = create_document("curation_reward", "_id", vote_oid);
+            auto doc = create_document("curation_reward", "_id", vote_oid_hash);
             doc.index_to_create = "comment";
-            auto &body = *(doc.doc.get());
+            auto &body = doc.doc;
 
             body << "$set" << open_document;
 
@@ -523,20 +516,19 @@ namespace mongo_db {
 
             body << close_document;
 
-            bmi_insert_or_replace(result, doc);
+            bmi_insert_or_replace(all_docs, std::move(doc));
         } catch (...) {
             //
         }
-        return result;
     }
 
     auto state_writer::operator()(const comment_reward_operation& op) -> result_type {
-        result_type result;
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+            auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
 
-            auto doc = create_document("comment_reward", "_id", comment_oid);
-            auto &body = *(doc.doc.get());
+            auto doc = create_document("comment_reward", "_id", comment_oid_hash);
+            auto &body = doc.doc;
 
             body << "$set" << open_document;
 
@@ -550,22 +542,21 @@ namespace mongo_db {
 
             body << close_document;
 
-            bmi_insert_or_replace(result, doc);
+            bmi_insert_or_replace(all_docs, std::move(doc));
         } catch (...) {
             //
         }
-        return result;
     }
 
     auto state_writer::operator()(const comment_benefactor_reward_operation& op) -> result_type {
-        result_type result;
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
             auto benefactor_oid = comment_oid + "/" + op.benefactor;
+            auto benefactor_oid_hash = fc::sha1::hash(benefactor_oid).str().substr(0, 24);
 
-            auto doc = create_document("benefactor_reward", "_id", benefactor_oid);
+            auto doc = create_document("benefactor_reward", "_id", benefactor_oid_hash);
             doc.index_to_create = "comment";
-            auto &body = *(doc.doc.get());
+            auto &body = doc.doc;
 
             body << "$set" << open_document;
 
@@ -580,16 +571,15 @@ namespace mongo_db {
 
             body << close_document;
 
-            bmi_insert_or_replace(result, doc);
+            bmi_insert_or_replace(all_docs, std::move(doc));
         } catch (...) {
             //
         }
-        return result;
     }
 
 //masl
     auto state_writer::operator()(const return_vesting_delegation_operation& op) -> result_type {
-        return result_type();
+        
     }
 //
 
