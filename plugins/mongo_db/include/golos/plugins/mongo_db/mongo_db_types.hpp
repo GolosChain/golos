@@ -49,11 +49,14 @@ namespace mongo_db {
         std::string keyval;
     };
 
+    struct hashed_idx;
+
 	typedef boost::multi_index_container<
 	    named_document,
 	    boost::multi_index::indexed_by<
 	        boost::multi_index::random_access<>,
 	        boost::multi_index::hashed_unique<
+                    boost::multi_index::tag<hashed_idx>,
 	            boost::multi_index::composite_key<
 	                named_document,
 	                boost::multi_index::member<named_document,std::string,&named_document::collection_name>,

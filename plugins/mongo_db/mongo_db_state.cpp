@@ -52,8 +52,9 @@ namespace mongo_db {
         try {
             auto& comment = db_.get_comment(auth, perm);
             auto oid = std::string(auth).append("/").append(perm);
+            auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
             
-            auto doc = create_document("comment_object", "_id", oid);
+            auto doc = create_document("comment_object", "_id", oid_hash);
             auto& body = *(doc.doc.get());
 
             body << "$set" << open_document;
@@ -131,7 +132,7 @@ namespace mongo_db {
 
             auto& content = db_.get_comment_content(comment_id_type(comment.id));
 
-            auto doc2 = create_document("comment_content_object", "_id", oid);
+            auto doc2 = create_document("comment_content_object", "_id", oid_hash);
             auto& body2 = *(doc2.doc.get());
 
             body2 << "$set" << open_document;
@@ -170,8 +171,9 @@ namespace mongo_db {
 
                 auto comment_oid = std::string(op.author).append("/").append(op.permlink);
                 auto oid = comment_oid + "/" + op.voter;
+                auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
 
-                auto doc = create_document("comment_vote_object", "_id", oid);
+                auto doc = create_document("comment_vote_object", "_id", oid_hash);
                 doc.index_to_create = "comment";
                 auto &body = *(doc.doc.get());
 
@@ -220,12 +222,12 @@ namespace mongo_db {
 	std::string author = op.author;
 
         auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+        auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
 
         //
 
         // Will be updated with the following fields. If no one - created with these fields.
-	auto comment = create_document("comment_object", "_id", comment_oid);
-
+	auto comment = create_document("comment_object", "_id", comment_oid_hash);
         auto& body = *(comment.doc.get());
 
         body << "$set" << open_document;
@@ -244,7 +246,7 @@ namespace mongo_db {
         //
 
         // Will be updated with the following fields. If no one - created with these fields.
-	auto comment_content = create_document("comment_content_object", "_id", comment_oid);
+	auto comment_content = create_document("comment_content_object", "_id", comment_oid_hash);
 
         auto& body2 = *(comment_content.doc.get());
 
@@ -263,7 +265,7 @@ namespace mongo_db {
         //
 
         // Will be updated with removed = true. If no one - nothing to do.
-	auto comment_vote = create_removal_document("comment_vote_object", "comment", comment_oid);
+	auto comment_vote = create_removal_document("comment_vote_object", "comment", comment_oid_hash);
         
         bmi_insert_or_replace(result, comment_vote);
 
@@ -473,8 +475,9 @@ namespace mongo_db {
         result_type result;
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+            auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
 
-            auto doc = create_document("author_reward", "_id", comment_oid);
+            auto doc = create_document("author_reward", "_id", comment_oid_hash);
             auto &body = *(doc.doc.get());
 
             body << "$set" << open_document;
@@ -504,8 +507,9 @@ namespace mongo_db {
         try {
             auto comment_oid = std::string(op.comment_author).append("/").append(op.comment_permlink);
             auto vote_oid = comment_oid + "/" + op.curator;
+            auto vote_oid_hash = fc::sha1::hash(vote_oid).str().substr(0, 24);
 
-            auto doc = create_document("curation_reward", "_id", vote_oid);
+            auto doc = create_document("curation_reward", "_id", vote_oid_hash);
             doc.index_to_create = "comment";
             auto &body = *(doc.doc.get());
 
@@ -534,8 +538,9 @@ namespace mongo_db {
         result_type result;
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
+            auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
 
-            auto doc = create_document("comment_reward", "_id", comment_oid);
+            auto doc = create_document("comment_reward", "_id", comment_oid_hash);
             auto &body = *(doc.doc.get());
 
             body << "$set" << open_document;
@@ -562,8 +567,9 @@ namespace mongo_db {
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
             auto benefactor_oid = comment_oid + "/" + op.benefactor;
+            auto benefactor_oid_hash = fc::sha1::hash(benefactor_oid).str().substr(0, 24);
 
-            auto doc = create_document("benefactor_reward", "_id", benefactor_oid);
+            auto doc = create_document("benefactor_reward", "_id", benefactor_oid_hash);
             doc.index_to_create = "comment";
             auto &body = *(doc.doc.get());
 

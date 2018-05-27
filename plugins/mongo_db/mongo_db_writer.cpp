@@ -218,14 +218,13 @@ namespace mongo_db {
         }
 
         auto view = named_doc.doc->view();
-        auto itr = view.find("_id");
-        /*if (view.end() == itr) {
-            mongocxx::model::insert_one msg{std::move(view)};
-            formatted_blocks[named_doc.collection_name]->append(msg);
-        } else {*/
+        //auto itr = view.find("_id");
+        //if (view.end() == itr) {
+        //    mongocxx::model::insert_one msg{std::move(view)};
+        //    formatted_blocks[named_doc.collection_name]->append(msg);
+        //} else {
             document filter;
-        auto oid_hash = fc::sha1::hash(named_doc.keyval).str().substr(0, 24);
-            filter << "_id" << bsoncxx::oid(oid_hash); 
+            filter << "_id" << bsoncxx::oid(named_doc.keyval); 
 
             mongocxx::model::update_one msg{filter.view(), named_doc.doc->view()};
             msg.upsert(true);
@@ -245,14 +244,13 @@ namespace mongo_db {
         if (formatted_blocks.find(named_doc.collection_name) == formatted_blocks.end()) {
             formatted_blocks[named_doc.collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
         }
-        auto oid_hash = fc::sha1::hash(named_doc.keyval).str().substr(0, 24);
 
         //mongo_database[named_doc.collection_name].update_many(
         //    document{} << key << bsoncxx::oid(oid_hash) << finalize,
         //    document{} << "$set" << open_document << "removed" << true << close_document << finalize);
         
         document filter;
-        filter << named_doc.key << bsoncxx::oid(oid_hash);
+        filter << named_doc.key << bsoncxx::oid(named_doc.keyval);
         auto v1 = filter.view();
         document newval;
         newval << "$set" << open_document << "removed" << true << close_document;
