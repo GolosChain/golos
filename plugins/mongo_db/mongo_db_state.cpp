@@ -173,7 +173,9 @@ namespace mongo_db {
                 auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
 
                 auto doc = create_document("comment_vote_object", "_id", oid_hash);
-                doc.index_to_create = "comment";
+                document comment_index;
+                comment_index << "comment" << 1;
+                doc.indexes_to_create.push_back(std::move(comment_index));
                 auto &body = doc.doc;
 
                 body << "$set" << open_document;
@@ -499,7 +501,9 @@ namespace mongo_db {
             auto vote_oid_hash = fc::sha1::hash(vote_oid).str().substr(0, 24);
 
             auto doc = create_document("curation_reward", "_id", vote_oid_hash);
-            doc.index_to_create = "comment";
+            document comment_index;
+            comment_index << "comment" << 1;
+            doc.indexes_to_create.push_back(std::move(comment_index));
             auto &body = doc.doc;
 
             body << "$set" << open_document;
@@ -554,8 +558,10 @@ namespace mongo_db {
             auto benefactor_oid = comment_oid + "/" + op.benefactor;
             auto benefactor_oid_hash = fc::sha1::hash(benefactor_oid).str().substr(0, 24);
 
-            auto doc = create_document("benefactor_reward", "_id", benefactor_oid_hash);
-            doc.index_to_create = "comment";
+            auto doc = create_document("benefactor_reward", "_id", benefactor_oid_hash);       
+            document comment_index;
+            comment_index << "comment" << 1;
+            doc.indexes_to_create.push_back(std::move(comment_index));
             auto &body = doc.doc;
 
             body << "$set" << open_document;

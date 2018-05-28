@@ -232,11 +232,11 @@ namespace mongo_db {
                 named_doc.doc.view()};
             msg.upsert(true);
 
-            if (!named_doc.index_to_create.empty()) {
-                if (indexes.find(named_doc.collection_name) == indexes.end()) {
-                    mongo_database[named_doc.collection_name].create_index(document{} << named_doc.index_to_create << 1 << finalize);
-                    indexes[named_doc.collection_name] = named_doc.index_to_create;
-                }
+            if (indexes.find(named_doc.collection_name) == indexes.end()) {
+                 for (auto& index_to_create : named_doc.indexes_to_create) {
+                    mongo_database[named_doc.collection_name].create_index(index_to_create.view());
+                 }
+                 indexes[named_doc.collection_name] = "created";
             }
 
             formatted_blocks[named_doc.collection_name]->append(msg);
