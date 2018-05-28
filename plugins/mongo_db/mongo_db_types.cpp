@@ -5,9 +5,9 @@ namespace plugins {
 namespace mongo_db {
 
     void bmi_insert_or_replace(db_map& bmi, named_document doc) {
-                auto it = bmi.get<hashed_idx>().find(std::make_tuple<std::string, std::string, std::string, bool>(
-                    std::string(doc.collection_name),
-                    std::string(doc.key), std::string(doc.keyval), bool(doc.is_removal)));
+                auto it = bmi.get<hashed_idx>().find(std::make_tuple(
+                    doc.collection_name,
+                    doc.key, doc.keyval, doc.is_removal));
                 if (it != bmi.get<hashed_idx>().end())
                     bmi.get<hashed_idx>().erase(it);
                 bmi.push_back(std::move(doc));
@@ -16,9 +16,9 @@ namespace mongo_db {
     //void bmi_merge(db_map& bmi_what, db_map& bmi_with) {
     //    for (auto it = bmi_with.begin(); it != bmi_with.end();) {
     //        // Erase if exists
-    //        auto it2 = bmi_what.get<hashed_idx>().find(std::make_tuple<std::string, std::string, std::string, bool>(
-    //            std::string(it->collection_name), std::string(it->key), std::string(it->keyval),
-    //            bool(it->is_removal)));
+    //        auto it2 = bmi_what.get<hashed_idx>().find(std::make_tuple(
+    //            it->collection_name, it->key, it->keyval,
+    //            it->is_removal));
     //        if (it2 != bmi_what.get<hashed_idx>().end())
     //            bmi_what.get<hashed_idx>().erase(it2);
     //        // Move
