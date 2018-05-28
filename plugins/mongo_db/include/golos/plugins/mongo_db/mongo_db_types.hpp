@@ -42,7 +42,7 @@ namespace mongo_db {
         document doc;
         bool is_removal;
         //bool is_virtual;
-        std::string index_to_create;
+        std::vector<document> indexes_to_create;
         std::string key;
         std::string keyval;
     };
