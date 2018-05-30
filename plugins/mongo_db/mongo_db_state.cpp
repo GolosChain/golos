@@ -124,31 +124,23 @@ namespace mongo_db {
 
             format_value(body, "mode", comment_mode);
 
+            auto& content = db_.get_comment_content(comment_id_type(comment.id));
+
+            format_value(body, "title", content.title);
+            format_value(body, "body", content.body);
+            format_value(body, "json_metadata", content.json_metadata);
+
+            std::string category;
+            if (comment.parent_author == STEEMIT_ROOT_POST_PARENT) {
+                category = to_string(comment.parent_permlink);
+            } else {
+                category = to_string(db_.get<comment_object, by_id>(comment.root_comment).parent_permlink);
+            }
+            format_value(body, "category", category);
+
             body << close_document;
 
             bmi_insert_or_replace(all_docs, std::move(doc));
-
-            // comment_content_object
-
-            auto& content = db_.get_comment_content(comment_id_type(comment.id));
-
-            auto doc2 = create_document("comment_content_object", "_id", oid_hash);
-            auto& body2 = doc2.doc;
-
-            body2 << "$set" << open_document;
-
-            format_value(body2, "removed", false);
-
-            format_oid(body2, oid);
-            format_oid(body2, "comment", oid);
-            //format_value(body2, "comment_permlink", perm);
-            format_value(body2, "title", content.title);
-            format_value(body2, "body", content.body);
-            format_value(body2, "json_metadata", content.json_metadata);
-
-            body2 << close_document;
-
-            bmi_insert_or_replace(all_docs, std::move(doc2));
         }
 //        catch (fc::exception& ex) {
 //            ilog("MongoDB operations fc::exception during formatting comment. ${e}", ("e", ex.what()));
@@ -240,25 +232,6 @@ namespace mongo_db {
         body << close_document;
 
         bmi_insert_or_replace(all_docs, std::move(comment));
-
-        //
-
-        // Will be updated with the following fields. If no one - created with these fields.
-	auto comment_content = create_document("comment_content_object", "_id", comment_oid_hash);
-
-        auto& body2 = comment_content.doc;
-
-        body2 << "$set" << open_document;
-
-        format_oid(body2, comment_oid);
-
-        format_value(body2, "removed", true);
-
-        format_oid(body2, "comment", comment_oid);
-
-        body2 << close_document;
-
-        bmi_insert_or_replace(all_docs, std::move(comment_content));
 
         //
 
