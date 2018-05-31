@@ -18,13 +18,29 @@ namespace golos { namespace chain {
         return find<proposal_object, by_account>(std::make_tuple(author, title));
     }
 
+    bool database::is_authorized_to_execute(const proposal_object& proposal) const {
+        auto get_active = [&](const string& name) {
+            return authority(get<account_authority_object, by_account>(name).active);
+        };
+
+        auto get_owner = [&](const string& name) {
+            return authority(get<account_authority_object, by_account>(name).owner);
+        };
+
+        auto get_posting = [&](const string& name) {
+            return authority(get<account_authority_object, by_account>(name).posting);
+        };
+
+        return proposal.is_authorized_to_execute(get_active, get_owner, get_posting, STEEMIT_MAX_SIG_CHECK_DEPTH);
+    }
+
     void database::push_proposal(const proposal_object& proposal) { try {
         auto ops = proposal.operations();
         auto session = start_undo_session();
         for (auto& op : ops) {
             apply_operation(op, true);
         }
-        // the parent session has been created in _push_block()/_push_transaction()
+        // the parent session have been created in _push_block()/_push_transaction()
         session.squash();
         remove(proposal);
     } FC_CAPTURE_AND_RETHROW((proposal.author)(proposal.title)) }
@@ -54,7 +70,7 @@ namespace golos { namespace chain {
             const proposal_object& proposal = *proposal_expiration_index.begin();
 
             try {
-                if (proposal.is_authorized_to_execute(*this)) {
+                if (is_authorized_to_execute(proposal)) {
                     push_proposal(proposal);
                     continue;
                 }

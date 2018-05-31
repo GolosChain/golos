@@ -17,66 +17,6 @@ namespace golos { namespace chain {
                 second.begin(), second.end(),
                 std::inserter(first, first.begin()));
         }
-
-        void assert_irrelevant_proposal_authority(
-            database& db, const proposal_object& proposal, const proposal_update_operation& o
-        ) {
-            fc::flat_set<account_name_type> operation_approvals;
-            fc::flat_set<account_name_type> active_approvals;
-            fc::flat_set<account_name_type> owner_approvals;
-            fc::flat_set<account_name_type> posting_approvals;
-            fc::flat_set<public_key_type> used_signatures;
-
-            operation_approvals.insert(o.active_approvals_to_add.begin(), o.active_approvals_to_add.end());
-            operation_approvals.insert(o.owner_approvals_to_add.begin(), o.owner_approvals_to_add.end());
-            operation_approvals.insert(o.posting_approvals_to_add.begin(), o.posting_approvals_to_add.end());
-
-            // Verify authority doesn't check all cases, it throws an error on a first breaking
-            // That is why on a missing authority we add them and rethrow the exception on the following conditions:
-            //
-            // 1. an irrelevant signature/approval exists
-            // 2. the irrelevant signature/approval has came in the operation
-            for (int i = 0; i < 3 /* active + owner or posting */; ++i) {
-                try {
-                    proposal.verify_authority(db, active_approvals, owner_approvals, posting_approvals);
-                    return;
-                } catch (const protocol::tx_missing_active_auth& e) {
-                    if (!active_approvals.empty()) {
-                        throw;
-                    }
-                    active_approvals.insert(e.missing_accounts.begin(), e.missing_accounts.end());
-                    used_signatures.insert(e.used_signatures.begin(), e.used_signatures.end());
-                } catch (const protocol::tx_missing_owner_auth& e) {
-                    if (!owner_approvals.empty()) {
-                        throw;
-                    }
-                    owner_approvals.insert(e.missing_accounts.begin(), e.missing_accounts.end());
-                    used_signatures.insert(e.used_signatures.begin(), e.used_signatures.end());
-                } catch (const protocol::tx_missing_posting_auth& e) {
-                    if (!posting_approvals.empty()) {
-                        throw;
-                    }
-                    posting_approvals.insert(e.missing_accounts.begin(), e.missing_accounts.end());
-                    used_signatures.insert(e.used_signatures.begin(), e.used_signatures.end());
-                } catch (const protocol::tx_irrelevant_sig& e) {
-                    for (auto& sig: e.unused_signatures) {
-                        if (o.key_approvals_to_add.count(sig) && !used_signatures.count(sig)) {
-                            throw;
-                        }
-                    }
-                    return;
-                } catch (const protocol::tx_irrelevant_approval& e) {
-                    for (auto& account: e.unused_approvals) {
-                        if (operation_approvals.count(account)) {
-                            throw;
-                        }
-                    }
-                    return;
-                } catch (...) {
-                    throw;
-                }
-            }
-        }
     }
 
     void proposal_create_evaluator::do_apply(const proposal_create_operation& o) { try {
@@ -116,35 +56,17 @@ namespace golos { namespace chain {
         remove_existing(required_active, required_total);
         required_total.insert(required_active.begin(), required_active.end());
 
-        // For more information, see transaction.cpp
+        // For more information, see sign_state.cpp
         FC_ASSERT(
             required_posting.empty() != required_total.empty(),
             "Can't combine operations required posting authority and active or owner authority");
         required_total.insert(required_posting.begin(), required_posting.end());
 
-        // Doesn't allow proposal with combination of create_account() + some_operation()
-        //  because it will be never approved.
-        for (const auto& account: required_total) {
-            FC_ASSERT(
-                nullptr != db().find_account(account),
-                "Account '${account}' for proposed operation doesn't exist", ("account", account));
-        }
-
-        FC_ASSERT(required_total.size(), "No operations require approvals");
-
         transaction trx;
         for (const auto& op : o.proposed_operations) {
             trx.operations.push_back(op.op);
         }
-        trx.set_expiration(db().head_block_time() + STEEMIT_MAX_TIME_UNTIL_EXPIRATION);
-
-        const uint32_t skip_steps =
-            golos::chain::database::skip_authority_check |
-            golos::chain::database::skip_transaction_signatures |
-            golos::chain::database::skip_tapos_check |
-            golos::chain::database::skip_database_locking;
-
-        db().validate_transaction(trx, skip_steps);
+        trx.validate();
 
         auto ops_size = fc::raw::pack_size(trx.operations);
 
@@ -189,7 +111,7 @@ namespace golos { namespace chain {
 
         auto check_existing = [&](const auto& to_remove, const auto& dst) {
             for (const auto& a: to_remove) {
-                FC_ASSERT(dst.find(a) != dst.end(), "Can't remove the non existing approval '${id}'", ("id", a));
+                FC_ASSERT(dst.find(a) != dst.end(), "Can't remove the non existing approval", ("id", a));
             }
         };
 
@@ -200,7 +122,7 @@ namespace golos { namespace chain {
 
         auto check_duplicate = [&](const auto& to_add, const auto& dst) {
             for (const auto& a: to_add) {
-                FC_ASSERT(dst.find(a) == dst.end(), "Can't add already exist approval '${id}'", ("id", a));
+                FC_ASSERT(dst.find(a) == dst.end(), "Can't add already exist approval", ("id", a));
             }
         };
 
@@ -234,9 +156,7 @@ namespace golos { namespace chain {
             return;
         }
 
-        assert_irrelevant_proposal_authority(db(), proposal, o);
-
-        if (proposal.is_authorized_to_execute(db())) {
+        if (db().is_authorized_to_execute(proposal)) {
             // All required approvals are satisfied. Execute!
             try {
                 db().push_proposal(proposal);
