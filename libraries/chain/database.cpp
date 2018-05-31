@@ -151,7 +151,7 @@ namespace golos { namespace chain {
                 _fork_db.reset();    // override effect of _fork_db.start_block() call in open()
 
                 auto start = fc::time_point::now();
-                GOLOS_ASSERT(_block_log.head(), block_log_exception, "No blocks in block log. Cannot reindex an empty chain.");
+                STEEMIT_ASSERT(_block_log.head(), block_log_exception, "No blocks in block log. Cannot reindex an empty chain.");
 
                 ilog("Replaying blocks...");
 
@@ -1109,7 +1109,7 @@ namespace golos { namespace chain {
 
                 /// save the head block so we can recover its transactions
                 optional<signed_block> head_block = fetch_block_by_id(head_id);
-                GOLOS_ASSERT(head_block.valid(), pop_empty_chain, "there are no blocks to pop");
+                STEEMIT_ASSERT(head_block.valid(), pop_empty_chain, "there are no blocks to pop");
 
                 _fork_db.pop_block();
                 undo();
@@ -1723,57 +1723,28 @@ namespace golos { namespace chain {
                 return a->props.account_creation_fee.amount <
                        b->props.account_creation_fee.amount;
             });
-            asset median_account_creation_fee = active[active.size() / 2]->props.account_creation_fee;
-
-            /// sort them by create_account_with_golos_modifier
-            std::sort(active.begin(), active.end(), [&](const witness_object *a, const witness_object *b) {
-                return a->props.create_account_with_golos_modifier <
-                       b->props.create_account_with_golos_modifier;
-            });
-            auto median_with_golos_modifier = active[active.size() / 2]->props.create_account_with_golos_modifier;
-
-            /// sort them by create_account_delegation_ratio
-            std::sort(active.begin(), active.end(), [&](const witness_object *a, const witness_object *b) {
-                return a->props.create_account_delegation_ratio <
-                       b->props.create_account_delegation_ratio;
-            });
-            auto median_delegation_ratio = active[active.size() / 2]->props.create_account_delegation_ratio;
-
-            /// sort them by create_account_delegation_time
-            std::sort(active.begin(), active.end(), [&](const witness_object *a, const witness_object *b) {
-                return a->props.create_account_delegation_time <
-                       b->props.create_account_delegation_time;
-            });
-            auto median_delegation_time = active[active.size() / 2]->props.create_account_delegation_time;
-
-            /// sort them by min_delegation_multiplier
-            std::sort(active.begin(), active.end(), [&](const witness_object *a, const witness_object *b) {
-                return a->props.min_delegation_multiplier <
-                       b->props.min_delegation_multiplier;
-            });
-            auto median_delegation_multiplier = active[active.size() / 2]->props.min_delegation_multiplier;
+            asset median_account_creation_fee = active[active.size() /
+                                                       2]->props.account_creation_fee;
 
             /// sort them by maximum_block_size
             std::sort(active.begin(), active.end(), [&](const witness_object *a, const witness_object *b) {
                 return a->props.maximum_block_size <
                        b->props.maximum_block_size;
             });
-            uint32_t median_maximum_block_size = active[active.size() / 2]->props.maximum_block_size;
+            uint32_t median_maximum_block_size = active[active.size() /
+                                                        2]->props.maximum_block_size;
 
             /// sort them by sbd_interest_rate
             std::sort(active.begin(), active.end(), [&](const witness_object *a, const witness_object *b) {
                 return a->props.sbd_interest_rate < b->props.sbd_interest_rate;
             });
-            uint16_t median_sbd_interest_rate = active[active.size() / 2]->props.sbd_interest_rate;
+            uint16_t median_sbd_interest_rate = active[active.size() /
+                                                       2]->props.sbd_interest_rate;
 
             modify(wso, [&](witness_schedule_object &_wso) {
                 _wso.median_props.account_creation_fee = median_account_creation_fee;
                 _wso.median_props.maximum_block_size = median_maximum_block_size;
                 _wso.median_props.sbd_interest_rate = median_sbd_interest_rate;
-                _wso.median_props.create_account_with_golos_modifier = median_with_golos_modifier;
-                _wso.median_props.create_account_delegation_ratio = median_delegation_ratio;
-                _wso.median_props.create_account_delegation_time = median_delegation_time;
-                _wso.median_props.min_delegation_multiplier = median_delegation_multiplier;
             });
 
             modify(get_dynamic_global_properties(), [&](dynamic_global_property_object &_dgpo) {
@@ -2858,7 +2829,6 @@ namespace golos { namespace chain {
             _my->_evaluator_registry.register_evaluator<proposal_create_evaluator>();
             _my->_evaluator_registry.register_evaluator<proposal_update_evaluator>();
             _my->_evaluator_registry.register_evaluator<proposal_delete_evaluator>();
-            _my->_evaluator_registry.register_evaluator<chain_properties_update_evaluator>();
         }
 
         void database::set_custom_operation_interpreter(const std::string &id, std::shared_ptr<custom_operation_interpreter> registry) {
@@ -3056,21 +3026,14 @@ namespace golos { namespace chain {
                     p.maximum_block_size = STEEMIT_MAX_BLOCK_SIZE;
                 });
 
+#ifndef STEEMIT_BUILD_TESTNET
                 auto snapshot_path = string("./snapshot5392323.json");
                 auto snapshot_file = fc::path(snapshot_path);
-                auto snapshot_exists = fc::exists(snapshot_file);
-
-#ifdef STEEMIT_BUILD_TESTNET
-                // Note: snapshot is not exist (not copied) in default TESTNET config
-                if (snapshot_exists) {
-#else
-                FC_ASSERT(snapshot_exists, "Snapshot file '${file}' was not found.", ("file", snapshot_file));
-#endif
+                FC_ASSERT(fc::exists(snapshot_file), "Snapshot file '${file}' was not found.", ("file", snapshot_file));
 
                 std::cout << "Initializing state from snapshot file: "
                           << snapshot_file.generic_string() << "\n";
 
-#ifndef STEEMIT_BUILD_TESTNET
                 unsigned char digest[MD5_DIGEST_LENGTH];
                 char snapshot_checksum[] = "081b0149f0b2a570ae76b663090cfb0c";
                 char md5hash[33];
@@ -3081,7 +3044,6 @@ namespace golos { namespace chain {
                 }
                 FC_ASSERT(memcmp(md5hash, snapshot_checksum, 32) ==
                           0, "Checksum of snapshot [${h}] is not equal [${s}]", ("h", md5hash)("s", snapshot_checksum));
-#endif
 
                 snapshot_state snapshot = fc::json::from_file(snapshot_file).as<snapshot_state>();
                 for (account_summary &account : snapshot.accounts) {
@@ -3107,9 +3069,6 @@ namespace golos { namespace chain {
                 std::cout << "Imported " << snapshot.accounts.size()
                           << " accounts from " << snapshot_file.generic_string()
                           << ".\n";
-
-#ifdef STEEMIT_BUILD_TESTNET
-                }
 #endif
 
                 // Nothing to do
@@ -3129,6 +3088,7 @@ namespace golos { namespace chain {
             FC_CAPTURE_AND_RETHROW()
         }
 
+
         uint32_t database::validate_transaction(const signed_transaction &trx, uint32_t skip) {
             const uint32_t validate_transaction_steps =
                 skip_authority_check |
@@ -3141,31 +3101,19 @@ namespace golos { namespace chain {
                 // this method can be used only for push_transaction(),
                 //  because such transactions only added to pending list,
                 //  and they will be rechecked on block generation
-                auto validate_action = [&]() {
+                with_weak_read_lock([&] {
                     _validate_transaction(trx, skip);
-                };
-
-                if (!(skip & skip_database_locking)) {
-                    with_weak_read_lock(std::move(validate_action));
-                } else {
-                    validate_action();
-                }
+                });
 
                 skip |= validate_transaction_steps;
             }
 
             if (!(skip & skip_apply_transaction)) {
-                auto apply_action = [&]() {
+                with_weak_write_lock([&]() {
                     auto session = start_undo_session();
                     _apply_transaction(trx, skip);
                     session.undo();
-                };
-
-                if (!(skip & skip_database_locking)) {
-                    with_weak_write_lock(std::move(apply_action));
-                } else {
-                    apply_action();
-                }
+                });
             }
 
             return skip;
@@ -3179,15 +3127,15 @@ namespace golos { namespace chain {
             if (!(skip & (skip_transaction_signatures | skip_authority_check))) {
                 const chain_id_type &chain_id = STEEMIT_CHAIN_ID;
 
-                auto get_active = [&](const account_name_type& name) {
+                auto get_active = [&](const string &name) {
                     return authority(get<account_authority_object, by_account>(name).active);
                 };
 
-                auto get_owner = [&](const account_name_type& name) {
+                auto get_owner = [&](const string &name) {
                     return authority(get<account_authority_object, by_account>(name).owner);
                 };
 
-                auto get_posting = [&](const account_name_type& name) {
+                auto get_posting = [&](const string &name) {
                     return authority(get<account_authority_object, by_account>(name).posting);
                 };
 
@@ -3729,14 +3677,13 @@ namespace golos { namespace chain {
                 });
 
                 if (!(skip & skip_undo_history_check)) {
-                    GOLOS_ASSERT(
-                        _dgp.head_block_number - _dgp.last_irreversible_block_num < STEEMIT_MAX_UNDO_HISTORY,
-                        undo_database_exception,
-                        "The database does not have enough undo history to support a blockchain with so many missed blocks. "
-                        "Please add a checkpoint if you would like to continue applying blocks beyond this point.",
-                        ("last_irreversible_block_num", _dgp.last_irreversible_block_num)
-                        ("head", _dgp.head_block_number)
-                        ("max_undo", STEEMIT_MAX_UNDO_HISTORY));
+                    STEEMIT_ASSERT(_dgp.head_block_number -
+                                   _dgp.last_irreversible_block_num <
+                                   STEEMIT_MAX_UNDO_HISTORY, undo_database_exception,
+                            "The database does not have enough undo history to support a blockchain with so many missed blocks. "
+                                    "Please add a checkpoint if you would like to continue applying blocks beyond this point.",
+                            ("last_irreversible_block_num", _dgp.last_irreversible_block_num)("head", _dgp.head_block_number)
+                                    ("max_undo", STEEMIT_MAX_UNDO_HISTORY));
                 }
             } FC_CAPTURE_AND_RETHROW()
         }
