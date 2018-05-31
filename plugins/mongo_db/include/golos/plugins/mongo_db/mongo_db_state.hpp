@@ -61,14 +61,12 @@ namespace mongo_db {
         result_type operator()(const decline_voting_rights_operation& op);
         result_type operator()(const reset_account_operation& op);
         result_type operator()(const set_reset_account_operation& op);
-//
         result_type operator()(const delegate_vesting_shares_operation& op);
         result_type operator()(const account_create_with_delegation_operation& op);
         result_type operator()(const account_metadata_operation& op);
         result_type operator()(const proposal_create_operation& op);
         result_type operator()(const proposal_update_operation& op);
         result_type operator()(const proposal_delete_operation& op);
-//
         result_type operator()(const fill_convert_request_operation& op);
         result_type operator()(const author_reward_operation& op);
         result_type operator()(const curation_reward_operation& op);
@@ -82,9 +80,7 @@ namespace mongo_db {
         result_type operator()(const hardfork_operation& op);
         result_type operator()(const comment_payout_update_operation& op);
         result_type operator()(const comment_benefactor_reward_operation& op);
-//
         result_type operator()(const return_vesting_delegation_operation& op);
-//
 
     private:
         database &db_;

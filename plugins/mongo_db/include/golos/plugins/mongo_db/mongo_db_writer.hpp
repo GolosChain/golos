@@ -63,7 +63,6 @@ namespace mongo_db {
 
         void write_data();
 
-
         uint64_t processed_blocks = 0;
 
         std::string db_name;

@@ -21,7 +21,6 @@ namespace mongo_db {
     using bsoncxx::builder::stream::close_document;
     using namespace golos::plugins::follow;
 
-
     state_writer::state_writer(db_map& bmi_to_add, const signed_block& block) :
         db_(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()),
         state_block(block),
@@ -72,10 +71,8 @@ namespace mongo_db {
             format_value(body, "allow_replies", comment.allow_replies);
             format_value(body, "allow_votes", comment.allow_votes);
             format_value(body, "author_rewards", comment.author_rewards);
-            //format_value(body, "body", comment.body);
             format_value(body, "beneficiary_payout", comment.beneficiary_payout_value);
             format_value(body, "cashout_time", comment.cashout_time);
-            //format_value(body, "category", comment.category);
             format_value(body, "children", comment.children);
             format_value(body, "children_abs_rshares", comment.children_abs_rshares);
             format_value(body, "children_rshares2", comment.children_rshares2);
@@ -92,11 +89,9 @@ namespace mongo_db {
             format_value(body, "parent_permlink", comment.parent_permlink);
             format_value(body, "percent_steem_dollars", comment.percent_steem_dollars);
             format_value(body, "reward_weight", comment.reward_weight);
-            //format_value(body, "title", comment.title);
             format_value(body, "total_payout", comment.total_payout_value);
             format_value(body, "total_vote_weight", comment.total_vote_weight);
             format_value(body, "vote_rshares", comment.vote_rshares);
-            //format_value(body, "json_metadata", comment.json_metadata);
 
             if (!comment.beneficiaries.empty()) {
                 array ben_array;
@@ -159,7 +154,6 @@ namespace mongo_db {
             auto& voter = db_.get_account(op.voter);
             auto itr = vote_idx.find(std::make_tuple(comment.id, voter.id));
             if (vote_idx.end() != itr) {
-
                 auto comment_oid = std::string(op.author).append("/").append(op.permlink);
                 auto oid = comment_oid + "/" + op.voter;
                 auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
@@ -213,8 +207,6 @@ namespace mongo_db {
         auto comment_oid = std::string(op.author).append("/").append(op.permlink);
         auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
 
-        //
-
         // Will be updated with the following fields. If no one - created with these fields.
 	auto comment = create_document("comment_object", "_id", comment_oid_hash);
 
@@ -232,8 +224,6 @@ namespace mongo_db {
         body << close_document;
 
         bmi_insert_or_replace(all_docs, std::move(comment));
-
-        //
 
         // Will be updated with removed = true. If no one - nothing to do.
 	auto comment_vote = create_removal_document("comment_vote_object", "comment", comment_oid_hash);
@@ -381,7 +371,6 @@ namespace mongo_db {
         
     }
 
-//masl
     auto state_writer::operator()(const delegate_vesting_shares_operation& op) -> result_type {
         
     }
@@ -400,7 +389,6 @@ namespace mongo_db {
     auto state_writer::operator()(const proposal_delete_operation& op) -> result_type {
         
     }
-//
 
     auto state_writer::operator()(const fill_convert_request_operation& op) -> result_type {
         
@@ -556,10 +544,8 @@ namespace mongo_db {
         }
     }
 
-//masl
     auto state_writer::operator()(const return_vesting_delegation_operation& op) -> result_type {
         
     }
-//
 
 }}}
