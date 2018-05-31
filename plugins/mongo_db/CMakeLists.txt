@@ -12,12 +12,27 @@
 
 find_package(libmongoc-1.0 1.8)
 
-if (libmongoc-1.0_FOUND)
-  message("MongoDB drivers found, building plugin...")
-  
-  find_package(libbsoncxx REQUIRED)
-  find_package(libmongocxx REQUIRED)
-  
+if (NOT libmongoc-1.0_FOUND)
+  message("Could NOT find MongoDB drivers. Installing them...")
+  execute_process(COMMAND sudo apt-get -y install pkg-config libssl-dev libsasl2-dev wget)
+  execute_process(COMMAND mkdir /tmp/golos-mongo-drivers)
+  execute_process(COMMAND wget https://github.com/mongodb/mongo-c-driver/releases/download/1.9.5/mongo-c-driver-1.9.5.tar.gz WORKING_DIRECTORY /tmp/golos-mongo-drivers)
+  execute_process(COMMAND tar xzf mongo-c-driver-1.9.5.tar.gz WORKING_DIRECTORY /tmp/golos-mongo-drivers)
+  execute_process(COMMAND ./configure --disable-automatic-init-and-cleanup --enable-static WORKING_DIRECTORY /tmp/golos-mongo-drivers/mongo-c-driver-1.9.5)
+  execute_process(COMMAND make WORKING_DIRECTORY /tmp/golos-mongo-drivers/mongo-c-driver-1.9.5)
+  execute_process(COMMAND sudo make install WORKING_DIRECTORY /tmp/golos-mongo-drivers/mongo-c-driver-1.9.5)
+
+  execute_process(COMMAND git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v3.2 --depth 1 WORKING_DIRECTORY /tmp/golos-mongo-drivers)
+  execute_process(COMMAND cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. WORKING_DIRECTORY /tmp/golos-mongo-drivers/mongo-cxx-driver/build)
+  execute_process(COMMAND sudo make EP_mnmlstc_core WORKING_DIRECTORY /tmp/golos-mongo-drivers/mongo-cxx-driver/build)
+  execute_process(COMMAND make WORKING_DIRECTORY /tmp/golos-mongo-drivers/mongo-cxx-driver/build)
+  execute_process(COMMAND sudo make install WORKING_DIRECTORY /tmp/golos-mongo-drivers/mongo-cxx-driver/build)
+endif()
+
+message("MongoDB found, building plugin...")
+
+find_package(libbsoncxx REQUIRED)
+find_package(libmongocxx REQUIRED)
   
   set(CURRENT_TARGET mongo_db)
   
@@ -73,6 +88,3 @@ if (libmongoc-1.0_FOUND)
     ARCHIVE DESTINATION lib
     )
   install( FILES ${HEADERS} DESTINATION "include/golos/plugins/mongo_db" )
-else()
-  message("Could NOT find MongoDB drivers. Plugin will not be included. Please use valid Dockerfile. It will install drivers.")
-endif()

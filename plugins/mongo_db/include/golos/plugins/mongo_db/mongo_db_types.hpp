@@ -61,8 +61,7 @@ namespace mongo_db {
                         boost::multi_index::member<named_document,std::string,&named_document::collection_name>,
                         boost::multi_index::member<named_document,std::string,&named_document::key>,
                         boost::multi_index::member<named_document,std::string,&named_document::keyval>,
-                        boost::multi_index::member<named_document,bool,&named_document::is_removal>//,
-                        //boost::multi_index::member<named_document,bool,&named_document::is_virtual>
+                        boost::multi_index::member<named_document,bool,&named_document::is_removal>
                     >
                 >
             >

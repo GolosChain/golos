@@ -30,7 +30,7 @@ namespace mongo_db {
     using bsoncxx::builder::stream::close_document;
 
     mongo_db_writer::mongo_db_writer() :
-            _db(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
+        _db(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
     }
 
     mongo_db_writer::~mongo_db_writer() {
@@ -233,10 +233,10 @@ namespace mongo_db {
             msg.upsert(true);
 
             if (indexes.find(named_doc.collection_name) == indexes.end()) {
-                 for (auto& index_to_create : named_doc.indexes_to_create) {
+                for (auto& index_to_create : named_doc.indexes_to_create) {
                     mongo_database[named_doc.collection_name].create_index(index_to_create.view());
-                 }
-                 indexes[named_doc.collection_name] = "created";
+                    indexes[named_doc.collection_name] = "created";
+                }
             }
 
             formatted_blocks[named_doc.collection_name]->append(msg);
@@ -248,10 +248,6 @@ namespace mongo_db {
             formatted_blocks[named_doc.collection_name] = std::make_unique<mongocxx::bulk_write>(bulk_opts);
         }
 
-        //mongo_database[named_doc.collection_name].update_many(
-        //    document{} << key << bsoncxx::oid(oid_hash) << finalize,
-        //    document{} << "$set" << open_document << "removed" << true << close_document << finalize);
-        
         document filter;
         filter << named_doc.key << bsoncxx::oid(named_doc.keyval);
         auto v1 = filter.view();
@@ -260,10 +256,6 @@ namespace mongo_db {
         auto v2 = newval.view();
         mongocxx::model::update_many msg{v1, v2};
         formatted_blocks[named_doc.collection_name]->append(msg);
-        
-        // Or, to remove permanently:
-        //mongo_database[named_doc.collection_name].delete_many(
-        //    document{} << "_id" << bsoncxx::oid(oid_hash) << finalize);
     }
 
     void mongo_db_writer::write_block_operations(state_writer& st_writer, const signed_block& block, const operations& ops) {
