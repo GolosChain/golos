@@ -1,37 +1,41 @@
 
-# Golos has no direct dependencies on libmongoc but its shared libraries
-# will need to be present at runtime for the C++ libraries we use:
-# libbsoncxx & libmongocxx (both from github.com/mongodb/mongo-cxx-driver)
+option(NO_MONGO "Do not build mongodb plugin" FALSE)
 
-# The *.cmake package files provided by mongo-cxx-driver don't give us the
-# absolute path to the libraries, which is needed whenever they are not
-# installed in system-known locations.  CMake requires the absolute paths
-# in target_link_libraries() since we are builiding an archive and the
-# link step for all executables using this archive must include the
-# mongo-cxx-driver libraries libmongocxx and libbsoncxx.
+if(NOT NO_MONGO)
 
-find_package(libmongoc-1.0 1.8)
+  # Golos has no direct dependencies on libmongoc but its shared libraries
+  # will need to be present at runtime for the C++ libraries we use:
+  # libbsoncxx & libmongocxx (both from github.com/mongodb/mongo-cxx-driver)
 
-if (NOT libmongoc-1.0_FOUND)
-  message("Could NOT find MongoDB drivers. Installing them...")
-  execute_process(COMMAND sudo apt-get -y install pkg-config libssl-dev libsasl2-dev wget)
-  execute_process(COMMAND wget https://github.com/mongodb/mongo-c-driver/releases/download/1.9.5/mongo-c-driver-1.9.5.tar.gz)
-  execute_process(COMMAND tar xzf mongo-c-driver-1.9.5.tar.gz)
-  execute_process(COMMAND ./configure --disable-automatic-init-and-cleanup --enable-static WORKING_DIRECTORY mongo-c-driver-1.9.5)
-  execute_process(COMMAND make WORKING_DIRECTORY mongo-c-driver-1.9.5)
-  execute_process(COMMAND make install WORKING_DIRECTORY mongo-c-driver-1.9.5)
+  # The *.cmake package files provided by mongo-cxx-driver don't give us the
+  # absolute path to the libraries, which is needed whenever they are not
+  # installed in system-known locations.  CMake requires the absolute paths
+  # in target_link_libraries() since we are builiding an archive and the
+  # link step for all executables using this archive must include the
+  # mongo-cxx-driver libraries libmongocxx and libbsoncxx.
 
-  execute_process(COMMAND git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v3.2 --depth 1 )
-  execute_process(COMMAND cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. WORKING_DIRECTORY mongo-cxx-driver/build)
-  execute_process(COMMAND make EP_mnmlstc_core WORKING_DIRECTORY mongo-cxx-driver/build)
-  execute_process(COMMAND make WORKING_DIRECTORY mongo-cxx-driver/build)
-  execute_process(COMMAND make install WORKING_DIRECTORY mongo-cxx-driver/build)
-endif()
+  find_package(libmongoc-1.0 1.8)
 
-message("MongoDB found, building plugin...")
+  if (NOT libmongoc-1.0_FOUND)
+    message("Could NOT find MongoDB drivers. Installing them...")
+    execute_process(COMMAND sudo apt-get -y install pkg-config libssl-dev libsasl2-dev wget)
+    execute_process(COMMAND wget https://github.com/mongodb/mongo-c-driver/releases/download/1.9.5/mongo-c-driver-1.9.5.tar.gz)
+    execute_process(COMMAND tar xzf mongo-c-driver-1.9.5.tar.gz)
+    execute_process(COMMAND ./configure --disable-automatic-init-and-cleanup --enable-static WORKING_DIRECTORY mongo-c-driver-1.9.5)
+    execute_process(COMMAND make WORKING_DIRECTORY mongo-c-driver-1.9.5)
+    execute_process(COMMAND make install WORKING_DIRECTORY mongo-c-driver-1.9.5)
 
-find_package(libbsoncxx REQUIRED)
-find_package(libmongocxx REQUIRED)
+    execute_process(COMMAND git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v3.2 --depth 1 )
+    execute_process(COMMAND cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. WORKING_DIRECTORY mongo-cxx-driver/build)
+    execute_process(COMMAND make EP_mnmlstc_core WORKING_DIRECTORY mongo-cxx-driver/build)
+    execute_process(COMMAND make WORKING_DIRECTORY mongo-cxx-driver/build)
+    execute_process(COMMAND make install WORKING_DIRECTORY mongo-cxx-driver/build)
+  endif()
+
+  message("MongoDB found, building plugin...")
+
+  find_package(libbsoncxx REQUIRED)
+  find_package(libmongocxx REQUIRED)
   
   set(CURRENT_TARGET mongo_db)
   
@@ -87,3 +91,4 @@ find_package(libmongocxx REQUIRED)
     ARCHIVE DESTINATION lib
     )
   install( FILES ${HEADERS} DESTINATION "include/golos/plugins/mongo_db" )
+endif()

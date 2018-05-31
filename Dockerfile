@@ -26,8 +26,6 @@ RUN \
         python3 \
         python3-dev \
         python3-pip \
-        libsasl2-dev \
-        wget \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
@@ -47,6 +45,7 @@ RUN \
         -DBUILD_SHARED_LIBRARIES=FALSE \
         -DLOW_MEMORY_NODE=FALSE \
         -DCHAINBASE_CHECK_LOCKING=FALSE \
+        -DNO_MONGO=TRUE \
         .. \
     && \
     make -j$(nproc) && \
