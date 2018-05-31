@@ -35,7 +35,10 @@ namespace golos { namespace plugins { namespace tags {
 
     struct tags_plugin::impl final {
         impl(): database_(appbase::app().get_plugin<chain::plugin>().db()) {
-            helper = std::make_unique<discussion_helper>(database_);
+            helper = std::make_unique<discussion_helper>(
+                database_,
+                follow::fill_account_reputation,
+                fill_promoted);
         }
 
         ~impl() {}
@@ -93,7 +96,7 @@ namespace golos { namespace plugins { namespace tags {
         template<typename DiscussionOrder, typename Selector>
         std::vector<discussion> select_ordered_discussions(discussion_query&, Selector&&) const;
 
-        std::vector<tag_api_object> get_trending_tags(std::string after, uint32_t limit) const;
+        std::vector<tag_api_object> get_trending_tags(const std::string& after, uint32_t limit) const;
 
         std::vector<std::pair<std::string, uint32_t>> get_tags_used_by_author(const std::string& author) const;
 
@@ -123,11 +126,11 @@ namespace golos { namespace plugins { namespace tags {
         std::vector<vote_state>& result, uint32_t& total_count,
         const std::string& author, const std::string& permlink, uint32_t limit
     ) const {
-        helper->select_active_votes(result, total_count, author, permlink, limit, follow::get_account_reputation);
+        helper->select_active_votes(result, total_count, author, permlink, limit);
     }
 
     discussion tags_plugin::impl::get_discussion(const comment_object& c, uint32_t vote_limit) const {
-        return helper->get_discussion(c, vote_limit, follow::get_account_reputation, fill_promoted);
+        return helper->get_discussion(c, vote_limit);
     }
 
     get_languages_result tags_plugin::impl::get_languages() {
@@ -234,7 +237,7 @@ namespace golos { namespace plugins { namespace tags {
     }
 
     void tags_plugin::impl::set_pending_payout(discussion& d) const {
-        helper->set_pending_payout(d, follow::get_account_reputation, fill_promoted);
+        helper->set_pending_payout(d);
     }
 
     bool tags_plugin::impl::filter_tags(const tags::tag_type type, std::set<std::string>& select_tags) const {
@@ -538,7 +541,7 @@ namespace golos { namespace plugins { namespace tags {
         auto query = args.args->at(0).as<discussion_query>();
         query.prepare();
         query.validate();
-        FC_ASSERT(query.select_authors.size(), "No such author to select blog from");
+        FC_ASSERT(query.select_authors.size(), "Must get blogs for specific authors");
 
 
 #ifndef IS_LOW_MEM
@@ -559,7 +562,7 @@ namespace golos { namespace plugins { namespace tags {
         auto query = args.args->at(0).as<discussion_query>();
         query.prepare();
         query.validate();
-        FC_ASSERT(query.select_authors.size(), "No such author to select feed from");
+        FC_ASSERT(query.select_authors.size(), "Must get feeds for specific authors");
 
 #ifndef IS_LOW_MEM
         auto& db = pimpl->database();
@@ -585,12 +588,16 @@ namespace golos { namespace plugins { namespace tags {
         return db.with_weak_read_lock([&]() {
             const auto &idx = db.get_index<comment_index>().indices().get<by_author_last_update>();
             auto itr = idx.lower_bound(*query.start_author);
-            FC_ASSERT(itr != idx.end(), "Author doesn't have any comment.");
+            if (itr == idx.end()) {
+                return result;
+            }
 
             if (!!query.start_permlink) {
                 const auto &lidx = db.get_index<comment_index>().indices().get<by_permlink>();
                 auto litr = lidx.find(std::make_tuple(*query.start_author, *query.start_permlink));
-                FC_ASSERT(litr != lidx.end(), "Comment is not in account's comments");
+                if (litr == lidx.end()) {
+                    return result;
+                }
                 itr = idx.iterator_to(*litr);
             }
 
@@ -602,7 +609,8 @@ namespace golos { namespace plugins { namespace tags {
 
             for (; itr != idx.end() && itr->author == *query.start_author && result.size() < query.limit; ++itr) {
                 if (itr->parent_author.size() > 0) {
-                    if (!query.is_good_tags(discussion(db.get<comment_object>(itr->root_comment), db))) {
+                    discussion p(db.get<comment_object>(itr->root_comment), db);
+                    if (!query.is_good_tags(p) || !query.is_good_author(p.author)) {
                         continue;
                     }
                     result.emplace_back(discussion(*itr, db));
@@ -640,7 +648,7 @@ namespace golos { namespace plugins { namespace tags {
         return pimpl->select_ordered_discussions<sort::by_promoted>(
             query,
             [&](const discussion& d) -> bool {
-                return d.promoted.amount > 0;
+                return !!d.promoted && d.promoted->amount > 0;
             }
         );
 #endif
@@ -760,7 +768,7 @@ namespace golos { namespace plugins { namespace tags {
     }
 
     std::vector<tag_api_object>
-    tags_plugin::impl::get_trending_tags(std::string after, uint32_t limit) const {
+    tags_plugin::impl::get_trending_tags(const std::string& after, uint32_t limit) const {
         limit = std::min(limit, uint32_t(1000));
         std::vector<tag_api_object> result;
 #ifndef IS_LOW_MEM
@@ -769,7 +777,7 @@ namespace golos { namespace plugins { namespace tags {
         const auto& nidx = database().get_index<tags::tag_stats_index>().indices().get<tags::by_tag>();
         const auto& ridx = database().get_index<tags::tag_stats_index>().indices().get<tags::by_trending>();
         auto itr = ridx.begin();
-        if (after != "" && nidx.size()) {
+        if (!after.empty() && nidx.size()) {
             auto nitr = nidx.lower_bound(std::make_tuple(tags::tag_type::tag, after));
             if (nitr == nidx.end()) {
                 itr = ridx.end();
@@ -780,6 +788,10 @@ namespace golos { namespace plugins { namespace tags {
 
         for (; itr->type == tags::tag_type::tag && itr != ridx.end() && result.size() < limit; ++itr) {
             tag_api_object push_object = tag_api_object(*itr);
+
+            if (push_object.name.empty()) {
+                continue;
+            }
 
             if (!fc::is_utf8(push_object.name)) {
                 push_object.name = fc::prune_invalid_utf8(push_object.name);
@@ -808,11 +820,13 @@ namespace golos { namespace plugins { namespace tags {
 #ifndef IS_LOW_MEM
         auto& db = database();
         const auto* acnt = db.find_account(author);
-        FC_ASSERT(acnt != nullptr);
+        if (acnt == nullptr) {
+            return result;
+        }
         const auto& tidx = db.get_index<tags::author_tag_stats_index>().indices().get<tags::by_author_posts_tag>();
         auto itr = tidx.lower_bound(std::make_tuple(acnt->id, tags::tag_type::tag));
         for (;itr != tidx.end() && itr->author == acnt->id && result.size() < 1000; ++itr) {
-            if (itr->type == tags::tag_type::tag) {
+            if (itr->type == tags::tag_type::tag && itr->name.size()) {
                 if (!fc::is_utf8(itr->name)) {
                     result.emplace_back(std::make_pair(fc::prune_invalid_utf8(itr->name), itr->total_posts));
                 } else {
@@ -882,7 +896,7 @@ namespace golos { namespace plugins { namespace tags {
     }
 
     // Needed for correct work of golos::api::discussion_helper::set_pending_payout and etc api methods
-    void fill_promoted( discussion & d, golos::chain::database& db) {
+    void fill_promoted(const golos::chain::database& db, discussion & d) {
         if (!db.has_index<tags::tag_index>()) {
             return;
         }
@@ -891,6 +905,8 @@ namespace golos { namespace plugins { namespace tags {
         auto itr = cidx.lower_bound(d.id);
         if (itr != cidx.end() && itr->comment == d.id) {
             d.promoted = asset(itr->promoted_balance, SBD_SYMBOL);
+        } else {
+            d.promoted = asset(0, SBD_SYMBOL);
         }
     }
 
