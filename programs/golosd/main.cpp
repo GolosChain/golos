@@ -23,6 +23,7 @@
 #include <golos/plugins/tags/plugin.hpp>
 #include <golos/plugins/witness_api/plugin.hpp>
 #include <golos/plugins/mongo_db/mongo_db_plugin.hpp>
+#include <golos/plugins/follow/plugin.hpp>
 
 #include <fc/interprocess/signals.hpp>
 #include <fc/log/console_appender.hpp>
@@ -76,6 +77,7 @@ namespace golos {
             appbase::app().register_plugin<golos::plugins::debug_node::plugin>();
             appbase::app().register_plugin<golos::plugins::tags::tags_plugin>();
             appbase::app().register_plugin<golos::plugins::mongo_db::mongo_db_plugin>();
+            appbase::app().register_plugin<golos::plugins::follow::plugin>();
             ///plugins
         };
     }

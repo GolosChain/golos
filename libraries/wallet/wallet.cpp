@@ -272,6 +272,7 @@ namespace golos { namespace wallet {
 
                 variant info() const {
                     auto dynamic_props = _remote_database_api->get_dynamic_global_properties();
+                    auto median_props = _remote_database_api->get_chain_properties();
                     fc::mutable_variant_object result(fc::variant(dynamic_props).get_object());
                     result["witness_majority_version"] =
                         std::string(_remote_witness_api->get_witness_schedule().majority_version);
@@ -285,7 +286,15 @@ namespace golos { namespace wallet {
                     result["participation"] =
                         (100 * dynamic_props.recent_slots_filled.popcount()) / 128.0;
                     result["median_sbd_price"] = _remote_witness_api->get_current_median_history_price();
-                    result["account_creation_fee"] = _remote_database_api->get_chain_properties().account_creation_fee;
+                    result["account_creation_fee"] = median_props.account_creation_fee;
+
+                    auto hf = _remote_database_api->get_hardfork_version();
+                    if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_18)) {
+                        result["create_account_with_golos_modifier"] = median_props.create_account_with_golos_modifier;
+                        result["create_account_delegation_ratio"] = median_props.create_account_delegation_ratio;
+                        result["create_account_delegation_time"] = median_props.create_account_delegation_time;
+                        result["min_delegation_multiplier"] = median_props.min_delegation_multiplier;
+                    }
 
                     return result;
                 }
@@ -1376,6 +1385,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             string creator,
             string new_account_name,
             string json_meta,
+            asset fee,
             public_key_type owner,
             public_key_type active,
             public_key_type posting,
@@ -1392,7 +1402,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
                 op.posting = authority( 1, posting, 1 );
                 op.memo_key = memo;
                 op.json_metadata = json_meta;
-                op.fee = my->_remote_database_api->get_chain_properties().account_creation_fee;
+                op.fee = fee;
 
                 signed_transaction tx;
                 tx.operations.push_back(op);
@@ -1808,7 +1818,9 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
  *  This method will generate new owner, active, posting and memo keys for the new account
  *  which will be controlable by this wallet.
  */
-        annotated_signed_transaction wallet_api::create_account( string creator, string new_account_name, string json_meta, bool broadcast )
+        annotated_signed_transaction wallet_api::create_account(
+            string creator, string new_account_name, string json_meta, asset fee, bool broadcast
+        )
         { try {
                 FC_ASSERT( !is_locked() );
                 auto owner = suggest_brain_key();
@@ -1819,7 +1831,18 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
                 import_key( active.wif_priv_key );
                 import_key( posting.wif_priv_key );
                 import_key( memo.wif_priv_key );
-                return create_account_with_keys( creator, new_account_name, json_meta, owner.pub_key, active.pub_key, posting.pub_key, memo.pub_key, broadcast );
+                if (!fee.amount.value) {
+                    auto prop = my->_remote_database_api->get_chain_properties();
+                    auto hf = my->_remote_database_api->get_hardfork_version();
+                    fee = prop.account_creation_fee;
+                    if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_18)) {
+                        fee *= prop.create_account_with_golos_modifier;
+                    }
+                }
+                return create_account_with_keys(
+                    creator, new_account_name, json_meta, fee,
+                    owner.pub_key, active.pub_key, posting.pub_key, memo.pub_key, broadcast
+                );
             } FC_CAPTURE_AND_RETHROW( (creator)(new_account_name)(json_meta) ) }
 
 /**
@@ -1853,7 +1876,18 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
 
             signed_transaction tx;
             tx.operations.push_back(op);
+
+            auto hf = my->_remote_database_api->get_hardfork_version();
+            if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_18)) {
+                chain_properties_update_operation chain_op;
+                chain_op.owner = witness_account_name;
+                chain_op.props = props;
+                tx.operations.push_back(chain_op);
+            }
+
             tx.validate();
+
+
 
             return my->sign_transaction( tx, broadcast );
         }

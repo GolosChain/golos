@@ -38,6 +38,7 @@ target_link_libraries(
         golos::block_info
         golos::json_rpc
         golos::mongo_db
+        golos::follow
         golos_protocol
         fc
         ${CMAKE_DL_LIBS}
