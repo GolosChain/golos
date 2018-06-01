@@ -214,22 +214,22 @@ namespace mongo_db {
         //    mongocxx::model::insert_one msg{std::move(view)};
         //    formatted_blocks[named_doc.collection_name]->append(msg);
         //} else {
-            document filter;
+        document filter;
 
-            filter << "_id" << bsoncxx::oid(named_doc.keyval); 
+        filter << "_id" << bsoncxx::oid(named_doc.keyval); 
 
-            mongocxx::model::update_one msg{filter.view(), 
-                named_doc.doc.view()};
-            msg.upsert(true);
+        mongocxx::model::update_one msg{filter.view(), 
+            named_doc.doc.view()};
+        msg.upsert(true);
 
-            if (indexes.find(named_doc.collection_name) == indexes.end()) {
-                for (auto& index_to_create : named_doc.indexes_to_create) {
-                    mongo_database[named_doc.collection_name].create_index(index_to_create.view());
-                    indexes[named_doc.collection_name] = "created";
-                }
+        if (indexes.find(named_doc.collection_name) == indexes.end()) {
+            for (auto& index_to_create : named_doc.indexes_to_create) {
+                mongo_database[named_doc.collection_name].create_index(index_to_create.view());
+                indexes[named_doc.collection_name] = "created";
             }
+        }
 
-            formatted_blocks[named_doc.collection_name]->append(msg);
+        formatted_blocks[named_doc.collection_name]->append(msg);
         //}
     }
 
