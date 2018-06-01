@@ -51,10 +51,14 @@ namespace mongo_db {
         return retVal;
     }
 
-    void format_chain_properties(document& doc, const chain_properties& props) {
+    void format_chain_properties_17(document& doc, const chain_properties_17& props) {
         format_value(doc, "account_creation_fee", props.account_creation_fee);
         format_value(doc, "maximum_block_size", props.maximum_block_size);
         format_value(doc, "sbd_interest_rate", props.sbd_interest_rate);
+    }
+
+    void format_chain_properties_v(document& doc, const versioned_chain_properties& props) {
+        //TODO
     }
 
     /////////////////////////////////////////////////
@@ -202,7 +206,7 @@ namespace mongo_db {
         format_value(body, "fee", op.fee);
         format_value(body, "url", op.url);
         format_value(body, "block_signing_key", (std::string)op.block_signing_key);
-        format_chain_properties(body, op.props);
+        format_chain_properties_17(body, op.props);
 
         return body;
     }
@@ -238,7 +242,7 @@ namespace mongo_db {
         format_value(body, "worker_account", op.worker_account);
         format_value(body, "nonce", op.nonce);
 
-        format_chain_properties(body, op.props);
+        format_chain_properties_17(body, op.props);
 
         return body;
     }
@@ -430,7 +434,7 @@ namespace mongo_db {
     auto operation_writer::operator()(const pow2_operation& op) -> result_type {
         result_type body;
 
-        format_chain_properties(body, op.props);
+        format_chain_properties_17(body, op.props);
         if (op.new_owner_key) {
             format_value(body, "new_owner_key", (std::string)(*op.new_owner_key));
         }
@@ -710,12 +714,17 @@ namespace mongo_db {
         return body;
     }
 
-//
     auto operation_writer::operator()(const return_vesting_delegation_operation& op) -> result_type {
         result_type body;
 
         return body;
     }
-//
+
+    auto operation_writer::operator()(const chain_properties_update_operation& op) -> result_type {
+        result_type body;
+        format_value(body, "owner", op.owner);
+        format_chain_properties_v(body, op.props);
+        return body;
+    }
 
 }}}

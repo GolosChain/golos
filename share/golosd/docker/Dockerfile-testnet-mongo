@@ -150,7 +150,7 @@ ADD share/golosd/golosd.sh /etc/service/golosd/run
 RUN chmod +x /etc/service/golosd/run
 
 # the following adds lots of logging info to stdout
-ADD share/golosd/config/config_debug.ini /etc/golosd/config.ini
+ADD share/golosd/config/config_debug_mongo.ini /etc/golosd/config.ini
 
 # put blockchain data into separate docker volume
 VOLUME /var/lib/golosd

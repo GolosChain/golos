@@ -79,6 +79,7 @@ namespace mongo_db {
 //
         result_type operator()(const return_vesting_delegation_operation& op);
 //
+        result_type operator()(const chain_properties_update_operation& op);
     };
 
 }}} // golos::plugins::mongo_db

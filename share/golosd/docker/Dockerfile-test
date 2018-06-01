@@ -62,7 +62,7 @@ RUN \
 #        -DBUILD_GOLOS_TESTNET=TRUE \
 #        -DLOW_MEMORY_NODE=FALSE \
 #        -DMAX_19_VOTED_WITNESSES=TRUE \
-#        -DNO_MONGO=TRUE \
+#        -DENABLE_MONGO_PLUGIN=FALSE \
 #        .. && \
 #    make -j$(nproc) chain_test plugin_test && \
 #    ./tests/chain_test && \

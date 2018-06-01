@@ -81,6 +81,7 @@ namespace mongo_db {
         result_type operator()(const comment_payout_update_operation& op);
         result_type operator()(const comment_benefactor_reward_operation& op);
         result_type operator()(const return_vesting_delegation_operation& op);
+        result_type operator()(const chain_properties_update_operation& op);
 
     private:
         database &db_;

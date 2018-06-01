@@ -548,4 +548,8 @@ namespace mongo_db {
         
     }
 
+    auto state_writer::operator()(const chain_properties_update_operation& op) -> result_type {
+        
+    }
+
 }}}
