@@ -22,9 +22,7 @@
 #include <golos/plugins/block_info/plugin.hpp>
 #include <golos/plugins/tags/plugin.hpp>
 #include <golos/plugins/witness_api/plugin.hpp>
-#ifdef MONGODB_PLUGIN_BUILT
-    #include <golos/plugins/mongo_db/mongo_db_plugin.hpp>
-#endif
+#include <golos/plugins/follow/plugin.hpp>
 
 #include <fc/interprocess/signals.hpp>
 #include <fc/log/console_appender.hpp>
@@ -77,9 +75,7 @@ namespace golos {
             appbase::app().register_plugin<golos::plugins::block_info::plugin>();
             appbase::app().register_plugin<golos::plugins::debug_node::plugin>();
             appbase::app().register_plugin<golos::plugins::tags::tags_plugin>();
-            #ifdef MONGODB_PLUGIN_BUILT
-                appbase::app().register_plugin<golos::plugins::mongo_db::mongo_db_plugin>();
-            #endif
+            appbase::app().register_plugin<golos::plugins::follow::plugin>();
             ///plugins
         };
     }

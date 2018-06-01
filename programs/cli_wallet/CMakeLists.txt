@@ -13,11 +13,6 @@ if(GPERFTOOLS_FOUND)
     list(APPEND PLATFORM_SPECIFIC_LIBS tcmalloc)
 endif()
 
-option(NO_MONGO "Do not build mongodb plugin" FALSE)
-if(NOT NO_MONGO)
-  set(MONGO_LIB golos::mongo_db)
-endif()
-
 FIND_PACKAGE(Boost  REQUIRED COMPONENTS
     regex
 )
@@ -39,7 +34,6 @@ target_link_libraries(
         golos::follow
         golos::network_broadcast_api
         golos::witness_api
-        ${MONGO_LIB}
         fc
         ${readline_libraries}
         ${CMAKE_DL_LIBS}

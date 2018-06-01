@@ -13,14 +13,6 @@ if(GPERFTOOLS_FOUND)
     list(APPEND PLATFORM_SPECIFIC_LIBS tcmalloc)
 endif()
 
-option(NO_MONGO "Do not build mongodb plugin" FALSE)
-if(NOT NO_MONGO)
-  set(MONGO_LIB golos::mongo_db)
-
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMONGODB_PLUGIN_BUILT")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMONGODB_PLUGIN_BUILT")
-endif()
-
 target_link_libraries(
         ${CURRENT_TARGET} PRIVATE
         appbase
@@ -36,6 +28,7 @@ target_link_libraries(
         golos::social_network
         golos::tags
         golos::market_history
+        golos::operation_history
         golos::statsd
         golos::account_by_key
         golos::account_history
@@ -45,7 +38,7 @@ target_link_libraries(
         golos::raw_block
         golos::block_info
         golos::json_rpc
-        ${MONGO_LIB}
+        golos::follow
         golos_protocol
         fc
         ${CMAKE_DL_LIBS}

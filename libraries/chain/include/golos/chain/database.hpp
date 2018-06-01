@@ -69,7 +69,8 @@ namespace golos {
                 skip_validate_invariants = 1 << 11, ///< used to skip database invariant check on block application
                 skip_undo_block = 1 << 12, ///< used to skip undo db on reindex
                 skip_block_log = 1 << 13,  ///< used to skip block logging on reindex
-                skip_apply_transaction = 1 << 14 ///< used to skip apply transaction
+                skip_apply_transaction = 1 << 14, ///< used to skip apply transaction
+                skip_database_locking = 1 << 15 ///< used to skip locking of database
             };
 
             /**
@@ -227,8 +228,6 @@ namespace golos {
             bool _push_block(const signed_block &b, uint32_t skip);
 
             void _push_transaction(const signed_transaction &trx, uint32_t skip);
-
-            bool is_authorized_to_execute(const proposal_object&) const;
 
             void push_proposal(const proposal_object&);
 
