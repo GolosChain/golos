@@ -69,8 +69,6 @@ namespace mongo_db {
 
         try {
 
-            //ilog("MongoDB mongo_db_writer::on_block processed blocks: ${e}", ("e", processed_blocks));
-
             blocks[block.block_num()] = block;
 
             // Update last irreversible block number
@@ -144,8 +142,6 @@ namespace mongo_db {
 
     void mongo_db_writer::write_raw_block(const signed_block& block, const operations& ops) {
 
-        //ilog("mongo_db_writer::write_raw_block ${e}", ("e", block.block_num()));
-
         operation_writer op_writer;
         document block_doc;
         format_block_info(block, block_doc);
@@ -168,12 +164,6 @@ namespace mongo_db {
                     try {
                         operations_array << op.visit(op_writer);
                     }
-//                    catch (fc::exception& ex) {
-//                        wlog("MongoDB write_raw_block fc::exception ${e}", ("e", ex.what()));
-//                    }
-//                    catch (mongocxx::exception& ex) {
-//                        wlog("Mongodb write_raw_block Mongo exception ${e}", ("e", ex.what()));
-//                    }
                     catch (std::exception& ex) {
                         wlog("Mongodb write_raw_block std exception ${e}", ("e", ex.what()));
                     } catch (...) {
@@ -259,7 +249,6 @@ namespace mongo_db {
     }
 
     void mongo_db_writer::write_block_operations(state_writer& st_writer, const signed_block& block, const operations& ops) {
-        //ilog("mongo_db_writer::write_block_operations ${e}", ("e", block.block_num()));
 
         for (auto& op: ops) {
             op.visit(st_writer);

@@ -69,8 +69,6 @@ namespace mongo_db {
 
     void bmi_insert_or_replace(db_map& bmi, named_document doc);
 
-    //void bmi_merge(db_map& bmi_what, db_map& bmi_with);
-
     using named_document_ptr = std::unique_ptr<named_document>;
 
     inline void format_oid(document& doc, const std::string& name, const std::string& value) {
