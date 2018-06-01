@@ -10,7 +10,7 @@ namespace golos { namespace api {
     using namespace golos::chain;
 
     struct comment_api_object {
-        comment_api_object(const comment_object &o, const database &db);
+        comment_api_object(const golos::chain::comment_object &o, const golos::chain::database &db);
         comment_api_object();
 
         comment_object::id_type id;
@@ -23,8 +23,6 @@ namespace golos { namespace api {
         std::string parent_permlink;
         account_name_type author;
         std::string permlink;
-
-        std::string category;
 
         time_point_sec last_update;
         time_point_sec created;
@@ -71,7 +69,7 @@ namespace golos { namespace api {
 
 FC_REFLECT(
     (golos::api::comment_api_object),
-    (id)(author)(permlink)(parent_author)(parent_permlink)(category)(title)(body)(json_metadata)(last_update)
+    (id)(author)(permlink)(parent_author)(parent_permlink)(title)(body)(json_metadata)(last_update)
     (created)(active)(last_payout)(depth)(children)(children_rshares2)(net_rshares)(abs_rshares)
     (vote_rshares)(children_abs_rshares)(cashout_time)(max_cashout_time)(total_vote_weight)
     (reward_weight)(total_payout_value)(curator_payout_value)(author_rewards)(net_votes)
