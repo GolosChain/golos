@@ -10,6 +10,7 @@
 #include <bsoncxx/builder/basic/document.hpp>
 #include <appbase/plugin.hpp>
 
+#include <boost/algorithm/string.hpp>
 
 namespace golos {
 namespace plugins {
@@ -239,7 +240,40 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const transfer_operation& op) -> result_type {
-        
+        auto oid = std::string(op.from).append("/").append(op.to)
+            .append("/").append(state_block.timestamp);//.append("/").append(op.amount).append("/").append(op.memo);
+        auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
+
+        auto doc = create_document("transfer", "_id", oid_hash);
+        auto& body = doc.doc;
+
+        body << "$set" << open_document;
+
+        format_oid(body, oid);
+
+        format_value(body, "from", op.from);
+        format_value(body, "to", op.to);
+        format_value(body, "amount", op.amount);
+        format_value(body, "memo", op.memo);
+
+        body << close_document;
+
+        std::vector<std::string> part;
+        auto path = op.memo;
+        boost::split(part, path, boost::is_any_of("/"));
+        if (!part[0].empty() && part[0][0] == '@') {
+            auto acnt = part[0].substr(1);
+            auto perm = part[1];
+
+            auto c = db_.find_comment(acnt, perm);
+            if (c && c->parent_author.size() == 0) {
+                format_comment(acnt, perm);
+            } else {
+                ilog("unable to find body");
+            }
+        }
+
+        all_docs.push_back(std::move(doc));
     }
 
     auto state_writer::operator()(const transfer_to_vesting_operation& op) -> result_type {
