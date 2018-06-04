@@ -53,6 +53,9 @@ namespace mongo_db {
             auto oid = std::string(auth).append("/").append(perm);
             auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
 
+            auto& root_comment = db_.get<comment_object, by_id>(comment.root_comment);
+            auto root_oid = std::string(root_comment.author).append("/").append(root_comment.permlink.c_str());
+
             auto doc = create_document("comment_object", "_id", oid_hash);
             auto& body = doc.doc;
 
@@ -132,6 +135,11 @@ namespace mongo_db {
                 category = to_string(db_.get<comment_object, by_id>(comment.root_comment).parent_permlink);
             }
             format_value(body, "category", category);
+
+            format_oid(body, "root_comment", root_oid);
+            document root_comment_index;
+            root_comment_index << "root_comment" << 1;
+            doc.indexes_to_create.push_back(std::move(root_comment_index));
 
             body << close_document;
 
