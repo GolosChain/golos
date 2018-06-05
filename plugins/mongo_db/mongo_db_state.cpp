@@ -10,6 +10,7 @@
 #include <bsoncxx/builder/basic/document.hpp>
 #include <appbase/plugin.hpp>
 
+#include <boost/algorithm/string.hpp>
 
 namespace golos {
 namespace plugins {
@@ -51,7 +52,7 @@ namespace mongo_db {
         try {
             auto& comment = db_.get_comment(auth, perm);
             auto oid = std::string(auth).append("/").append(perm);
-            auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
+            auto oid_hash = hash_oid(oid);
 
             auto doc = create_document("comment_object", "_id", oid_hash);
             auto& body = doc.doc;
@@ -166,7 +167,7 @@ namespace mongo_db {
             if (vote_idx.end() != itr) {
                 auto comment_oid = std::string(op.author).append("/").append(op.permlink);
                 auto oid = comment_oid + "/" + op.voter;
-                auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
+                auto oid_hash = hash_oid(oid);
 
                 auto doc = create_document("comment_vote_object", "_id", oid_hash);
                 document comment_index;
@@ -215,7 +216,7 @@ namespace mongo_db {
 	std::string author = op.author;
 
         auto comment_oid = std::string(op.author).append("/").append(op.permlink);
-        auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
+        auto comment_oid_hash = hash_oid(comment_oid);
 
         // Will be updated with the following fields. If no one - created with these fields.
 	auto comment = create_document("comment_object", "_id", comment_oid_hash);
@@ -242,16 +243,8 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const transfer_operation& op) -> result_type {
-        auto oid = std::string(op.from).append("/").append(op.to)
-            .append("/").append(state_block.timestamp);
-        auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
-
-        auto doc = create_document("transfer", "_id", oid_hash);
+        auto doc = create_document("transfer", "", "");
         auto& body = doc.doc;
-
-        body << "$set" << open_document;
-
-        format_oid(body, oid);
 
         format_value(body, "from", op.from);
         format_value(body, "to", op.to);
@@ -272,8 +265,6 @@ namespace mongo_db {
                 ilog("unable to find body");
             }
         }
-
-        body << close_document;
 
         all_docs.push_back(std::move(doc));
     }
@@ -307,6 +298,14 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const account_update_operation& op) -> result_type {
+        
+    }
+
+    auto state_writer::operator()(const account_create_with_delegation_operation& op) -> result_type {
+        
+    }
+
+    auto state_writer::operator()(const account_metadata_operation& op) -> result_type {
         
     }
 
@@ -417,18 +416,15 @@ namespace mongo_db {
     auto state_writer::operator()(const delegate_vesting_shares_operation& op) -> result_type {
         
     }
-    auto state_writer::operator()(const account_create_with_delegation_operation& op) -> result_type {
-        
-    }
-    auto state_writer::operator()(const account_metadata_operation& op) -> result_type {
-        
-    }
+
     auto state_writer::operator()(const proposal_create_operation& op) -> result_type {
         
     }
+
     auto state_writer::operator()(const proposal_update_operation& op) -> result_type {
         
     }
+
     auto state_writer::operator()(const proposal_delete_operation& op) -> result_type {
         
     }
@@ -472,7 +468,7 @@ namespace mongo_db {
     auto state_writer::operator()(const author_reward_operation& op) -> result_type {
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
-            auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
+            auto comment_oid_hash = hash_oid(comment_oid);
 
             auto doc = create_document("author_reward", "_id", comment_oid_hash);
             auto &body = doc.doc;
@@ -502,7 +498,7 @@ namespace mongo_db {
         try {
             auto comment_oid = std::string(op.comment_author).append("/").append(op.comment_permlink);
             auto vote_oid = comment_oid + "/" + op.curator;
-            auto vote_oid_hash = fc::sha1::hash(vote_oid).str().substr(0, 24);
+            auto vote_oid_hash = hash_oid(vote_oid);
 
             auto doc = create_document("curation_reward", "_id", vote_oid_hash);
             document comment_index;
@@ -533,7 +529,7 @@ namespace mongo_db {
     auto state_writer::operator()(const comment_reward_operation& op) -> result_type {
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
-            auto comment_oid_hash = fc::sha1::hash(comment_oid).str().substr(0, 24);
+            auto comment_oid_hash = hash_oid(comment_oid);
 
             auto doc = create_document("comment_reward", "_id", comment_oid_hash);
             auto &body = doc.doc;
@@ -560,7 +556,7 @@ namespace mongo_db {
         try {
             auto comment_oid = std::string(op.author).append("/").append(op.permlink);
             auto benefactor_oid = comment_oid + "/" + op.benefactor;
-            auto benefactor_oid_hash = fc::sha1::hash(benefactor_oid).str().substr(0, 24);
+            auto benefactor_oid_hash = hash_oid(benefactor_oid);
 
             auto doc = create_document("benefactor_reward", "_id", benefactor_oid_hash);       
             document comment_index;
