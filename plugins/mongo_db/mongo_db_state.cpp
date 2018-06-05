@@ -47,7 +47,7 @@ namespace mongo_db {
         return doc;
     }
 
-    void state_writer::format_comment(const std::string& auth, const std::string& perm) {
+    bool state_writer::format_comment(const std::string& auth, const std::string& perm) {
         try {
             auto& comment = db_.get_comment(auth, perm);
             auto oid = std::string(auth).append("/").append(perm);
@@ -143,12 +143,15 @@ namespace mongo_db {
             body << close_document;
 
             bmi_insert_or_replace(all_docs, std::move(doc));
+
+            return true;
         }
 //        catch (fc::exception& ex) {
 //            ilog("MongoDB operations fc::exception during formatting comment. ${e}", ("e", ex.what()));
 //        }
         catch (...) {
             // ilog("Unknown exception during formatting comment.");
+            return false;
         }
     }
 
@@ -239,7 +242,40 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const transfer_operation& op) -> result_type {
-        
+        auto oid = std::string(op.from).append("/").append(op.to)
+            .append("/").append(state_block.timestamp);
+        auto oid_hash = fc::sha1::hash(oid).str().substr(0, 24);
+
+        auto doc = create_document("transfer", "_id", oid_hash);
+        auto& body = doc.doc;
+
+        body << "$set" << open_document;
+
+        format_oid(body, oid);
+
+        format_value(body, "from", op.from);
+        format_value(body, "to", op.to);
+        format_value(body, "amount", op.amount);
+        format_value(body, "memo", op.memo);
+
+        std::vector<std::string> part;
+        auto path = op.memo;
+        boost::split(part, path, boost::is_any_of("/"));
+        if (!part[0].empty() && part[0][0] == '@') {
+            auto acnt = part[0].substr(1);
+            auto perm = part[1];
+
+            if (format_comment(acnt, perm)) {
+                auto comment_oid = acnt.append("/").append(perm);
+                format_oid(body, "comment", comment_oid);
+            } else {
+                ilog("unable to find body");
+            }
+        }
+
+        body << close_document;
+
+        all_docs.push_back(std::move(doc));
     }
 
     auto state_writer::operator()(const transfer_to_vesting_operation& op) -> result_type {
