@@ -254,7 +254,7 @@ namespace mongo_db {
         std::vector<std::string> part;
         auto path = op.memo;
         boost::split(part, path, boost::is_any_of("/"));
-        if (!part[0].empty() && part[0][0] == '@') {
+        if (part.size() >= 2 && part[0][0] == '@') {
             auto acnt = part[0].substr(1);
             auto perm = part[1];
 
