@@ -22,6 +22,8 @@ namespace mongo_db {
     using bsoncxx::builder::stream::close_document;
     using namespace golos::plugins::follow;
 
+    using golos::chain::by_account;
+
     state_writer::state_writer(db_map& bmi_to_add, const signed_block& block) :
         db_(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()),
         state_block(block),
@@ -156,10 +158,9 @@ namespace mongo_db {
         }
     }
 
-    void state_writer::format_account(const std::string& name) {
+    void state_writer::format_account(const account_object& account) {
         try {
-            auto& account = db_.get_account(name);
-            auto oid = name;
+            auto oid = account.name;
             auto oid_hash = hash_oid(oid);
 
             auto doc = create_document("account_object", "_id", oid_hash);
@@ -232,16 +233,83 @@ namespace mongo_db {
 
             format_value(body, "last_post", account.last_post);
 
+#ifndef IS_LOW_MEM
+            auto& account_metadata = db_.get<account_metadata_object, by_account>(account.name);
+            
+            format_value(body, "json_metadata", account_metadata.json_metadata);
+#endif
+
+            body << close_document;
+
+            bmi_insert_or_replace(all_docs, std::move(doc));
+        }
+        catch (...) {
+            // ilog("Unknown exception during formatting account.");
+        }
+    }
+
+    void state_writer::format_account(const std::string& name) {
+        try {
+            auto& account = db_.get_account(name);
+            format_account(account);
+        }
+        catch (...) {
+            // ilog("Unknown exception during formatting account.");
+        }
+    }
+
+    void state_writer::format_account_authority(const account_name_type& account_name) {
+        try {
+            auto& account_authority = db_.get<account_authority_object, by_account>(account_name);
+
+            auto oid = account_authority.account;
+            auto oid_hash = hash_oid(oid);
+
+            auto doc = create_document("account_authority_object", "_id", oid_hash);
+            auto& body = doc.doc;
+
+            body << "$set" << open_document;
+
+            format_oid(body, oid);
+
+            format_value(body, "account", account_authority.account);
+
+            auto owner_keys = account_authority.owner.get_keys();
+            if (!owner_keys.empty()) {
+                array keys_array;
+                for (auto& key: owner_keys) {
+                    keys_array << std::string(key);
+                }
+                body << "owner" << keys_array;
+            }
+
+            auto active_keys = account_authority.active.get_keys();
+            if (!active_keys.empty()) {
+                array keys_array;
+                for (auto& key: active_keys) {
+                    keys_array << std::string(key);
+                }
+                body << "active" << keys_array;
+            }
+
+            auto posting_keys = account_authority.posting.get_keys();
+            if (!posting_keys.empty()) {
+                array keys_array;
+                for (auto& key: posting_keys) {
+                    keys_array << std::string(key);
+                }
+                body << "posting" << keys_array;
+            }
+
+            format_value(body, "last_owner_update", account_authority.last_owner_update);
+
             body << close_document;
 
             bmi_insert_or_replace(all_docs, std::move(doc));
 
         }
-//        catch (fc::exception& ex) {
-//            ilog("MongoDB operations fc::exception during formatting comment. ${e}", ("e", ex.what()));
-//        }
         catch (...) {
-            // ilog("Unknown exception during formatting comment.");
+            // ilog("Unknown exception during formatting account authority.");
         }
     }
 
@@ -279,14 +347,13 @@ namespace mongo_db {
                 format_value(body, "last_update", itr->last_update);
                 format_value(body, "num_changes", itr->num_changes);
 
+                format_account(voter);
+
                 body << close_document;
 
                 bmi_insert_or_replace(all_docs, std::move(doc));
             }
         }
-//        catch (fc::exception& ex) {
-//            ilog("MongoDB operations fc::exception during formatting vote. ${e}", ("e", ex.what()));
-//        }
         catch (...) {
             // ilog("Unknown exception during formatting vote.");
         }
@@ -294,6 +361,7 @@ namespace mongo_db {
 
     auto state_writer::operator()(const comment_operation& op) -> result_type {
         format_comment(op.author, op.permlink);
+        format_account(op.author);
     }
 
     auto state_writer::operator()(const comment_options_operation& op) -> result_type {
@@ -362,15 +430,16 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const transfer_to_vesting_operation& op) -> result_type {
-        
+        format_account(op.from);
+        format_account(op.to);
     }
 
     auto state_writer::operator()(const withdraw_vesting_operation& op) -> result_type {
-        
+        format_account(op.account);
     }
 
     auto state_writer::operator()(const limit_order_create_operation& op) -> result_type {
-        
+        format_account(op.owner);
     }
 
     auto state_writer::operator()(const limit_order_cancel_operation& op) -> result_type {
@@ -382,19 +451,24 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const convert_operation& op) -> result_type {
-        
+        format_account(op.owner);
     }
 
     auto state_writer::operator()(const account_create_operation& op) -> result_type {
         format_account(op.new_account_name);
+        format_account(op.creator);
+        format_account_authority(op.new_account_name);
     }
 
     auto state_writer::operator()(const account_update_operation& op) -> result_type {
         format_account(op.account);
+        format_account_authority(op.account);
     }
 
     auto state_writer::operator()(const account_create_with_delegation_operation& op) -> result_type {
         format_account(op.new_account_name);
+        format_account(op.creator);
+        format_account_authority(op.new_account_name);
     }
 
     auto state_writer::operator()(const account_metadata_operation& op) -> result_type {
@@ -406,15 +480,20 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const account_witness_vote_operation& op) -> result_type {
-        
+        format_account(op.account);
     }
 
     auto state_writer::operator()(const account_witness_proxy_operation& op) -> result_type {
-        
+        format_account(op.account);
     }
 
     auto state_writer::operator()(const pow_operation& op) -> result_type {
-        
+        const auto& worker_account = op.get_worker_account();
+        format_account(worker_account);
+        format_account_authority(worker_account);
+        const auto &dgp = db_.get_dynamic_global_properties();
+        const auto &inc_witness = db_.get_account(dgp.current_witness);
+        format_account(inc_witness);
     }
 
     auto state_writer::operator()(const custom_operation& op) -> result_type {
@@ -430,19 +509,20 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const set_withdraw_vesting_route_operation& op) -> result_type {
-        
+        format_account(op.from_account);
     }
 
     auto state_writer::operator()(const limit_order_create2_operation& op) -> result_type {
-        
+        format_account(op.owner);
     }
 
     auto state_writer::operator()(const challenge_authority_operation& op) -> result_type {
-        
+        format_account(op.challenger);
+        format_account(op.challenged);
     }
 
     auto state_writer::operator()(const prove_authority_operation& op) -> result_type {
-        
+        format_account(op.challenged);
     }
 
     auto state_writer::operator()(const request_account_recovery_operation& op) -> result_type {
@@ -450,7 +530,8 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const recover_account_operation& op) -> result_type {
-        
+        format_account(op.account_to_recover);
+        format_account_authority(op.account_to_recover);
     }
 
     auto state_writer::operator()(const change_recovery_account_operation& op) -> result_type {
@@ -458,7 +539,7 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const escrow_transfer_operation& op) -> result_type {
-        
+        format_account(op.from);
     }
 
     auto state_writer::operator()(const escrow_dispute_operation& op) -> result_type {
@@ -466,27 +547,41 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const escrow_release_operation& op) -> result_type {
-        
+        format_account(op.receiver);
     }
 
     auto state_writer::operator()(const pow2_operation& op) -> result_type {
-        
+        const auto &dgp = db_.get_dynamic_global_properties();
+        const auto &inc_witness = db_.get_account(dgp.current_witness);
+        format_account(inc_witness);
+        account_name_type worker_account;
+        if (db_.has_hardfork(STEEMIT_HARDFORK_0_16__551)) {
+            const auto &work = op.work.get<equihash_pow>();
+            worker_account = work.input.worker_account;
+        } else {
+            const auto &work = op.work.get<pow2>();
+            worker_account = work.input.worker_account;
+        }
+        format_account(worker_account);
+        format_account_authority(worker_account);
     }
 
     auto state_writer::operator()(const escrow_approve_operation& op) -> result_type {
-        
+        format_account(op.from);
+        format_account(op.agent);
     }
 
     auto state_writer::operator()(const transfer_to_savings_operation& op) -> result_type {
-        
+        format_account(op.from);
+        format_account(op.to);
     }
 
     auto state_writer::operator()(const transfer_from_savings_operation& op) -> result_type {
-        
+        format_account(op.from);
     }
 
     auto state_writer::operator()(const cancel_transfer_from_savings_operation& op) -> result_type {
-        
+        format_account(op.from);
     }
 
     auto state_writer::operator()(const custom_binary_operation& op) -> result_type {
@@ -498,15 +593,16 @@ namespace mongo_db {
     }
 
     auto state_writer::operator()(const reset_account_operation& op) -> result_type {
-        
+        format_account_authority(op.account_to_reset);
     }
 
     auto state_writer::operator()(const set_reset_account_operation& op) -> result_type {
-        
+        format_account(op.account);
     }
 
     auto state_writer::operator()(const delegate_vesting_shares_operation& op) -> result_type {
-        
+        format_account(op.delegator);
+        format_account(op.delegatee);
     }
 
     auto state_writer::operator()(const proposal_create_operation& op) -> result_type {
