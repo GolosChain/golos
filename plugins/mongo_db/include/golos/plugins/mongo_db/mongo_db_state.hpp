@@ -92,7 +92,11 @@ namespace mongo_db {
 
         bool format_comment(const std::string& auth, const std::string& perm);
 
+        void format_account(const account_object& account);
+
         void format_account(const std::string& name);
+
+        void format_account_authority(const account_name_type& account_name);
 
         named_document create_document(const std::string& name,
             const std::string& key, const std::string& keyval);
