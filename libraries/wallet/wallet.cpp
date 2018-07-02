@@ -701,8 +701,15 @@ namespace golos { namespace wallet {
                                req_owner_approvals.begin() , req_owner_approvals.end(),
                                std::back_inserter( v_approving_account_names ) );
 
-                    for( const auto& a : req_posting_approvals )
+                    for( const auto& a : req_posting_approvals ) {
+                        vector< account_name_type > req; // TODO Refactor
+                        req.push_back(a); // TODO Refactor
+                        auto acc = _remote_database_api->get_accounts(req)[0]; // TODO Refactor
+                        for (const auto& auth : acc.posting.account_auths) {
+                            v_approving_account_names.push_back(auth.first);
+                        }
                         v_approving_account_names.push_back(a);
+                    }
 
                     /// TODO: fetch the accounts specified via other_auths as well.
 
