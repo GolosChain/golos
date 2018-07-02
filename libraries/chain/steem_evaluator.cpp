@@ -87,7 +87,9 @@ namespace golos { namespace chain {
         void store_account_json_metadata(
             database& db, const account_name_type& account, const string& json_metadata, bool skip_empty = false
         ) {
-#ifndef IS_LOW_MEM
+            if (!db.store_account_metadata())
+                return;
+
             if (skip_empty && json_metadata.size() == 0)
                 return;
 
@@ -104,7 +106,6 @@ namespace golos { namespace chain {
                     from_string(a.json_metadata, json_metadata);
                 });
             }
-#endif
         }
 
         void account_create_evaluator::do_apply(const account_create_operation &o) {

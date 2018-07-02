@@ -99,6 +99,8 @@ namespace golos { namespace chain {
             void set_clear_votes(uint32_t clear_votes_block);
             void set_skip_virtual_ops();
             bool clear_votes();
+            void set_store_account_metadata(bool store_account_metadata);
+            bool store_account_metadata() const;
 
             /**
              * @brief wipe Delete database from disk, and potentially the raw chain as well.
@@ -618,6 +620,7 @@ namespace golos { namespace chain {
             uint32_t _clear_votes_block = 0;
             bool _skip_virtual_ops = false;
             bool _enable_plugins_on_push_transaction = true;
+            bool _store_account_metadata = true;
 
             flat_map<std::string, std::shared_ptr<custom_operation_interpreter>> _custom_operation_interpreters;
             std::string _json_schema;

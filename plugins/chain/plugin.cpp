@@ -55,6 +55,8 @@ namespace chain {
 
         bool single_write_thread = false;
 
+        bool store_account_metadata = true;
+
         plugin_impl() {
             // get default settings
             read_wait_micro = db.read_wait_micro();
@@ -232,6 +234,9 @@ namespace chain {
             ) (
                 "replay-if-corrupted", boost::program_options::bool_switch()->default_value(true),
                 "replay all blocks if shared memory is corrupted"
+            ) (
+                "store-account-metadata", boost::program_options::bool_switch()->default_value(true),
+                "store account metadata in database"
             );
         cli.add_options()
             (
@@ -313,6 +318,8 @@ namespace chain {
                 my->loaded_checkpoints[item.first] = item.second;
             }
         }
+
+        my->store_account_metadata = options.at("store-account-metadata").as<bool>();
     }
 
     void plugin::plugin_startup() {
@@ -338,6 +345,8 @@ namespace chain {
         my->db.set_min_free_shared_memory_size(my->min_free_shared_memory_size);
 
         my->db.set_clear_votes(my->clear_votes_before_block);
+
+        my->db.set_store_account_metadata(my->store_account_metadata);
 
         if(my->skip_virtual_ops) {
             my->db.set_skip_virtual_ops();
