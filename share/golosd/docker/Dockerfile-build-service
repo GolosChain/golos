@@ -1,0 +1,17 @@
+FROM ubuntu:xenial
+
+RUN apt update && \
+    apt upgrade -y && \
+    apt install -y \
+      libboost-all-dev \
+      libssl-dev \
+      gcc \
+      g++ \
+      python3 \
+      make \
+      automake \
+      libtool \
+      cmake \
+      ccache \
+      git && \
+    mkdir /source /work

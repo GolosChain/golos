@@ -49,3 +49,7 @@ documentation/doxygen/latex
 *.pyc
 *.pyo
 *.egg-info/
+
+work
+cache
+package
