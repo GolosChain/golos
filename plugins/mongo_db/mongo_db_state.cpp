@@ -240,10 +240,9 @@ namespace mongo_db {
             format_value(body, "last_post", account.last_post);
 
             if (db_.store_account_metadata()) {
-                try {
-                    auto& account_metadata = db_.get<account_metadata_object, by_account>(account.name);
-                    format_value(body, "json_metadata", account_metadata.json_metadata);
-                } catch (...) {
+                auto account_metadata = db_.find<account_metadata_object, by_account>(account.name);
+                if (account_metadata != nullptr) {
+                    format_value(body, "json_metadata", account_metadata->json_metadata);
                 }
             }
 
