@@ -45,8 +45,11 @@ account_api_object::account_api_object(const account_object& a, const golos::cha
     last_owner_update = auth.last_owner_update;
 
     if (db.store_account_metadata()) {
-        const auto& meta = db.get<account_metadata_object, by_account>(name);
-        json_metadata = golos::chain::to_string(meta.json_metadata);
+        try {
+            const auto& meta = db.get<account_metadata_object, by_account>(name);
+            json_metadata = golos::chain::to_string(meta.json_metadata);
+        } catch (...) {
+        }
     }
 
     auto post = db.find<account_bandwidth_object, by_account_bandwidth_type>(std::make_tuple(name, bandwidth_type::post));
