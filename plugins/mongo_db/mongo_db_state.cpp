@@ -1168,9 +1168,8 @@ namespace mongo_db {
             format_value(body, "removed", false);
             format_value(body, "from", op.from);
             format_value(body, "to", op.to);
-#ifndef IS_LOW_MEM
-            format_value(body, "memo", op.memo);
-#endif
+            if (db_.store_memo_in_savings_withdraws())
+                format_value(body, "memo", op.memo);
             format_value(body, "request_id", swo.request_id);
             format_value(body, "amount", op.amount);
             format_value(body, "complete", swo.complete);

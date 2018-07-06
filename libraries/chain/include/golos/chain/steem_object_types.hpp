@@ -33,7 +33,7 @@ namespace golos { namespace chain {
             return std::string(str.begin(), str.end());
         }
 
-        inline void from_string(shared_string &out, const string &in) {
+        inline void from_string(shared_string &out, const std::string &in) {
             out.assign(in.begin(), in.end());
         }
 

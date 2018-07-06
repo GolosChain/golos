@@ -5712,6 +5712,58 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
         FC_LOG_AND_RETHROW()
     }
 
+    BOOST_AUTO_TEST_CASE(transfer_from_savings_when_memo_storing_specified) {
+         try {
+            BOOST_TEST_MESSAGE("Testing: transfer_from_savings_when_memo_storing_specified");
+
+            ACTORS((alice)(bob));
+            generate_block();
+
+            fund("alice", ASSET("10.000 GOLOS"));
+
+            transfer_to_savings_operation save;
+            save.from = "alice";
+            save.to = "alice";
+            save.amount = ASSET("10.000 GOLOS");
+
+            signed_transaction tx;
+            tx.operations.push_back(save);
+            tx.set_expiration(db->head_block_time() + STEEMIT_MAX_TIME_UNTIL_EXPIRATION);
+            tx.sign(alice_private_key, db->get_chain_id());
+            db->push_transaction(tx, 0);
+
+            db->set_store_memo_in_savings_withdraws(true);
+
+            transfer_from_savings_operation op;
+            op.from = "alice";
+            op.to = "alice";
+            op.amount = ASSET("1.000 GOLOS");
+            op.request_id = 1;
+            op.memo = "{\"test\":123}";
+
+            tx.clear();
+            tx.operations.push_back(op);
+            tx.sign(alice_private_key, db->get_chain_id());
+            db->push_transaction(tx, 0);
+
+            BOOST_REQUIRE(to_string(db->get_savings_withdraw("alice", op.request_id).memo) == op.memo);
+
+            db->set_store_memo_in_savings_withdraws(false);
+
+            op.request_id = 2;
+
+            tx.clear();
+            tx.operations.push_back(op);
+            tx.sign(alice_private_key, db->get_chain_id());
+            db->push_transaction(tx, 0);
+
+            BOOST_REQUIRE(to_string(db->get_savings_withdraw("alice", op.request_id).memo) == "");
+
+            validate_database();
+        }
+        FC_LOG_AND_RETHROW()
+    }
+
     BOOST_AUTO_TEST_CASE(cancel_transfer_from_savings_validate) {
         try {
             BOOST_TEST_MESSAGE("Testing: cancel_transfer_from_savings_validate");

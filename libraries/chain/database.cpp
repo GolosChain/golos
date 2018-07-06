@@ -368,6 +368,14 @@ namespace golos { namespace chain {
             return std::find(v.begin(), v.end(), name) != v.end();
         }
 
+        void database::set_store_memo_in_savings_withdraws(bool store_memo_in_savings_withdraws) {
+            _store_memo_in_savings_withdraws = store_memo_in_savings_withdraws;
+        }
+
+        bool database::store_memo_in_savings_withdraws() const {
+            return _store_memo_in_savings_withdraws;
+        }
+
         void database::set_skip_virtual_ops() {
             _skip_virtual_ops = true;
         }
