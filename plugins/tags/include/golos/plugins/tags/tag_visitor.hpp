@@ -46,9 +46,9 @@ namespace golos { namespace plugins { namespace tags {
             return sign * order + double(created.sec_since_epoch()) / double(T);
         }
 
-        inline double calculate_hot(const share_type& score, const time_point_sec& created) const;
+        double calculate_hot(const share_type& score, const time_point_sec& created) const;
 
-        inline double calculate_trending(const share_type& score, const time_point_sec& created) const;
+        double calculate_trending(const share_type& score, const time_point_sec& created) const;
 
         /** finds tags that have been added or removed or updated */
         void create_update_tags(const account_name_type& author, const std::string& permlink) const;

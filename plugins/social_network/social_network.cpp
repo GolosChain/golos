@@ -4,7 +4,6 @@
 #include <golos/api/vote_state.hpp>
 #include <golos/chain/steem_objects.hpp>
 #include <golos/api/discussion_helper.hpp>
-// These visitors creates additional tables, we don't really need them in LOW_MEM mode
 #include <golos/plugins/tags/plugin.hpp>
 
 #define CHECK_ARG_SIZE(_S)                                 \

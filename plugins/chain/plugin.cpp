@@ -329,22 +329,23 @@ namespace chain {
             }
         }
 
-        if (options.count("store-account-metadata")) {
-            if (options.at("store-account-metadata").as<bool>()) {
-                my->store_account_metadata = golos::chain::database::store_metadata_for_all;
-            } else {
-                my->store_account_metadata = golos::chain::database::store_metadata_for_nobody;
-                wlog("Account metadata will be not stored for any item of store-account-metadata-list because store-account-metadata is false");
-            }
-        } else {
-            my->store_account_metadata = golos::chain::database::store_metadata_for_listed;
-        }
+        my->store_account_metadata = golos::chain::database::store_metadata_for_all;
 
         if (options.count("store-account-metadata-list")) {
+            my->store_account_metadata = golos::chain::database::store_metadata_for_listed;
             std::string str_accs = options["store-account-metadata-list"].as<std::string>();
             my->accounts_to_store_metadata = fc::json::from_string(str_accs).as<std::vector<std::string>>();
         }
 
+        if (options.count("store-account-metadata")) {
+            if (!options.at("store-account-metadata").as<bool>()) {
+                my->store_account_metadata = golos::chain::database::store_metadata_for_nobody;
+                wlog(
+                    "Account metadata will be not stored for any item of store-account-metadata-list"
+                    " because store-account-metadata is false");
+            }
+        }
+        
         my->store_memo_in_savings_withdraws = options.at("store-memo-in-savings-withdraws").as<bool>();
     }
 
