@@ -9,8 +9,8 @@
 #ifdef STEEMIT_BUILD_TESTNET
 #define BLOCKCHAIN_NAME "GOLOSTEST"
 
-#define STEEMIT_SYMBOL                          "GOLOS"
-#define STEEMIT_ADDRESS_PREFIX                  "GLS"
+#define STEEMIT_SYMBOL                          "EARTHSHARE"
+#define STEEMIT_ADDRESS_PREFIX                  "ESH"
 
 #define STEEMIT_INIT_PRIVATE_KEY                (fc::ecc::private_key::regenerate(fc::sha256::hash(BLOCKCHAIN_NAME)))
 #define STEEMIT_INIT_PUBLIC_KEY_STR             (std::string(golos::protocol::public_key_type(STEEMIT_INIT_PRIVATE_KEY.get_public_key())))
@@ -220,16 +220,16 @@
 
 #else // IS LIVE STEEM NETWORK
 
-#define STEEMIT_INIT_PUBLIC_KEY_STR             "GLS7KVuKX87DK44xmhAD92hqJeR8Acd1TBKCtVnGLC5VDpER5CtWE"
-#define BLOCKCHAIN_NAME                         "GOLOS"
+#define STEEMIT_INIT_PUBLIC_KEY_STR             "ESH7KVuKX87DK44xmhAD92hqJeR8Acd1TBKCtVnGLC5VDpER5CtWE"
+#define BLOCKCHAIN_NAME                         "EARTHSARE"
 #define STEEMIT_CHAIN_ID                        (fc::sha256::hash(BLOCKCHAIN_NAME))
 
 #define VESTS_SYMBOL  (uint64_t(6) | (uint64_t('G') << 8) | (uint64_t('E') << 16) | (uint64_t('S') << 24) | (uint64_t('T') << 32) | (uint64_t('S') << 40)) ///< GESTS with 6 digits of precision
 #define STEEM_SYMBOL  (uint64_t(3) | (uint64_t('G') << 8) | (uint64_t('O') << 16) | (uint64_t('L') << 24) | (uint64_t('O') << 32) | (uint64_t('S') << 40)) ///< GOLOS with 3 digits of precision
 #define SBD_SYMBOL    (uint64_t(3) | (uint64_t('G') << 8) | (uint64_t('B') << 16) | (uint64_t('G') << 24) ) ///< STEEM Backed Dollars with 3 digits of precision
 #define STMD_SYMBOL   (uint64_t(3) | (uint64_t('S') << 8) | (uint64_t('T') << 16) | (uint64_t('M') << 24) | (uint64_t('D') << 32) ) ///< STEEM Dollars with 3 digits of precision
-#define STEEMIT_SYMBOL                          "GOLOS"
-#define STEEMIT_ADDRESS_PREFIX                  "GLS"
+#define STEEMIT_SYMBOL                          "EARTHSHARE"
+#define STEEMIT_ADDRESS_PREFIX                  "ESH"
 
 #define STEEMIT_GENESIS_TIME                    (fc::time_point_sec(1476788400))
 #define STEEMIT_MINING_TIME                     (fc::time_point_sec(1458838800))
