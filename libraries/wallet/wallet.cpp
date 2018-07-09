@@ -695,13 +695,11 @@ namespace golos { namespace wallet {
                         for( const auto& a : auth.account_auths )
                             req_active_approvals.insert(a.first);
 
-                    //
+                    // collects all keys to common set and accounts to common map
                     
-                    flat_map<string, golos::api::account_api_object> approving_accounts;
+                    flat_map<string, golos::api::account_api_object> approving_account_lut;
 
                     flat_set<public_key_type> approving_key_set;
-
-                    size_t total_accs_got = 0;
 
                     std::vector<account_name_type> active_account_auths; 
                     std::vector<account_name_type> owner_account_auths; 
@@ -718,69 +716,57 @@ namespace golos { namespace wallet {
                         auto req_active_accs =_remote_database_api->get_accounts(std::vector<account_name_type>(
                             req_active_approvals.begin(), req_active_approvals.end()));
                         for (auto& acc : req_active_accs) {
-                            approving_accounts[acc.name] = acc;
+                            approving_account_lut[acc.name] = acc;
                             fetch_keys(acc.active);
                             for (const auto& auth : acc.active.account_auths) {
                                 active_account_auths.push_back(auth.first);
                             }
                         }
-                        total_accs_got += req_active_accs.size();
                     }
                     if (!req_owner_approvals.empty()) {
                         auto req_owner_accs =_remote_database_api->get_accounts(std::vector<account_name_type>(
                             req_owner_approvals.begin(), req_owner_approvals.end()));
                         for (auto& acc : req_owner_accs) {
-                            approving_accounts[acc.name] = acc;
+                            approving_account_lut[acc.name] = acc;
                             fetch_keys(acc.owner);
                             for (const auto& auth : acc.owner.account_auths) {
                                 owner_account_auths.push_back(auth.first);
                             }
                         }
-                        total_accs_got += req_owner_accs.size();
                     }
                     if (!req_posting_approvals.empty()) {
                         auto req_posting_accs =_remote_database_api->get_accounts(std::vector<account_name_type>(
                             req_posting_approvals.begin(), req_posting_approvals.end()));
                         for (auto& acc : req_posting_accs) {
-                            approving_accounts[acc.name] = acc;
+                            approving_account_lut[acc.name] = acc;
                             fetch_keys(acc.posting);
                             for (const auto& auth : acc.posting.account_auths) {
                                 posting_account_auths.push_back(auth.first);
                             }
                         }
-                        total_accs_got += req_posting_accs.size();
                     }
 
                     if (!active_account_auths.empty()) {
                         auto active_account_auth_objs = _remote_database_api->get_accounts(active_account_auths);
-                        total_accs_got += active_account_auth_objs.size();
                         for (auto& acc : active_account_auth_objs) {
-                            approving_accounts[acc.name] = acc;
+                            approving_account_lut[acc.name] = acc;
                             fetch_keys(acc.active);
                         }
                     }
                     if (!owner_account_auths.empty()) {
                         auto owner_account_auth_objs = _remote_database_api->get_accounts(owner_account_auths);
-                        total_accs_got += owner_account_auth_objs.size();
                         for (auto& acc : owner_account_auth_objs) {
-                            approving_accounts[acc.name] = acc;
+                            approving_account_lut[acc.name] = acc;
                             fetch_keys(acc.owner);
                         }
                     }
                     if (!posting_account_auths.empty()) {
                         auto posting_account_auth_objs = _remote_database_api->get_accounts(posting_account_auths);
-                        total_accs_got += posting_account_auth_objs.size();
                         for (auto& acc : posting_account_auth_objs) {
-                            approving_accounts[acc.name] = acc;
+                            approving_account_lut[acc.name] = acc;
                             fetch_keys(acc.posting);
                         }
                     }
-
-                    // checks if accounts for all names have got
-                    FC_ASSERT(approving_accounts.size() == total_accs_got,
-                        "", ("aco.size:", approving_accounts.size())("acn",total_accs_got) );
-
-                    auto& approving_account_lut = approving_accounts;
 
                     auto get_account_from_lut = [&]( const std::string& name ) -> const golos::api::account_api_object& {
                         auto it = approving_account_lut.find( name );
