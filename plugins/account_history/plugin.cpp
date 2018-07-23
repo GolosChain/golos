@@ -5,16 +5,22 @@
 
 #include <golos/chain/operation_notification.hpp>
 
+#include <fc/reflect/reflect.hpp>
+
 #include <boost/algorithm/string.hpp>
 #define STEEM_NAMESPACE_PREFIX "golos::protocol::"
 
 #define CHECK_ARG_SIZE(s) \
    FC_ASSERT( args.args->size() == s, "Expected #s argument(s), was ${n}", ("n", args.args->size()) );
+#define CHECK_ARGS_COUNT(min, max) \
+   auto n_args = args.args->size(); \
+   FC_ASSERT(n_args >= (min) && n_args <= (max), "Expected #min-#max arguments, got ${n}", ("n", n_args));
 
 namespace golos { namespace plugins { namespace account_history {
 
     struct operation_visitor_filter;
-    void operation_get_impacted_accounts(const operation &op, flat_set<golos::chain::account_name_type> &result);
+    void operation_get_impacted_accounts(const operation &op,
+                                         flat_map<golos::chain::account_name_type, operation_direction_type> &result);
 
 using namespace golos::protocol;
 using namespace golos::chain;
@@ -36,10 +42,12 @@ if (options.count(name)) { \
         operation_visitor(
             golos::chain::database& db,
             const golos::chain::operation_notification& op_note,
-            std::string op_account)
+            std::string op_account,
+            operation_direction_type dir)
             : database(db),
               note(op_note),
-              account(op_account){
+              account(op_account),
+              dir(dir){
         }
 
         using result_type = void;
@@ -47,6 +55,7 @@ if (options.count(name)) { \
         golos::chain::database& database;
         const golos::chain::operation_notification& note;
         std::string account;
+        operation_direction_type dir;
 
         template<typename Op>
         void operator()(Op &&) const {
@@ -63,6 +72,7 @@ if (options.count(name)) { \
                 history.account = account;
                 history.sequence = sequence;
                 history.op = operation_history::operation_id_type(note.db_id);
+                history.dir = dir;
             });
         }
     };
@@ -95,15 +105,15 @@ if (options.count(name)) { \
                 return;
             }
 
-            fc::flat_set<golos::chain::account_name_type> impacted;
+            fc::flat_map<golos::chain::account_name_type, operation_direction_type> impacted;
             operation_get_impacted_accounts(note.op, impacted);
 
             for (const auto& item : impacted) {
-                auto itr = tracked_accounts.lower_bound(item);
+                auto itr = tracked_accounts.lower_bound(item.first);
                 if (!tracked_accounts.size() ||
-                    (itr != tracked_accounts.end() && itr->first <= item && item <= itr->second)
+                    (itr != tracked_accounts.end() && itr->first <= item.first && item.first <= itr->second)
                 ) {
-                    note.op.visit(operation_visitor(database, note, item));
+                    note.op.visit(operation_visitor(database, note, item.first, item.second));
                 }
             }
         }
@@ -111,17 +121,30 @@ if (options.count(name)) { \
         std::map<uint32_t, applied_operation> get_account_history(
             std::string account,
             uint64_t from,
-            uint32_t limit
+            uint32_t limit,
+            operation_direction_type dir
         ) {
             FC_ASSERT(limit <= 10000, "Limit of ${l} is greater than maxmimum allowed", ("l", limit));
             FC_ASSERT(from >= limit, "From must be greater than limit");
-            //   idump((account)(from)(limit));
-            const auto& idx = database.get_index<account_history_index>().indices().get<by_account>();
-            auto itr = idx.lower_bound(std::make_tuple(account, from));
-            //   if( itr != idx.end() ) idump((*itr));
-            auto end = idx.upper_bound(std::make_tuple(account, std::max(int64_t(0), int64_t(itr->sequence) - limit)));
-            //   if( end != idx.end() ) idump((*end));
+            FC_ASSERT(dir <= operation_direction_type::any, "Invalid direction ${l} type", ("l", static_cast<uint8_t>(dir)));
 
+            if (dir == operation_direction_type::any) {
+                const auto& idx = database.get_index<account_history_index>().indices().get<by_account>();
+                //   idump((account)(from)(limit));
+                auto itr = idx.lower_bound(std::make_tuple(account, from));
+                //   if( itr != idx.end() ) idump((*itr));
+                auto end = idx.upper_bound(std::make_tuple(account, std::max(int64_t(0), int64_t(itr->sequence) - limit)));
+                //   if( end != idx.end() ) idump((*end));
+
+                std::map<uint32_t, applied_operation> result;
+                for (; itr != end; ++itr) {
+                    result[itr->sequence] = database.get(itr->op);
+                }
+                return result;
+            }
+            const auto& idx = database.get_index<account_history_index>().indices().get<by_direction>();
+            auto itr = idx.lower_bound(dir);
+            auto end = idx.end();
             std::map<uint32_t, applied_operation> result;
             for (; itr != end; ++itr) {
                 result[itr->sequence] = database.get(itr->op);
@@ -135,20 +158,25 @@ if (options.count(name)) { \
     };
 
     DEFINE_API(plugin, get_account_history) {
-        CHECK_ARG_SIZE(3)
+        CHECK_ARGS_COUNT(3, 4)
         auto account = args.args->at(0).as<std::string>();
         auto from = args.args->at(1).as<uint64_t>();
         auto limit = args.args->at(2).as<uint32_t>();
+        auto dir = operation_direction_type::any;
+        if (3 < args.args->size()) {
+            dir = static_cast<operation_direction_type>(args.args->at(3).as<uint8_t>());
+            FC_ASSERT(dir <= operation_direction_type::any);
+        }
 
         return pimpl->database.with_weak_read_lock([&]() {
-            return pimpl->get_account_history(account, from, limit);
+            return pimpl->get_account_history(account, from, limit, dir);
         });
     }
 
     struct get_impacted_account_visitor final {
-        fc::flat_set<golos::chain::account_name_type>& impacted;
+        fc::flat_map<golos::chain::account_name_type, operation_direction_type>& impacted;
 
-        get_impacted_account_visitor(fc::flat_set<golos::chain::account_name_type>& impact)
+        get_impacted_account_visitor(fc::flat_map<golos::chain::account_name_type, operation_direction_type>& impact)
             : impacted(impact) {
         }
 
@@ -156,189 +184,225 @@ if (options.count(name)) { \
 
         template<typename T>
         void operator()(const T& op) {
-            op.get_required_posting_authorities(impacted);
-            op.get_required_active_authorities(impacted);
-            op.get_required_owner_authorities(impacted);
+            fc::flat_set<golos::chain::account_name_type> impd;
+            op.get_required_posting_authorities(impd);
+            op.get_required_active_authorities(impd);
+            op.get_required_owner_authorities(impd);
+            for (auto i : impd) {
+                impacted.insert(make_pair(i, operation_direction_type::any));
+            }
         }
 
         void operator()(const account_create_operation& op) {
-            impacted.insert(op.new_account_name);
-            impacted.insert(op.creator);
+            impacted.insert(make_pair(op.new_account_name, operation_direction_type::receiver));
+            impacted.insert(make_pair(op.creator, operation_direction_type::sender));
         }
 
         void operator()(const account_create_with_delegation_operation& op) {
-            impacted.insert(op.new_account_name);
-            impacted.insert(op.creator);
+            impacted.insert(make_pair(op.new_account_name, operation_direction_type::receiver));
+            impacted.insert(make_pair(op.creator, operation_direction_type::sender));
         }
 
         void operator()(const account_update_operation& op) {
-            impacted.insert(op.account);
+            impacted.insert(make_pair(op.account, operation_direction_type::any));
         }
 
         void operator()(const account_metadata_operation& op) {
-            impacted.insert(op.account);
+            impacted.insert(make_pair(op.account, operation_direction_type::any));
         }
 
         void operator()(const comment_operation& op) {
-            impacted.insert(op.author);
-            if (op.parent_author.size()) {
-                impacted.insert(op.parent_author);
+            if (op.author == op.parent_author) {
+                impacted.insert(make_pair(op.author, operation_direction_type::any));
+            } else {
+                if (op.parent_author.size()) {
+                    impacted.insert(make_pair(op.author, operation_direction_type::receiver));
+                } else {
+                    impacted.insert(make_pair(op.author, operation_direction_type::sender));
+                }
             }
         }
 
         void operator()(const delete_comment_operation& op) {
-            impacted.insert(op.author);
+            impacted.insert(make_pair(op.author, operation_direction_type::any));
         }
 
         void operator()(const vote_operation& op) {
-            impacted.insert(op.voter);
-            impacted.insert(op.author);
+            if (op.voter == op.author) {
+                impacted.insert(make_pair(op.voter, operation_direction_type::any));
+                impacted.insert(make_pair(op.author, operation_direction_type::any));
+            } else {
+                impacted.insert(make_pair(op.voter, operation_direction_type::sender));
+                impacted.insert(make_pair(op.author, operation_direction_type::receiver));
+            }
         }
 
         void operator()(const author_reward_operation& op) {
-            impacted.insert(op.author);
+            impacted.insert(make_pair(op.author, operation_direction_type::receiver));
         }
 
         void operator()(const curation_reward_operation& op) {
-            impacted.insert(op.curator);
+            impacted.insert(make_pair(op.curator, operation_direction_type::receiver));
         }
 
         void operator()(const liquidity_reward_operation& op) {
-            impacted.insert(op.owner);
+            impacted.insert(make_pair(op.owner, operation_direction_type::any));
         }
 
         void operator()(const interest_operation& op) {
-            impacted.insert(op.owner);
+            impacted.insert(make_pair(op.owner, operation_direction_type::any));
         }
 
         void operator()(const fill_convert_request_operation& op) {
-            impacted.insert(op.owner);
+            impacted.insert(make_pair(op.owner, operation_direction_type::any));
+        }
+
+        template<class op_type>
+        void insert_from_to_direction(const op_type& op) {
+            if (op.from == op.to) {
+                impacted.insert(make_pair(op.from, operation_direction_type::any));
+                impacted.insert(make_pair(op.to, operation_direction_type::any));
+            } else {
+                impacted.insert(make_pair(op.from, operation_direction_type::sender));
+                impacted.insert(make_pair(op.to, operation_direction_type::receiver));
+            }
         }
 
         void operator()(const transfer_operation& op) {
-            impacted.insert(op.from);
-            impacted.insert(op.to);
+            insert_from_to_direction(op);
         }
 
         void operator()(const transfer_to_vesting_operation& op) {
-            impacted.insert(op.from);
-
-            if (op.to != golos::chain::account_name_type() && op.to != op.from) {
-                impacted.insert(op.to);
+            if (op.from == op.to) {
+                impacted.insert(make_pair(op.from, operation_direction_type::any));
+                impacted.insert(make_pair(op.to, operation_direction_type::any));
+            } else {
+                impacted.insert(make_pair(op.from, operation_direction_type::sender));
+                if (op.to != golos::chain::account_name_type() && op.to != op.from) {
+                    impacted.insert(make_pair(op.from, operation_direction_type::receiver));
+                }
             }
         }
 
         void operator()(const withdraw_vesting_operation& op) {
-            impacted.insert(op.account);
+            impacted.insert(make_pair(op.account, operation_direction_type::any));
         }
 
         void operator()(const witness_update_operation& op) {
-            impacted.insert(op.owner);
+            impacted.insert(make_pair(op.owner, operation_direction_type::any));
         }
 
         void operator()(const account_witness_vote_operation& op) {
-            impacted.insert(op.account);
-            impacted.insert(op.witness);
+            impacted.insert(make_pair(op.account, operation_direction_type::sender));
+            impacted.insert(make_pair(op.witness, operation_direction_type::receiver));
         }
 
         void operator()(const account_witness_proxy_operation& op) {
-            impacted.insert(op.account);
-            impacted.insert(op.proxy);
+            impacted.insert(make_pair(op.account, operation_direction_type::sender));
+            impacted.insert(make_pair(op.proxy, operation_direction_type::receiver));
         }
 
         void operator()(const feed_publish_operation& op) {
-            impacted.insert(op.publisher);
+            impacted.insert(make_pair(op.publisher, operation_direction_type::any));
         }
 
         void operator()(const limit_order_create_operation& op) {
-            impacted.insert(op.owner);
+            impacted.insert(make_pair(op.owner, operation_direction_type::any));
         }
 
         void operator()(const fill_order_operation& op) {
-            impacted.insert(op.current_owner);
-            impacted.insert(op.open_owner);
+            impacted.insert(make_pair(op.current_owner, operation_direction_type::sender));
+            impacted.insert(make_pair(op.open_owner, operation_direction_type::receiver));
         }
 
         void operator()(const limit_order_cancel_operation& op) {
-            impacted.insert(op.owner);
+            impacted.insert(make_pair(op.owner, operation_direction_type::any));
         }
 
         void operator()(const pow_operation& op) {
-            impacted.insert(op.worker_account);
+            impacted.insert(make_pair(op.worker_account, operation_direction_type::any));
         }
 
         void operator()(const fill_vesting_withdraw_operation& op) {
-            impacted.insert(op.from_account);
-            impacted.insert(op.to_account);
+            if (op.from_account == op.to_account) {
+                impacted.insert(make_pair(op.from_account, operation_direction_type::any));
+                impacted.insert(make_pair(op.to_account, operation_direction_type::any));
+            } else {
+                impacted.insert(make_pair(op.from_account, operation_direction_type::sender));
+                impacted.insert(make_pair(op.to_account, operation_direction_type::receiver));
+            }
         }
 
         void operator()(const shutdown_witness_operation& op) {
-            impacted.insert(op.owner);
+            impacted.insert(make_pair(op.owner, operation_direction_type::any));
         }
 
         void operator()(const custom_operation& op) {
             for (auto& s: op.required_auths) {
-                impacted.insert(s);
+                impacted.insert(make_pair(s, operation_direction_type::any));
             }
         }
 
         void operator()(const request_account_recovery_operation& op) {
-            impacted.insert(op.account_to_recover);
+            impacted.insert(make_pair(op.account_to_recover, operation_direction_type::any));
         }
 
         void operator()(const recover_account_operation& op) {
-            impacted.insert(op.account_to_recover);
+            impacted.insert(make_pair(op.account_to_recover, operation_direction_type::any));
         }
 
         void operator()(const change_recovery_account_operation& op) {
-            impacted.insert(op.account_to_recover);
+            impacted.insert(make_pair(op.account_to_recover, operation_direction_type::any));
+            impacted.insert(make_pair(op.new_recovery_account, operation_direction_type::any));
+        }
+
+        template<class op_type>
+        void insert_from_to_agent_direction(const op_type& op) {
+            impacted.insert(make_pair(op.from, operation_direction_type::sender));
+            impacted.insert(make_pair(op.to, operation_direction_type::receiver));
+            impacted.insert(make_pair(op.agent, operation_direction_type::receiver));
         }
 
         void operator()(const escrow_transfer_operation& op) {
-            impacted.insert(op.from);
-            impacted.insert(op.to);
-            impacted.insert(op.agent);
+            insert_from_to_agent_direction(op);
         }
 
         void operator()(const escrow_approve_operation& op) {
-            impacted.insert(op.from);
-            impacted.insert(op.to);
-            impacted.insert(op.agent);
+            insert_from_to_agent_direction(op);
         }
 
         void operator()(const escrow_dispute_operation& op) {
-            impacted.insert(op.from);
-            impacted.insert(op.to);
-            impacted.insert(op.agent);
+            insert_from_to_agent_direction(op);
         }
 
         void operator()(const escrow_release_operation& op) {
-            impacted.insert(op.from);
-            impacted.insert(op.to);
-            impacted.insert(op.agent);
+            insert_from_to_agent_direction(op);
         }
 
         void operator()(const transfer_to_savings_operation& op) {
-            impacted.insert(op.from);
-            impacted.insert(op.to);
+            insert_from_to_direction(op);
         }
 
         void operator()(const transfer_from_savings_operation& op) {
-            impacted.insert(op.from);
-            impacted.insert(op.to);
+            insert_from_to_direction(op);
         }
 
         void operator()(const cancel_transfer_from_savings_operation& op) {
-            impacted.insert(op.from);
+            impacted.insert(make_pair(op.from, operation_direction_type::any));
         }
 
         void operator()(const decline_voting_rights_operation& op) {
-            impacted.insert(op.account);
+            impacted.insert(make_pair(op.account, operation_direction_type::any));
         }
 
         void operator()(const comment_benefactor_reward_operation& op) {
-            impacted.insert(op.benefactor);
-            impacted.insert(op.author);
+            if (op.benefactor == op.author) {
+                impacted.insert(make_pair(op.benefactor, operation_direction_type::any));
+                impacted.insert(make_pair(op.author, operation_direction_type::any));
+            } else {
+                impacted.insert(make_pair(op.benefactor, operation_direction_type::receiver));
+                impacted.insert(make_pair(op.author, operation_direction_type::sender));
+            }
         }
 
         void operator()(const producer_reward_operation& op) {
@@ -346,35 +410,46 @@ if (options.count(name)) { \
         }
 
         void operator()(const delegate_vesting_shares_operation& op) {
-            impacted.insert(op.delegator);
-            impacted.insert(op.delegatee);
+            impacted.insert(make_pair(op.delegator, operation_direction_type::sender));
+            impacted.insert(make_pair(op.delegatee, operation_direction_type::receiver));
         }
 
         void operator()(const return_vesting_delegation_operation& op) {
-            impacted.insert(op.account);
+            impacted.insert(make_pair(op.account, operation_direction_type::receiver));
         }
 
         void operator()(const proposal_create_operation& op) {
-            impacted.insert(op.author);
+            impacted.insert(make_pair(op.author, operation_direction_type::any));
         }
 
         void operator()(const proposal_update_operation& op) {
-            impacted.insert(op.active_approvals_to_add.begin(), op.active_approvals_to_add.end());
-            impacted.insert(op.owner_approvals_to_add.begin(), op.owner_approvals_to_add.end());
-            impacted.insert(op.posting_approvals_to_add.begin(), op.posting_approvals_to_add.end());
-            impacted.insert(op.active_approvals_to_remove.begin(), op.active_approvals_to_remove.end());
-            impacted.insert(op.owner_approvals_to_remove.begin(), op.owner_approvals_to_remove.end());
-            impacted.insert(op.posting_approvals_to_remove.begin(), op.posting_approvals_to_remove.end());
+            auto insert_fn = [this](const fc::flat_set<golos::chain::account_name_type>& impd) {
+                for (auto i : impd) {
+                    impacted.insert(make_pair(i, operation_direction_type::any));
+                }
+            };
+            insert_fn(op.active_approvals_to_add);
+            insert_fn(op.owner_approvals_to_add);
+            insert_fn(op.posting_approvals_to_add);
+            insert_fn(op.active_approvals_to_remove);
+            insert_fn(op.owner_approvals_to_remove);
+            insert_fn(op.posting_approvals_to_remove);
         }
 
         void operator()(const proposal_delete_operation& op) {
-            impacted.insert(op.requester);
+            if (op.author == op.requester) {
+                impacted.insert(make_pair(op.author, operation_direction_type::any));
+                impacted.insert(make_pair(op.requester, operation_direction_type::any));
+            } else {
+                impacted.insert(make_pair(op.author, operation_direction_type::receiver));
+                impacted.insert(make_pair(op.requester, operation_direction_type::sender));
+            }
         }
         //void operator()( const operation& op ){}
     };
 
     void operation_get_impacted_accounts(
-        const operation& op, fc::flat_set<golos::chain::account_name_type>& result
+        const operation& op, fc::flat_map<golos::chain::account_name_type, operation_direction_type>& result
     ) {
         get_impacted_account_visitor vtor = get_impacted_account_visitor(result);
         op.visit(vtor);
@@ -446,3 +521,7 @@ if (options.count(name)) { \
     }
 
 } } } // golos::plugins::account_history
+
+
+//from ‘const boost::multi_index::detail::ordered_index<boost::multi_index::composite_key<golos::plugins::account_history::account_history_object, boost::multi_index::member<golos::plugins::account_history::account_history_object, fc::fixed_string<fc::uint128_t>, &golos::plugins::account_history::account_history_object::account>, boost::multi_index::member<golos::plugins::account_history::account_history_object, unsigned int, &golos::plugins::account_history::account_history_object::sequence> >, boost::multi_index::composite_key_compare<std::less<fc::fixed_string<fc::uint128_t> >, std::greater<unsigned int> >, boost::multi_index::detail::nth_layer<4, golos::plugins::account_history::account_history_object, boost::multi_index::indexed_by<boost::multi_index::ordered_unique<boost::multi_index::tag<golos::chain::by_id>, boost::multi_index::member<golos::plugins::account_history::account_history_object, chainbase::object_id<golos::plugins::account_history::account_history_object>, &golos::plugins::account_history::account_history_object::id> >, boost::multi_index::ordered_non_unique<boost::multi_index::tag<golos::plugins::account_history::by_location>, boost::multi_index::composite_key<golos::plugins::account_history::account_history_object, boost::multi_index::member<golos::plugins::account_history::account_history_object, unsigned int, &golos::plugins::account_history::account_history_object::block> > >, boost::multi_index::ordered_non_unique<boost::multi_index::tag<golos::plugins::account_history::by_direction>, boost::multi_index::composite_key<golos::plugins::account_history::account_history_object, boost::multi_index::member<golos::plugins::account_history::account_history_object, golos::plugins::account_history::operation_direction_type, &golos::plugins::account_history::account_history_object::dir> > >, boost::multi_index::ordered_unique<boost::multi_index::tag<golos::plugins::account_history::by_account>, boost::multi_index::composite_key<golos::plugins::account_history::account_history_object, boost::multi_index::member<golos::plugins::account_history::account_history_object, fc::fixed_string<fc::uint128_t>, &golos::plugins::account_history::account_history_object::account>, boost::multi_index::member<golos::plugins::account_history::account_history_object, unsigned int, &golos::plugins::account_history::account_history_object::sequence> >, boost::multi_index::composite_key_compare<std::less<fc::fixed_string<fc::uint128_t> >, std::greater<unsigned int> > > >, boost::interprocess::allocator<golos::plugins::account_history::account_history_object, boost::interprocess::segment_manager<char, boost::interprocess::rbtree_best_fit<boost::interprocess::mutex_family>, boost::interprocess::iset_index> > >, boost::mpl::v_item<golos::plugins::account_history::by_account, boost::mpl::vector0<mpl_::na>, 0>, boost::multi_index::detail::ordered_unique_tag, boost::multi_index::detail::null_augment_policy>’ to
+//to   ‘const account_history_index& {aka const boost::multi_index::multi_index_container<golos::plugins::account_history::account_history_object, boost::multi_index::indexed_by<boost::multi_index::ordered_unique<boost::multi_index::tag<golos::chain::by_id>, boost::multi_index::member<golos::plugins::account_history::account_history_object, chainbase::object_id<golos::plugins::account_history::account_history_object>, &golos::plugins::account_history::account_history_object::id> >, boost::multi_index::ordered_non_unique<boost::multi_index::tag<golos::plugins::account_history::by_location>, boost::multi_index::composite_key<golos::plugins::account_history::account_history_object, boost::multi_index::member<golos::plugins::account_history::account_history_object, unsigned int, &golos::plugins::account_history::account_history_object::block> > >, boost::multi_index::ordered_non_unique<boost::multi_index::tag<golos::plugins::account_history::by_direction>, boost::multi_index::composite_key<golos::plugins::account_history::account_history_object, boost::multi_index::member<golos::plugins::account_history::account_history_object, golos::plugins::account_history::operation_direction_type, &golos::plugins::account_history::account_history_object::dir> > >, boost::multi_index::ordered_unique<boost::multi_index::tag<golos::plugins::account_history::by_account>, boost::multi_index::composite_key<golos::plugins::account_history::account_history_object, boost::multi_index::member<golos::plugins::account_history::account_history_object, fc::fixed_string<fc::uint128_t>, &golos::plugins::account_history::account_history_object::account>, boost::multi_index::member<golos::plugins::account_history::account_history_object, unsigned int, &golos::plugins::account_history::account_history_object::sequence> >, boost::multi_index::composite_key_compare<std::less<fc::fixed_string<fc::uint128_t> >, std::greater<unsigned int> > > >, boost::interprocess::allocator<golos::plugins::account_history::account_history_object, boost::interprocess::segment_manager<char, boost::interprocess::rbtree_best_fit<boost::interprocess::mutex_family>, boost::interprocess::iset_index> > >&}’
