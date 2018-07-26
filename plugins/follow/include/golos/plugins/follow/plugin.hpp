@@ -6,8 +6,21 @@
 #include <golos/plugins/social_network/social_network.hpp>
 #include "follow_api_object.hpp"
 
+#define PLUGIN_CHECK_LOGIC(expr, type, msg, ...) \
+    GOLOS_CHECK_LOGIC(expr, type, msg, ("plugin", "follow") __VA_ARGS__)
+
 namespace golos { namespace plugins { namespace follow {
     using json_rpc::msg_pack;
+
+    struct logic_errors {
+        enum error_type {
+            cannot_follow_yourself,
+            cannot_reblog_own_content,
+            cannot_follow_and_ignore_simultaneously,
+            only_top_level_posts_reblogged,
+            account_already_reblogged_this_post,
+        };
+    };
 
     void fill_account_reputation(
         const golos::chain::database& db,
@@ -79,3 +92,11 @@ namespace golos { namespace plugins { namespace follow {
     };
 
 } } } // golos::plugins::follow
+
+FC_REFLECT_ENUM(golos::plugins::follow::logic_errors::error_type,
+        (cannot_follow_yourself)
+        (cannot_reblog_own_content)
+        (cannot_follow_and_ignore_simultaneously)
+        (only_top_level_posts_reblogged)
+        (account_already_reblogged_this_post)
+);

@@ -41,8 +41,9 @@ namespace golos {
                     }
 
                     if (what & (1 << ignore))
-                        FC_ASSERT(!(what & (1
-                                << blog)), "Cannot follow blog and ignore author at the same time");
+                        PLUGIN_CHECK_LOGIC(!(what & (1 << blog)), 
+                                logic_errors::cannot_follow_and_ignore_simultaneously,
+                                "Cannot follow blog and ignore author at the same time");
 
                     bool was_followed = false;
 
@@ -108,7 +109,9 @@ namespace golos {
             void reblog_evaluator::do_apply(const reblog_operation &o) {
                 try {
                     const auto &c = db().get_comment(o.author, o.permlink);
-                    FC_ASSERT(c.parent_author.size() == 0, "Only top level posts can be reblogged");
+                    PLUGIN_CHECK_LOGIC(c.parent_author.size() == 0, 
+                            logic_errors::only_top_level_posts_reblogged,
+                            "Only top level posts can be reblogged");
 
                     const auto &blog_idx = db().get_index<blog_index>().indices().get<by_blog>();
                     const auto &blog_comment_idx = db().get_index<blog_index>().indices().get<by_comment>();
@@ -122,7 +125,9 @@ namespace golos {
 
                     auto blog_itr = blog_comment_idx.find(boost::make_tuple(c.id, o.account));
 
-                    FC_ASSERT(blog_itr == blog_comment_idx.end(), "Account has already reblogged this post");
+                    PLUGIN_CHECK_LOGIC(blog_itr == blog_comment_idx.end(), 
+                            logic_errors::account_already_reblogged_this_post,
+                            "Account has already reblogged this post");
                     db().create<blog_object>([&](blog_object &b) {
                         b.account = o.account;
                         b.comment = c.id;

@@ -53,7 +53,7 @@
     };
 
 #define GOLOS_CHECK_LOGIC(expr, TYPE, MSG, ...) \
-        GOLOS_ASSERT(expr, golos::logic_exception, MSG, ("errid", TYPE)__VA_ARGS__)
+        GOLOS_ASSERT(expr, golos::logic_exception, MSG, ("errid", TYPE)("namespace",golos::get_logic_error_namespace<decltype(TYPE)>())__VA_ARGS__)
 
 
 // TODO Remove after done refactor errors in plugins #791
@@ -136,6 +136,12 @@
     FC_THROW_EXCEPTION(golos::internal_error, MSG, __VA_ARGS__)
 
 namespace golos {
+
+
+    // Function to get logic_error codes namespace
+    template<typename T>
+    std::string get_logic_error_namespace();
+
     GOLOS_DECLARE_DERIVED_EXCEPTION(
         golos_exception, fc::exception,
               0, "golos base exception")

@@ -16,6 +16,13 @@
 namespace golos { namespace plugins { namespace private_message {
     using namespace golos::chain;
 
+    struct logic_errors {
+        enum types {
+            cannot_send_to_yourself,
+            from_and_to_memo_keys_must_be_different,
+        };
+    };
+
     DEFINE_API_ARGS(get_inbox,  json_rpc::msg_pack, std::vector<message_api_obj>)
     DEFINE_API_ARGS(get_outbox, json_rpc::msg_pack, std::vector<message_api_obj>)
 
@@ -66,3 +73,8 @@ CHAINBASE_SET_INDEX_TYPE(
 FC_REFLECT(
     (golos::plugins::private_message::message_api_obj),
     (id)(from)(to)(from_memo_key)(to_memo_key)(sent_time)(receive_time)(checksum)(encrypted_message));
+
+FC_REFLECT_ENUM(golos::plugins::private_message::logic_errors::types,
+    (cannot_send_to_yourself)
+    (from_and_to_memo_keys_must_be_different)
+);

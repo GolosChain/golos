@@ -7,6 +7,9 @@
 #include <golos/chain/custom_operation_interpreter.hpp>
 #include <golos/chain/generic_custom_operation_interpreter.hpp>
 
+#include <golos/protocol/validate_helper.hpp>
+#include <golos/plugins/json_rpc/api_helper.hpp>
+
 #include <fc/smart_ref_impl.hpp>
 
 
@@ -22,6 +25,15 @@ if( options.count(name) ) { \
     std::transform(ops.begin(), ops.end(), std::inserter(container, container.end()), &dejsonify<type>); \
 }
 //
+
+namespace golos {
+
+template<>
+std::string get_logic_error_namespace<golos::plugins::private_message::logic_errors::types>() {
+    return golos::plugins::private_message::private_message_plugin::name();
+}
+
+} // namespace golos
 
 namespace golos { namespace plugins { namespace private_message {
 
@@ -56,7 +68,7 @@ namespace golos { namespace plugins { namespace private_message {
     std::vector<message_api_obj> private_message_plugin::private_message_plugin_impl::get_inbox(
         const std::string& to, time_point newest, uint16_t limit, std::uint64_t offset
     ) const {
-        FC_ASSERT(limit <= 100);
+        GOLOS_CHECK_LIMIT_PARAM(limit, 100);
 
         std::vector<message_api_obj> result;
         const auto &idx = db_.get_index<message_index>().indices().get<by_to_date>();
@@ -77,7 +89,7 @@ namespace golos { namespace plugins { namespace private_message {
     std::vector<message_api_obj> private_message_plugin::private_message_plugin_impl::get_outbox(
         const std::string& from, time_point newest, uint16_t limit, std::uint64_t offset
     ) const {
-        FC_ASSERT(limit <= 100);
+        GOLOS_CHECK_LIMIT_PARAM(limit, 100);
 
         std::vector<message_api_obj> result;
         const auto &idx = db_.get_index<message_index>().indices().get<by_from_date>();
@@ -103,10 +115,15 @@ namespace golos { namespace plugins { namespace private_message {
         auto to_itr = tracked_accounts.lower_bound(pm.to);
         auto from_itr = tracked_accounts.lower_bound(pm.from);
 
-        FC_ASSERT(pm.from != pm.to);
-        FC_ASSERT(pm.from_memo_key != pm.to_memo_key);
-        FC_ASSERT(pm.sent_time != 0);
-        FC_ASSERT(pm.encrypted_message.size() >= 16);
+        GOLOS_CHECK_LOGIC(pm.from != pm.to, logic_errors::cannot_send_to_yourself,
+                "You cannot write to yourself");
+
+        GOLOS_CHECK_LOGIC(pm.from_memo_key != pm.to_memo_key, logic_errors::from_and_to_memo_keys_must_be_different,
+                "from_memo_key and to_memo_key must be different");
+
+        GOLOS_CHECK_OP_PARAM(pm, sent_time, GOLOS_CHECK_VALUE_NE(pm.sent_time, 0));
+        GOLOS_CHECK_OP_PARAM(pm, encrypted_message, 
+            GOLOS_CHECK_VALUE(pm.encrypted_message.size() >= 16, "Message length must be more 16 symbols"));
 
         if (!tracked_accounts.size() ||
             (to_itr != tracked_accounts.end() && pm.to >= to_itr->first &&
@@ -176,10 +193,12 @@ namespace golos { namespace plugins { namespace private_message {
     // Api Defines
 
     DEFINE_API(private_message_plugin, get_inbox) {
-        auto to = args.args->at(0).as<std::string>();
-        auto newest = args.args->at(1).as<time_point>();
-        auto limit = args.args->at(2).as<uint16_t>();
-        auto offset = args.args->at(3).as<std::uint64_t>();
+        PLUGIN_API_VALIDATE_ARGS(
+            (std::string,  to)
+            (time_point,   newest)
+            (uint16_t,     limit)
+            (uint64_t,     offset)
+        );
         auto &db = my->db_;
         return db.with_weak_read_lock([&]() {
             return my->get_inbox(to, newest, limit, offset);
@@ -187,10 +206,12 @@ namespace golos { namespace plugins { namespace private_message {
     }
 
     DEFINE_API(private_message_plugin, get_outbox) {
-        auto from = args.args->at(0).as<std::string>();
-        auto newest = args.args->at(1).as<time_point>();
-        auto limit = args.args->at(2).as<uint16_t>();
-        auto offset = args.args->at(3).as<std::uint64_t>();
+        PLUGIN_API_VALIDATE_ARGS(
+            (std::string,  from)
+            (time_point,   newest)
+            (uint16_t,     limit)
+            (uint64_t,     offset)
+        );
         auto &db = my->db_;
         return db.with_weak_read_lock([&]() {
             return my->get_outbox(from, newest, limit, offset);

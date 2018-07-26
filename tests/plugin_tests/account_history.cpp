@@ -8,14 +8,14 @@
 #include "comment_reward.hpp"
 
 
+using golos::chain::account_name_set;
 using golos::plugins::json_rpc::msg_pack;
 
 
 struct account_history_fixture : public golos::chain::add_operations_database_fixture {
     typedef std::map<uint32_t, std::set<std::string>> checked_accounts_map; ///<  pair { [block], [accaunt names] }
-    typedef fc::flat_set<golos::chain::account_name_type> account_names;
 
-    checked_accounts_map check(const account_names& names) {
+    checked_accounts_map check(const account_name_set& names) {
         uint32_t head_block_num = db->head_block_num();
         ilog("Check history accounts, block num is " + std::to_string(head_block_num));
         checked_accounts_map _founded_accs;
@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(account_history_blocks) {
     initialize({{"history-blocks", std::to_string(HISTORY_BLOCKS)}});
     add_operations();
 
-    account_names names = {"alice", "bob", "sam", "dave"};
+    account_name_set names = {"alice", "bob", "sam", "dave"};
     auto _founded_accs = check(names);
 
     std::set<uint32_t> blocks;

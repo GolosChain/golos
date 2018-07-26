@@ -1,9 +1,16 @@
 #include <golos/protocol/config.hpp>
 #include <golos/protocol/types.hpp>
+#include <golos/protocol/exceptions.hpp>
 
 #include <fc/crypto/base58.hpp>
 
 namespace golos {
+
+    template<>
+    std::string get_logic_error_namespace<golos::logic_exception::error_types>() {
+        return "";
+    }
+
     namespace protocol {
 
         public_key_type::public_key_type() : key_data() {

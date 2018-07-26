@@ -91,7 +91,6 @@ BOOST_AUTO_TEST_CASE(proposal_create_authorities) { try {
     proposal_create_operation op;
     op.author = "bob";
     op.title = "test";
-    using account_name_set = flat_set<account_name_type>;
     CHECK_OP_AUTHS(op, account_name_set(), account_name_set({"bob"}), account_name_set());
 } FC_LOG_AND_RETHROW() }
 
@@ -131,7 +130,6 @@ BOOST_AUTO_TEST_CASE(proposal_update_validate) { try {
 
 BOOST_AUTO_TEST_CASE(proposal_update_authorities) { try {
     BOOST_TEST_MESSAGE("Testing: proposal_update_authorities");
-    using account_name_set = flat_set<account_name_type>;
     account_name_set nobody;
     account_name_set bob_acc = account_name_set({"bob"});
     account_name_set cid_acc = account_name_set({"cid"});
@@ -203,7 +201,6 @@ BOOST_AUTO_TEST_CASE(proposal_delete_authorities) { try {
     op.requester = "bob";
     op.author = "alice";
     op.title = "test";
-    using account_name_set = flat_set<account_name_type>;
     CHECK_OP_AUTHS(op, account_name_set(), account_name_set({"bob"}), account_name_set());
 } FC_LOG_AND_RETHROW() }
 

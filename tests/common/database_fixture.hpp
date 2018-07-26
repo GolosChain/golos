@@ -207,11 +207,11 @@ struct ErrorValidator<golos::object_already_exist> {
 
 template<>
 struct ErrorValidator<golos::logic_exception> {
-    void validate(const std::string& name, const fc::variant& props,
-            golos::logic_exception::error_types err) {
+    template<typename errors>
+    void validate(const std::string& name, const fc::variant& props, errors err) {
         BOOST_CHECK_EQUAL(name, "logic_exception");
-        BOOST_CHECK_EQUAL(props["errid"].get_string(),
-            fc::reflector<golos::logic_exception::error_types>::to_string(err));
+        BOOST_CHECK_EQUAL(props["errid"].get_string(), fc::reflector<errors>::to_string(err));
+        BOOST_CHECK_EQUAL(props["namespace"].get_string(), golos::get_logic_error_namespace<errors>());
     }
 };
 
@@ -421,6 +421,13 @@ namespace golos { namespace chain {
 
         using namespace golos::protocol;
 
+        fc::variant_object make_comment_id(const std::string& author, const std::string& permlink);
+        fc::variant_object make_limit_order_id(const std::string& author, uint32_t orderid);
+        fc::variant_object make_convert_request_id(const std::string& account, uint32_t requestid);
+        fc::variant_object make_escrow_id(const string& name, uint32_t escrow_id);
+
+        typedef fc::flat_set<account_name_type> account_name_set;
+
         namespace {
             template<typename... S>
                 struct PluginRegistrator;
@@ -438,6 +445,7 @@ namespace golos { namespace chain {
                     static void register_plugins() {}
                 };
         } // anonymous namespace
+
 
         struct database_fixture {
             // the reason we use an app is to exercise the indexes of built-in plugins

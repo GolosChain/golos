@@ -2,6 +2,7 @@
 #include <golos/plugins/follow/follow_operations.hpp>
 #include <golos/plugins/follow/follow_evaluators.hpp>
 #include <golos/protocol/config.hpp>
+#include <golos/protocol/exceptions.hpp>
 #include <golos/chain/database.hpp>
 #include <golos/chain/generic_custom_operation_interpreter.hpp>
 #include <golos/chain/operation_notification.hpp>
@@ -9,11 +10,18 @@
 #include <golos/chain/comment_object.hpp>
 #include <memory>
 #include <golos/plugins/json_rpc/plugin.hpp>
+#include <golos/plugins/json_rpc/api_helper.hpp>
 #include <golos/chain/index.hpp>
 #include <golos/api/discussion_helper.hpp>
 
-#define CHECK_ARG_SIZE(s) \
-   FC_ASSERT( args.args->size() == s, "Expected #s argument(s), was ${n}", ("n", args.args->size()) );
+namespace golos {
+
+template<>
+std::string get_logic_error_namespace<golos::plugins::follow::logic_errors::error_type>() {
+    return golos::plugins::follow::plugin::name();
+}
+
+} // namespace golos
 
 namespace golos {
     namespace plugins {
@@ -449,7 +457,7 @@ namespace golos {
                     follow_type type,
                     uint32_t limit) {
 
-                FC_ASSERT(limit <= 1000);
+                GOLOS_CHECK_LIMIT_PARAM(limit, 1000);
                 std::vector<follow_api_object> result;
                 result.reserve(limit);
 
@@ -475,7 +483,8 @@ namespace golos {
                     account_name_type start,
                     follow_type type,
                     uint32_t limit) {
-                FC_ASSERT(limit <= 100);
+
+                GOLOS_CHECK_LIMIT_PARAM(limit, 100);
                 std::vector<follow_api_object> result;
                 const auto &idx = database().get_index<follow_index>().indices().get<by_follower_following>();
                 auto itr = idx.lower_bound(std::make_tuple(account, start));
@@ -511,7 +520,7 @@ namespace golos {
                     account_name_type account,
                     uint32_t entry_id,
                     uint32_t limit) {
-                FC_ASSERT(limit <= 500, "Cannot retrieve more than 500 feed entries at a time.");
+                GOLOS_CHECK_LIMIT_PARAM(limit, 500);
 
                 if (entry_id == 0) {
                     entry_id = ~0;
@@ -550,7 +559,7 @@ namespace golos {
                     account_name_type account,
                     uint32_t entry_id,
                     uint32_t limit) {
-                FC_ASSERT(limit <= 500, "Cannot retrieve more than 500 feed entries at a time.");
+                GOLOS_CHECK_LIMIT_PARAM(limit, 500);
 
                 if (entry_id == 0) {
                     entry_id = ~0;
@@ -588,7 +597,7 @@ namespace golos {
                     account_name_type account,
                     uint32_t entry_id,
                     uint32_t limit) {
-                FC_ASSERT(limit <= 500, "Cannot retrieve more than 500 blog entries at a time.");
+                GOLOS_CHECK_LIMIT_PARAM(limit, 500);
 
                 if (entry_id == 0) {
                     entry_id = ~0;
@@ -622,7 +631,7 @@ namespace golos {
                     account_name_type account,
                     uint32_t entry_id,
                     uint32_t limit) {
-                FC_ASSERT(limit <= 500, "Cannot retrieve more than 500 blog entries at a time.");
+                GOLOS_CHECK_LIMIT_PARAM(limit, 500);
 
                 if (entry_id == 0) {
                     entry_id = ~0;
@@ -655,7 +664,8 @@ namespace golos {
                     std::vector < account_name_type > accounts
                 ) {
 
-                FC_ASSERT(accounts.size() <= 100, "Cannot retrieve more than 100 account reputations at a time.");
+                GOLOS_CHECK_PARAM(accounts, 
+                    GOLOS_CHECK_VALUE(accounts.size() <= 100, "Cannot retrieve more than 100 account reputations at a time."));
 
                 const auto &idx = database().get_index<account_index>().indices().get<by_name>();
 
@@ -712,95 +722,107 @@ namespace golos {
             }
 
             DEFINE_API(plugin, get_followers) {
-                CHECK_ARG_SIZE(4)
-                auto following = args.args->at(0).as<account_name_type>();
-                auto start_follower = args.args->at(1).as<account_name_type>();
-                auto type = args.args->at(2).as<follow_type>();
-                auto limit = args.args->at(3).as<uint32_t>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, following)
+                    (account_name_type, start_follower)
+                    (follow_type,       type)
+                    (uint32_t,          limit)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_followers(following, start_follower, type, limit);
                 });
             }
 
             DEFINE_API(plugin, get_following) {
-                CHECK_ARG_SIZE(4)
-                auto follower = args.args->at(0).as<account_name_type>();
-                auto start_following = args.args->at(1).as<account_name_type>();
-                auto type = args.args->at(2).as<follow_type>();
-                auto limit = args.args->at(3).as<uint32_t>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, follower)
+                    (account_name_type, start_following)
+                    (follow_type,       type)
+                    (uint32_t,          limit)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_following(follower, start_following, type, limit);
                 });
             }
 
             DEFINE_API(plugin, get_follow_count) {
-                auto tmp = args.args->at(0).as<account_name_type>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, account)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
-                    return pimpl->get_follow_count(tmp);
+                    return pimpl->get_follow_count(account);
                 });
             }
 
             DEFINE_API(plugin, get_feed_entries){
-                CHECK_ARG_SIZE(3)
-                auto account = args.args->at(0).as<account_name_type>();
-                auto entry_id = args.args->at(1).as<uint32_t>();
-                auto limit = args.args->at(2).as<uint32_t>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, account)
+                    (uint32_t,          entry_id)
+                    (uint32_t,          limit)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_feed_entries(account, entry_id, limit);
                 });
             }
 
             DEFINE_API(plugin, get_feed) {
-                CHECK_ARG_SIZE(3)
-                auto account = args.args->at(0).as<account_name_type>();
-                auto entry_id = args.args->at(1).as<uint32_t>();
-                auto limit = args.args->at(2).as<uint32_t>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, account)
+                    (uint32_t,          entry_id)
+                    (uint32_t,          limit)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_feed(account, entry_id, limit);
                 });
             }
 
             DEFINE_API(plugin, get_blog_entries) {
-                CHECK_ARG_SIZE(3)
-                auto account = args.args->at(0).as<account_name_type>();
-                auto entry_id = args.args->at(1).as<uint32_t>();
-                auto limit = args.args->at(2).as<uint32_t>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, account)
+                    (uint32_t,          entry_id)
+                    (uint32_t,          limit)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_blog_entries(account, entry_id, limit);
                 });
             }
 
             DEFINE_API(plugin, get_blog) {
-                CHECK_ARG_SIZE(3)
-                auto account = args.args->at(0).as<account_name_type>();
-                auto entry_id = args.args->at(1).as<uint32_t>();
-                auto limit = args.args->at(2).as<uint32_t>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, account)
+                    (uint32_t,          entry_id)
+                    (uint32_t,          limit)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_blog(account, entry_id, limit);
                 });
             }
 
             DEFINE_API(plugin, get_account_reputations) {
-                CHECK_ARG_SIZE(1)
-                auto accounts = args.args->at(0).as< std::vector < account_name_type > >();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (std::vector<account_name_type>, accounts)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_account_reputations( accounts );
                 });
             }
 
             DEFINE_API(plugin, get_reblogged_by) {
-                CHECK_ARG_SIZE(2)
-                auto author = args.args->at(0).as<account_name_type>();
-                auto permlink = args.args->at(1).as<std::string>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, author)
+                    (std::string,       permlink)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
                     return pimpl->get_reblogged_by(author, permlink);
                 });
             }
 
             DEFINE_API(plugin, get_blog_authors) {
-                auto tmp = args.args->at(0).as<account_name_type>();
+                PLUGIN_API_VALIDATE_ARGS(
+                    (account_name_type, account)
+                )
                 return pimpl->database().with_weak_read_lock([&]() {
-                    return pimpl->get_blog_authors(tmp);
+                    return pimpl->get_blog_authors(account);
                 });
             }
         }

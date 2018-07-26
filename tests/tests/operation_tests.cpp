@@ -29,30 +29,8 @@ using namespace golos::protocol;
 using golos::plugins::social_network::comment_content_object;
 using std::string;
 
-using account_name_set = flat_set<account_name_type>;
 
 #define BAD_UTF8_STRING "\xc3\x28"
-
-
-fc::variant_object make_comment_id(const std::string& author, const std::string& permlink) {
-    auto res = fc::mutable_variant_object()("account",author)("permlink",permlink);
-    return fc::variant_object(res);
-}
-
-fc::variant_object make_limit_order_id(const std::string& author, uint32_t orderid) {
-    auto res = fc::mutable_variant_object()("account",author)("order_id",orderid);
-    return fc::variant_object(res);
-}
-
-fc::variant_object make_convert_request_id(const std::string& account, uint32_t requestid) {
-    auto res = fc::mutable_variant_object()("account",account)("request_id",requestid);
-    return fc::variant_object(res);
-}
-
-fc::variant_object make_escrow_id(const string& name, uint32_t escrow_id) {
-    auto res = fc::mutable_variant_object()("account",name)("escrow",escrow_id);
-    return fc::variant_object(res);
-}
 
 
 BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
@@ -787,17 +765,7 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
             op.permlink = "test";
             op.weight = 1000;
 
-            using account_name_set = flat_set<account_name_type>;
-            account_name_set auths;
-
-            op.get_required_owner_authorities(auths);
-            BOOST_CHECK_EQUAL(auths, account_name_set());
-
-            op.get_required_active_authorities(auths);
-            BOOST_CHECK_EQUAL(auths, account_name_set());
-
-            op.get_required_posting_authorities(auths);
-            BOOST_CHECK_EQUAL(auths, account_name_set({"bob"}));
+            CHECK_OP_AUTHS(op, account_name_set(), account_name_set(), account_name_set({"bob"}));
 
             validate_database();
         }
