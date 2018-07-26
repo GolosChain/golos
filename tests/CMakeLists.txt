@@ -37,9 +37,10 @@ file(GLOB PLUGIN_TESTS
     "plugin_tests/json_rpc.cpp"
     "plugin_tests/operation_history.cpp"
     "plugin_tests/account_history.cpp"
-    "plugin_tests/follow.cpp")
+    "plugin_tests/follow.cpp"
+    "plugin_tests/private_message.cpp")
 add_executable(plugin_test ${PLUGIN_TESTS} ${COMMON_SOURCES})
-target_link_libraries(plugin_test golos_chain golos_protocol  golos_account_history golos_market_history golos_debug_node golos_social_network fc ${PLATFORM_SPECIFIC_LIBS})
+target_link_libraries(plugin_test golos_chain golos_protocol  golos_account_history golos_market_history golos_debug_node golos_social_network golos_private_message fc ${PLATFORM_SPECIFIC_LIBS})
 target_include_directories(plugin_test PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/common")
 add_test(NAME plugin_test_run COMMAND plugin_test)
 
