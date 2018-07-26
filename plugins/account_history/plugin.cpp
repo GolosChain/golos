@@ -38,6 +38,17 @@ if( options.count(name) ) { \
 }
 //
 
+    struct check_operation_visitor {
+        using result_type = bool;
+        const std::string& cn;
+        check_operation_visitor(const std::string& chacked_name) : cn(chacked_name)
+        {}
+        template<class T>
+        bool operator()(const T&) const {
+            return (cn == fc::get_typename<T>::name());
+        }
+    };
+
     struct operation_visitor final {
         operation_visitor(
             golos::chain::database& db,
@@ -122,7 +133,8 @@ if( options.count(name) ) { \
             std::string account,
             uint64_t from,
             uint32_t limit,
-            operation_direction_type dir
+            operation_direction_type dir,
+            std::string opn
         ) {
             FC_ASSERT(limit <= 10000, "Limit of ${l} is greater than maxmimum allowed", ("l", limit));
             FC_ASSERT(from >= limit, "From must be greater than limit");
@@ -135,10 +147,16 @@ if( options.count(name) ) { \
                 //   if( itr != idx.end() ) idump((*itr));
                 auto end = idx.upper_bound(std::make_tuple(account, std::max(int64_t(0), int64_t(itr->sequence) - limit)));
                 //   if( end != idx.end() ) idump((*end));
-
                 std::map<uint32_t, applied_operation> result;
                 for (; itr != end; ++itr) {
-                    result[itr->sequence] = database.get(itr->op);
+                    applied_operation operation = database.get(itr->op);
+                    if (!opn.empty()) {
+                        if (operation.op.visit(check_operation_visitor(opn))) {
+                            result[itr->sequence] = operation;
+                        }
+                    } else {
+                        result[itr->sequence] = operation;
+                    }
                 }
                 return result;
             }
@@ -147,7 +165,14 @@ if( options.count(name) ) { \
             auto end = idx.end();
             std::map<uint32_t, applied_operation> result;
             for (; itr != end; ++itr) {
-                result[itr->sequence] = database.get(itr->op);
+                applied_operation operation = database.get(itr->op);
+                if (!opn.empty()) {
+                    if (operation.op.visit(check_operation_visitor(opn))) {
+                        result[itr->sequence] = operation;
+                    }
+                } else {
+                    result[itr->sequence] = operation;
+                }
             }
             return result;
         }
@@ -158,7 +183,7 @@ if( options.count(name) ) { \
     };
 
     DEFINE_API(plugin, get_account_history) {
-        CHECK_ARGS_COUNT(3, 4)
+        CHECK_ARGS_COUNT(3, 5)
         auto account = args.args->at(0).as<std::string>();
         auto from = args.args->at(1).as<uint64_t>();
         auto limit = args.args->at(2).as<uint32_t>();
@@ -167,9 +192,12 @@ if( options.count(name) ) { \
             dir = static_cast<operation_direction_type>(args.args->at(3).as<uint8_t>());
             FC_ASSERT(dir <= operation_direction_type::any);
         }
-
+        auto op = std::string();
+        if (4 < args.args->size()) {
+            op = args.args->at(4).as<std::string>();
+        }
         return pimpl->database.with_weak_read_lock([&]() {
-            return pimpl->get_account_history(account, from, limit, dir);
+            return pimpl->get_account_history(account, from, limit, dir, op);
         });
     }
 

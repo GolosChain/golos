@@ -150,6 +150,7 @@ struct account_direction_fixture {
     chacked_accounts_set _any_founded_accs;
     chacked_accounts_set _sender_founded_accs;
     chacked_accounts_set _receiver_founded_accs;
+    chacked_accounts_set _founded_accs_by_operation;
 
     account_direction_fixture() = default;
     ~account_direction_fixture() = default;
@@ -161,9 +162,9 @@ struct account_direction_fixture {
         _db_init._plg->plugin_startup();
         _db_init.startup();
         _db_init.add_accounts();
-        check();
+        check(tt.filter_op_name);
     }
 
-    void check();
+    void check(const std::string& filter_op_name = "golos::protocol::vote_operation");
 };
 }}

@@ -14,6 +14,7 @@ using namespace golos::test;
 
 struct directionlist_key {
     std::string key = "history-whitelist-ops";
+    std::string filter_op_name = "golos::protocol::vote_operation";
 };
 
 
@@ -112,6 +113,15 @@ struct receiver_founded_need {
 };
 
 
+struct option_filter_founded_need {
+    founded_need v = {
+        "alice: golos::protocol::vote_operation",
+        "bob: golos::protocol::vote_operation",
+        "sam: golos::protocol::vote_operation"
+    };
+};
+
+
 BOOST_FIXTURE_TEST_CASE(account_history_direction, account_direction_fixture) {
     init_plugin(test_options<combine_postfix<directionlist_key>>());
 
@@ -130,4 +140,7 @@ BOOST_FIXTURE_TEST_CASE(account_history_direction, account_direction_fixture) {
 
     BOOST_TEST_MESSAGE("start receiver direction");
     check_fn(_receiver_founded_accs, receiver_founded_need().v);
+
+    BOOST_TEST_MESSAGE("start filter operation");
+    check_fn(_founded_accs_by_operation, option_filter_founded_need().v);
 }

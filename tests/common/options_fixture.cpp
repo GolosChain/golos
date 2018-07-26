@@ -84,8 +84,8 @@ void account_options_fixture::check() {
 }
 
 
-void account_direction_fixture::check() {
-    auto check_fn = [this](operation_direction_type dir) {
+void account_direction_fixture::check(const std::string& filter_op_name) {
+    auto check_fn = [this](operation_direction_type dir, const std::string& opn) {
         chacked_accounts_set founded_accs;
         uint32_t head_block_num = _db_init.db->head_block_num();
         ilog("Check history accounts, block num is " + std::to_string(head_block_num));
@@ -93,14 +93,19 @@ void account_direction_fixture::check() {
         if (plg) {
             for (auto n : _db_init._account_names) {
                 msg_pack mp;
-                mp.args = std::vector<fc::variant>({fc::variant(n), fc::variant(100), fc::variant(100),
-                                                   fc::variant(static_cast<uint8_t>(dir))});
+                if (opn.empty()) {
+                    mp.args = std::vector<fc::variant>({fc::variant(n), fc::variant(100), fc::variant(100),
+                                                       fc::variant(static_cast<uint8_t>(dir))});
+                } else {
+                    mp.args = std::vector<fc::variant>({fc::variant(n), fc::variant(100), fc::variant(100),
+                                                       fc::variant(static_cast<uint8_t>(dir)), fc::variant(opn)});
+                }
                 auto accs = plg->get_account_history(mp);
                 for (auto a : accs) {
                     founded_accs.insert(n + ": " + a.second.op.visit(ovisit));
                 }
             }
-            ilog("###");
+            ilog("Founded:");
             for(auto f : founded_accs) {
                 ilog(f);
             }
@@ -109,7 +114,8 @@ void account_direction_fixture::check() {
         }
         return founded_accs;
     };
-    _any_founded_accs = check_fn(operation_direction_type::any);
-    _sender_founded_accs = check_fn(operation_direction_type::sender);
-    _receiver_founded_accs = check_fn(operation_direction_type::receiver);
+    _any_founded_accs = check_fn(operation_direction_type::any, "");
+    _sender_founded_accs = check_fn(operation_direction_type::sender, "");
+    _receiver_founded_accs = check_fn(operation_direction_type::receiver, "");
+    _founded_accs_by_operation = check_fn(operation_direction_type::any, filter_op_name);
 }

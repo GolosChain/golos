@@ -79,7 +79,6 @@ namespace golos { namespace plugins { namespace operation_history {
             (get_ops_in_block)
 
             (get_transaction)
-
         )
     private:
         struct plugin_impl;
