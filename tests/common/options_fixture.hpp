@@ -165,6 +165,6 @@ struct account_direction_fixture {
         check(tt.filter_op_name);
     }
 
-    void check(const std::string& filter_op_name = "golos::protocol::vote_operation");
+    void check(const std::string& filter_op_name);
 };
 }}

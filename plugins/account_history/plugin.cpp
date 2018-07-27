@@ -45,7 +45,7 @@ if( options.count(name) ) { \
         {}
         template<class T>
         bool operator()(const T&) const {
-            return (cn == fc::get_typename<T>::name());
+            return (std::string(STEEM_NAMESPACE_PREFIX + cn) == fc::get_typename<T>::name());
         }
     };
 
@@ -139,7 +139,6 @@ if( options.count(name) ) { \
             FC_ASSERT(limit <= 10000, "Limit of ${l} is greater than maxmimum allowed", ("l", limit));
             FC_ASSERT(from >= limit, "From must be greater than limit");
             FC_ASSERT(dir <= operation_direction_type::any, "Invalid direction ${l} type", ("l", static_cast<uint8_t>(dir)));
-
             if (dir == operation_direction_type::any) {
                 const auto& idx = database.get_index<account_history_index>().indices().get<by_account>();
                 //   idump((account)(from)(limit));

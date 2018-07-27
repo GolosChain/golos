@@ -14,7 +14,7 @@ using namespace golos::test;
 
 struct directionlist_key {
     std::string key = "history-whitelist-ops";
-    std::string filter_op_name = "golos::protocol::vote_operation";
+    std::string filter_op_name = "vote_operation";
 };
 
 
