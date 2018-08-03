@@ -2,6 +2,7 @@
 #include <golos/plugins/account_history/history_object.hpp>
 
 #include <golos/plugins/operation_history/history_object.hpp>
+#include <golos/plugins/json_rpc/api_helper.hpp>
 
 #include <golos/chain/operation_notification.hpp>
 #include <golos/protocol/exceptions.hpp>
@@ -111,7 +112,7 @@ if (options.count(name)) { \
             uint64_t from,
             uint32_t limit
         ) {
-            GOLOS_CHECK_PARAM(limit, GOLOS_CHECK_LIMIT(limit, 10000));
+            GOLOS_CHECK_LIMIT_PARAM(limit, 10000);
             GOLOS_CHECK_PARAM(from, GOLOS_CHECK_VALUE(from >= limit, "From must be greater then limit"));
             //   idump((account)(from)(limit));
             const auto& idx = database.get_index<account_history_index>().indices().get<by_account>();
@@ -133,10 +134,11 @@ if (options.count(name)) { \
     };
 
     DEFINE_API(plugin, get_account_history) {
-        GOLOS_CHECK_ARGS_COUNT(args.args, 3);
-        GOLOS_DECLARE_PARAM(account, args.args->at(0).as<std::string>());
-        GOLOS_DECLARE_PARAM(from, args.args->at(1).as<uint64_t>());
-        GOLOS_DECLARE_PARAM(limit, args.args->at(2).as<uint32_t>());
+        PLUGIN_API_VALIDATE_ARGS(
+            (string,   account)
+            (uint64_t, from)
+            (uint32_t, limit)
+        );
 
         return pimpl->database.with_weak_read_lock([&]() {
             return pimpl->get_account_history(account, from, limit);
