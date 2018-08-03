@@ -116,16 +116,6 @@
 #define GOLOS_CHECK_LIMIT_PARAM(limit, max_value) \
     GOLOS_CHECK_PARAM(limit, GOLOS_CHECK_LIMIT(limit, max_value))
 
-#define GOLOS_CHECK_ARGS_COUNT(args, required) \
-    GOLOS_ASSERT( (args)->size() == (required), invalid_arguments_count, \
-        "Expected ${required} argument(s), was ${count}", \
-        ("count", (args)->size())("required", required) );
-
-#define GOLOS_CHECK_OPT_ARGS_COUNT(args, min, max) \
-    GOLOS_ASSERT( (args)->size() >= (min) && (args)->size() <= max, invalid_arguments_count, \
-        "Expected ${min}..${max} argument(s), was ${count}", \
-        ("count", (args)->size())("min", min)("max", max) );
-
 
 #define GOLOS_THROW_MISSING_OBJECT(type, id, ...) \
     FC_THROW_EXCEPTION(golos::missing_object, "Missing ${type} with id \"${id}\"", \
