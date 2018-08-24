@@ -233,6 +233,37 @@ namespace golos { namespace chain {
             }
         }
 
+        struct account_create_with_delegation_extension_visitor {
+            account_create_with_delegation_extension_visitor(const account_object& a, database& db)
+                    : _a(a), _db(db) {
+            }
+
+            using result_type = void;
+
+            const account_object& _a;
+            database& _db;
+
+            void operator()(const account_referral_options& aro) const {
+                _db.get_account(aro.referrer);
+
+                const auto& median_props = _db.get_witness_schedule_object().median_props;
+
+                GOLOS_CHECK_LIMIT_PARAM(aro.interest_rate, median_props.max_referral_interest_rate);
+
+                GOLOS_CHECK_PARAM(aro.end_date, aro.end_date >= _db.head_block_time());
+                GOLOS_CHECK_LIMIT_PARAM(aro.end_date, _db.head_block_time() + median_props.max_referral_term_sec);
+
+                GOLOS_CHECK_LIMIT_PARAM(aro.break_fee, median_props.referral_break_fee);
+
+                _db.modify(_a, [&](account_object& a) {
+                    a.referrer_account = aro.referrer;
+                    a.referrer_interest_rate = aro.interest_rate;
+                    a.referral_end_date = aro.end_date;
+                    a.referral_break_free = aro.break_fee;
+                });
+            }
+        };
+
         void account_create_with_delegation_evaluator::do_apply(const account_create_with_delegation_operation& o) {
             const auto& creator = _db.get_account(o.creator);
             GOLOS_CHECK_BALANCE(creator, MAIN_BALANCE, o.fee);
@@ -303,6 +334,10 @@ namespace golos { namespace chain {
             }
             if (o.fee.amount > 0) {
                 _db.create_vesting(new_account, o.fee);
+            }
+
+            for (auto& e : o.extensions) {
+                e.visit(account_create_with_delegation_extension_visitor(new_account, _db));
             }
         }
 
@@ -468,8 +503,8 @@ namespace golos { namespace chain {
                         logic_exception::comment_must_not_have_been_voted,
                         "Comment must not have been voted on before specifying beneficiaries.");
 
-                _db.modify(_c, [&](comment_object &c) {
-                    for (auto &b : cpb.beneficiaries) {
+                _db.modify(_c, [&](comment_object& c) {
+                    for (auto& b : cpb.beneficiaries) {
                         _db.get_account(b.account);   // check beneficiary exists
                         c.beneficiaries.push_back(b);
                     }
@@ -507,14 +542,14 @@ namespace golos { namespace chain {
                     logic_exception::comment_cannot_accept_greater_percent_GBG,
                     "A comment cannot accept a greater percent SBD.");
 
-            _db.modify(comment, [&](comment_object &c) {
+            _db.modify(comment, [&](comment_object& c) {
                 c.max_accepted_payout = o.max_accepted_payout;
                 c.percent_steem_dollars = o.percent_steem_dollars;
                 c.allow_votes = o.allow_votes;
                 c.allow_curation_rewards = o.allow_curation_rewards;
             });
 
-            for (auto &e : o.extensions) {
+            for (auto& e : o.extensions) {
                 e.visit(comment_options_extension_visitor(comment, _db));
             }
         }

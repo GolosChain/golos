@@ -102,6 +102,11 @@ public:
 
     time_point_sec last_post;
 
+    account_name_type referrer_account;
+    uint16_t referrer_interest_rate = 0;
+    time_point_sec referral_end_date;
+    asset referral_break_free = asset(0, STEEM_SYMBOL);
+
     /// This function should be used only when the account votes for a witness directly
     share_type witness_vote_weight() const {
         return std::accumulate(proxied_vsf_votes.begin(),
@@ -495,20 +500,21 @@ change_recovery_account_request_index;
 
 
 FC_REFLECT((golos::chain::account_object),
-        (id)(name)(memo_key)(proxy)(last_account_update)
-                (created)(mined)
-                (owner_challenged)(active_challenged)(last_owner_proved)(last_active_proved)(recovery_account)(last_account_recovery)(reset_account)
-                (comment_count)(lifetime_vote_count)(post_count)(can_vote)(voting_power)(last_vote_time)
-                (balance)
-                (savings_balance)
-                (sbd_balance)(sbd_seconds)(sbd_seconds_last_update)(sbd_last_interest_payment)
-                (savings_sbd_balance)(savings_sbd_seconds)(savings_sbd_seconds_last_update)(savings_sbd_last_interest_payment)(savings_withdraw_requests)
-                (vesting_shares)(delegated_vesting_shares)(received_vesting_shares)
-                (vesting_withdraw_rate)(next_vesting_withdrawal)(withdrawn)(to_withdraw)(withdraw_routes)
-                (curation_rewards)
-                (posting_rewards)
-                (proxied_vsf_votes)(witnesses_voted_for)
-                (last_post)
+    (id)(name)(memo_key)(proxy)(last_account_update)
+    (created)(mined)
+    (owner_challenged)(active_challenged)(last_owner_proved)(last_active_proved)(recovery_account)(last_account_recovery)(reset_account)
+    (comment_count)(lifetime_vote_count)(post_count)(can_vote)(voting_power)(last_vote_time)
+    (balance)
+    (savings_balance)
+    (sbd_balance)(sbd_seconds)(sbd_seconds_last_update)(sbd_last_interest_payment)
+    (savings_sbd_balance)(savings_sbd_seconds)(savings_sbd_seconds_last_update)(savings_sbd_last_interest_payment)(savings_withdraw_requests)
+    (vesting_shares)(delegated_vesting_shares)(received_vesting_shares)
+    (vesting_withdraw_rate)(next_vesting_withdrawal)(withdrawn)(to_withdraw)(withdraw_routes)
+    (curation_rewards)
+    (posting_rewards)
+    (proxied_vsf_votes)(witnesses_voted_for)
+    (last_post)
+    (referrer_account)(referrer_interest_rate)(referral_end_date)(referral_break_free)
 )
 CHAINBASE_SET_INDEX_TYPE(golos::chain::account_object, golos::chain::account_index)
 

@@ -95,6 +95,11 @@ struct account_api_object {
     set<string> witness_votes;
 
     fc::optional<share_type> reputation;
+
+    account_name_type referrer_account;
+    uint16_t referrer_interest_rate;
+    time_point_sec referral_end_date;
+    asset referral_break_free;
 };
 
 } } // golos::api
@@ -113,6 +118,7 @@ FC_REFLECT((golos::api::account_api_object),
     (average_bandwidth)(average_market_bandwidth)(lifetime_bandwidth)(lifetime_market_bandwidth)
     (last_bandwidth_update)(last_market_bandwidth_update)
     (last_post)(last_root_post)(post_bandwidth)
-    (witness_votes)(reputation))
+    (witness_votes)(reputation)
+    (referrer_account)(referrer_interest_rate)(referral_end_date)(referral_break_free))
 
 #endif //GOLOS_ACCOUNT_API_OBJ_HPP

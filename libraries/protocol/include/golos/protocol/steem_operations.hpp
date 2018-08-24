@@ -25,6 +25,21 @@ namespace golos { namespace protocol {
             }
         };
 
+        struct account_referral_options {
+            account_name_type referrer;
+            uint16_t interest_rate;
+            time_point_sec end_date;
+            asset break_fee;
+
+            void validate() const;
+        };
+
+        typedef static_variant <
+            account_referral_options
+        > account_create_with_delegation_extension;
+
+        typedef flat_set<account_create_with_delegation_extension> account_create_with_delegation_extensions_type;
+
         struct account_create_with_delegation_operation: public base_operation {
             asset fee;
             asset delegation;
@@ -36,7 +51,7 @@ namespace golos { namespace protocol {
             public_key_type memo_key;
             string json_metadata;
 
-            extensions_type extensions;
+            account_create_with_delegation_extensions_type extensions;
 
             void validate() const;
             void get_required_active_authorities(flat_set<account_name_type>& a) const {
@@ -1196,6 +1211,8 @@ FC_REFLECT((golos::protocol::account_create_operation),
                 (memo_key)
                 (json_metadata))
 
+FC_REFLECT((golos::protocol::account_referral_options), (referrer)(interest_rate)(end_date)(break_fee))
+FC_REFLECT_TYPENAME((golos::protocol::account_create_with_delegation_extension));
 FC_REFLECT((golos::protocol::account_create_with_delegation_operation),
     (fee)(delegation)(creator)(new_account_name)(owner)(active)(posting)(memo_key)(json_metadata)(extensions));
 

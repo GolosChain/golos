@@ -1698,11 +1698,10 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             } FC_CAPTURE_AND_RETHROW((creator)(new_account_name)(json_meta)(owner)(active)(posting)(memo)(broadcast))
         }
 
-
-/**
- *  This method will generate new owner, active, posting and memo keys for the new account
- *  which will be controlable by this wallet.
- */
+        /**
+         *  This method will generate new owner, active, posting and memo keys for the new account
+         *  which will be controlable by this wallet.
+         */
         annotated_signed_transaction wallet_api::create_account_delegated(
             string creator, asset steem_fee, asset delegated_vests, string new_account_name,
             string json_meta, bool broadcast
@@ -1723,11 +1722,12 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             }
             FC_CAPTURE_AND_RETHROW((creator)(new_account_name)(json_meta));
         }
-/**
- * This method is used by faucets to create new accounts for other users which must
- * provide their desired keys. The resulting account may not be controllable by this
- * wallet.
- */
+
+        /**
+         * This method is used by faucets to create new accounts for other users which must
+         * provide their desired keys. The resulting account may not be controllable by this
+         * wallet.
+         */
         annotated_signed_transaction wallet_api::create_account_with_keys_delegated(
             string creator,
             asset steem_fee,
@@ -1759,6 +1759,46 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
                 return my->sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((creator)(new_account_name)(json_meta)(owner)(active)(posting)(memo)(broadcast));
+        }
+
+        /**
+         *  This method will generate new owner, active, posting and memo keys for the new account
+         *  which will be controlable by this wallet. Also it will add the referral duty to the new account.
+         */
+        annotated_signed_transaction wallet_api::create_account_referral(
+            string creator, asset steem_fee, asset delegated_vests, string new_account_name,
+            string json_meta, account_referral_options referral_options, bool broadcast
+        ) {
+            try {
+                WALLET_CHECK_UNLOCKED();
+                auto owner = suggest_brain_key();
+                auto active = suggest_brain_key();
+                auto posting = suggest_brain_key();
+                auto memo = suggest_brain_key();
+                import_key(owner.wif_priv_key);
+                import_key(active.wif_priv_key);
+                import_key(posting.wif_priv_key);
+                import_key(memo.wif_priv_key);
+
+                account_create_with_delegation_operation op;
+                op.creator = creator;
+                op.new_account_name = new_account_name;
+                op.owner = authority(1, owner.pub_key, 1);
+                op.active = authority(1, active.pub_key, 1);
+                op.posting = authority(1, posting.pub_key, 1);
+                op.memo_key = memo.pub_key;
+                op.json_metadata = json_meta;
+                op.fee = steem_fee;
+                op.delegation = delegated_vests;
+
+                op.extensions.insert(referral_options);
+
+                signed_transaction tx;
+                tx.operations.push_back(op);
+                tx.validate();
+                return my->sign_transaction(tx, broadcast);
+            }
+            FC_CAPTURE_AND_RETHROW((creator)(new_account_name)(json_meta));
         }
 
 /**

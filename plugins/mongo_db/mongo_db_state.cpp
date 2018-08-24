@@ -272,6 +272,11 @@ namespace mongo_db {
 
             format_value(body, "last_post", account.last_post);
 
+            format_value(body, "referrer_account", account.referrer_account);
+            format_value(body, "referrer_interest_rate", account.referrer_interest_rate);
+            format_value(body, "referral_end_date", account.referral_end_date);
+            format_value(body, "referral_break_free", account.referral_break_free);
+
             auto account_metadata = db_.find<account_metadata_object, by_account>(account.name);
             if (account_metadata != nullptr) {
                 format_json(body, "json_metadata", account_metadata->json_metadata);

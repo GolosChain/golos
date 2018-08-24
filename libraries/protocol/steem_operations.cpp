@@ -39,6 +39,21 @@ namespace golos { namespace protocol {
             GOLOS_CHECK_PARAM(json_metadata, validate_account_json_metadata(json_metadata));
         }
 
+        struct account_create_with_delegation_extension_validate_visitor {
+            account_create_with_delegation_extension_validate_visitor() {
+            }
+
+            using result_type = void;
+
+            void operator()(const account_referral_options& aro) const {
+                aro.validate();
+            }
+        };
+
+        void account_referral_options::validate() const {
+            validate_account_name(referrer);
+        }
+
         void account_create_with_delegation_operation::validate() const {
             GOLOS_CHECK_PARAM_ACCOUNT(new_account_name);
             GOLOS_CHECK_PARAM_ACCOUNT(creator);
@@ -48,6 +63,10 @@ namespace golos { namespace protocol {
             GOLOS_CHECK_PARAM_VALIDATE(active);
             GOLOS_CHECK_PARAM_VALIDATE(posting);
             GOLOS_CHECK_PARAM(json_metadata, validate_account_json_metadata(json_metadata));
+
+            for (auto& e : extensions) {
+                e.visit(account_create_with_delegation_extension_validate_visitor());
+            }
         }
 
         void account_update_operation::validate() const {
@@ -136,7 +155,7 @@ namespace golos { namespace protocol {
             GOLOS_CHECK_PARAM(percent_steem_dollars, GOLOS_CHECK_VALUE_LE(percent_steem_dollars, STEEMIT_100_PERCENT));
             GOLOS_CHECK_PARAM(max_accepted_payout, GOLOS_CHECK_ASSET_GE0(max_accepted_payout, GBG));
             GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
-            for (auto &e : extensions) {
+            for (auto& e : extensions) {
                 e.visit(comment_options_extension_validate_visitor());
             }
         }
