@@ -434,6 +434,7 @@ namespace golos { namespace protocol {
         };
 
         struct chain_properties_18;
+        struct chain_properties_19;
 
         /**
          * Witnesses must vote on how to set certain chain properties to ensure a smooth
@@ -516,6 +517,11 @@ namespace golos { namespace protocol {
          * Referral can break paying for some fee.
          */
         struct chain_properties_19: public chain_properties_18 {
+
+            /**
+             * Auction window size
+             */
+            uint32_t auction_window_size = STEEMIT_REVERSE_AUCTION_WINDOW_SECONDS;
 
             /**
              * Maximum percent of referral deductions
@@ -1210,7 +1216,7 @@ FC_REFLECT_DERIVED(
     (create_account_delegation_time)(min_delegation))
 FC_REFLECT_DERIVED(
     (golos::protocol::chain_properties_19), ((golos::protocol::chain_properties_18)),
-    (max_referral_interest_rate)(max_referral_term_sec)(max_referral_break_fee))
+    (max_referral_interest_rate)(max_referral_term_sec)(max_referral_break_fee)(auction_window_size))
 
 FC_REFLECT_TYPENAME((golos::protocol::versioned_chain_properties))
 

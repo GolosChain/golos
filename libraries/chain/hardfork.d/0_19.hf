@@ -1,5 +1,6 @@
 #ifndef STEEMIT_HARDFORK_0_19
 #define STEEMIT_HARDFORK_0_19 19
+#define STEEMIT_HARDFORK_0_19__898 (STEEMIT_HARDFORK_0_19) // Add votable auction window size
 #define STEEMIT_HARDFORK_0_19__295 (STEEMIT_HARDFORK_0_19) // Referral program implemented
 
 #ifdef STEEMIT_BUILD_TESTNET

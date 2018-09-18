@@ -48,6 +48,8 @@ namespace golos { namespace wallet {
             fc::optional<uint16_t> max_referral_interest_rate;
             fc::optional<uint32_t> max_referral_term_sec;
             fc::optional<asset> max_referral_break_fee;
+            fc::optional<uint32_t> auction_window_size;
+
         };
 
         struct optional_private_box_query {
@@ -1522,7 +1524,7 @@ FC_REFLECT((golos::wallet::optional_chain_props),
     (account_creation_fee)(maximum_block_size)(sbd_interest_rate)
     (create_account_min_golos_fee)(create_account_min_delegation)
     (create_account_delegation_time)(min_delegation)
-    (max_referral_interest_rate)(max_referral_term_sec)(max_referral_break_fee))
+    (max_referral_interest_rate)(max_referral_term_sec)(max_referral_break_fee)(auction_window_size))
 
 FC_REFLECT(
     (golos::wallet::message_body),

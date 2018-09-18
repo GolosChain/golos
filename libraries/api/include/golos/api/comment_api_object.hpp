@@ -61,6 +61,8 @@ namespace golos { namespace api {
         comment_mode mode = not_set;
 
         comment_object::id_type root_comment;
+
+        uint128_t auction_window_weight = 0;
         
         string root_title;
 

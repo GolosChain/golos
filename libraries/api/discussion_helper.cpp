@@ -112,6 +112,7 @@ namespace golos { namespace api {
         d.allow_replies = o.allow_replies;
         d.allow_votes = o.allow_votes;
         d.allow_curation_rewards = o.allow_curation_rewards;
+        d.auction_window_weight = o.auction_window_weight;
 
         for (auto& route : o.beneficiaries) {
             d.beneficiaries.push_back(route);
@@ -190,6 +191,11 @@ namespace golos { namespace api {
                         } else {
                             break;
                         }
+                    }
+
+                    if (db.has_hardfork(STEEMIT_HARDFORK_0_19__898)) {
+                        auto reward_fund_claim = ((max_rewards.value * d.auction_window_weight) / total_weight).to_uint64();
+                        unclaimed_rewards -= reward_fund_claim;
                     }
                 }
             } else {

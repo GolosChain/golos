@@ -89,6 +89,8 @@ namespace golos {
 
             id_type root_comment;
 
+            uint128_t auction_window_weight = 0;
+
             comment_mode mode = first_payout;
 
             asset max_accepted_payout = asset(1000000000, SBD_SYMBOL);       /// SBD value of the maximum payout this post will receive

@@ -1508,14 +1508,28 @@ namespace golos { namespace chain {
                                 fc::time_point_sec(STEEMIT_HARDFORK_0_6_REVERSE_AUCTION_TIME))  /// start enforcing this prior to the hardfork
                             {
                                 /// discount weight by time
+                                uint32_t auction_window = STEEMIT_REVERSE_AUCTION_WINDOW_SECONDS;
+
+                                if (_db.has_hardfork(STEEMIT_HARDFORK_0_19__898)) {
+                                    const witness_schedule_object& wso = _db.get_witness_schedule_object();
+                                    auction_window = wso.median_props.auction_window_size;
+                                }
+
                                 uint128_t w(max_vote_weight);
                                 uint64_t delta_t = std::min(uint64_t((
                                         cv.last_update -
-                                        comment.created).to_seconds()), uint64_t(STEEMIT_REVERSE_AUCTION_WINDOW_SECONDS));
+                                        comment.created).to_seconds()), uint64_t(auction_window));
 
                                 w *= delta_t;
-                                w /= STEEMIT_REVERSE_AUCTION_WINDOW_SECONDS;
+                                w /= auction_window;
                                 cv.weight = w.to_uint64();
+
+                                if (_db.has_hardfork(STEEMIT_HARDFORK_0_19__898)) {
+                                    _db.modify(comment, [&](comment_object &o) {
+                                        o.auction_window_weight += max_vote_weight - w.to_uint64();
+                                    });
+                                }
+
                             }
                         } else {
                             cv.weight = 0;

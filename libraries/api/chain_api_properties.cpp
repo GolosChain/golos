@@ -19,6 +19,7 @@ namespace golos { namespace api {
             max_referral_interest_rate = src.max_referral_interest_rate;
             max_referral_term_sec = src.max_referral_term_sec;
             max_referral_break_fee = src.max_referral_break_fee;
+            auction_window_size = src.auction_window_size;
         }
     }
 

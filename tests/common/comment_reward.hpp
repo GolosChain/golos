@@ -59,6 +59,10 @@ namespace golos { namespace chain {
             return vesting;
         }
 
+        void modify_reward_fund(asset& value) {
+            reward_fund_ += value;
+        }
+
     private:
         void process_funds() {
             int64_t inflation_rate = STEEMIT_INFLATION_RATE_START_PERCENT;
@@ -189,6 +193,16 @@ namespace golos { namespace chain {
                 vote_payout_map_.emplace(itr->voter, payout);
                 total_vote_payouts_ += payout;
             }
+
+            if (db_.has_hardfork(STEEMIT_HARDFORK_0_19__898) && comment_.total_vote_weight > 0) {
+                auto reward_fund_claim = (vote_rewards_fund_ * comment_.auction_window_weight) / total_weight;
+
+                comment_rewards_ -= reward_fund_claim.to_uint64();
+
+                auto tokes_back_to_reward_fund = asset(reward_fund_claim.to_uint64(), STEEM_SYMBOL);
+                fund_.modify_reward_fund(tokes_back_to_reward_fund);
+            }
+
 
             comment_rewards_ -= total_vote_rewards_;
         }
