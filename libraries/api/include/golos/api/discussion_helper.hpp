@@ -26,16 +26,15 @@ namespace golos { namespace api {
 
         void set_url(discussion& d) const;
 
-        void select_active_votes(
-            std::vector<vote_state>& result, uint32_t& total_count,
-            const std::string& author, const std::string& permlink, uint32_t limit
+        std::vector<vote_state> select_active_votes(
+                const std::string& author, const std::string& permlink, uint32_t limit, uint32_t offset
         ) const;
 
         discussion create_discussion(const std::string& author) const;
 
         discussion create_discussion(const comment_object& o) const;
 
-        discussion get_discussion(const comment_object& c, uint32_t vote_limit) const;
+        discussion get_discussion(const comment_object& c, uint32_t vote_limit, uint32_t offset) const;
 
         comment_api_object create_comment_api_object(const comment_object& o) const;
 

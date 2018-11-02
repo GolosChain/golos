@@ -1490,6 +1490,8 @@ namespace golos { namespace chain {
                     _db.modify(comment, [&](comment_object &c) {
                         c.net_rshares += rshares;
                         c.abs_rshares += abs_rshares;
+                        ++c.total_votes;
+
                         if (rshares > 0) {
                             c.vote_rshares += rshares;
                         }

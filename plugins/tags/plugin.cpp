@@ -51,10 +51,7 @@ namespace golos { namespace plugins { namespace tags {
             return database_;
         }
 
-        void select_active_votes(
-            std::vector<vote_state>& result, uint32_t& total_count,
-            const std::string& author, const std::string& permlink, uint32_t limit
-        ) const ;
+        std::vector<vote_state> select_active_votes(const std::string& author, const std::string& permlink, uint32_t limit, uint32_t offset) const;
 
         bool filter_tags(const tags::tag_type type, std::set<std::string>& select_tags) const;
 
@@ -96,7 +93,7 @@ namespace golos { namespace plugins { namespace tags {
             uint32_t limit, uint32_t vote_limit
         ) const;
 
-        discussion get_discussion(const comment_object& c, uint32_t vote_limit) const ;
+        discussion get_discussion(const comment_object& c, uint32_t vote_limit, uint32_t votes_offset) const ;
 
         discussion create_discussion(const comment_object& o) const;
         discussion create_discussion(const comment_object& o, const discussion_query& query) const;
@@ -114,15 +111,14 @@ namespace golos { namespace plugins { namespace tags {
         std::unique_ptr<discussion_helper> helper;
     };
 
-    void tags_plugin::impl::select_active_votes(
-        std::vector<vote_state>& result, uint32_t& total_count,
-        const std::string& author, const std::string& permlink, uint32_t limit
+    std::vector<vote_state> tags_plugin::impl::select_active_votes(
+        const std::string& author, const std::string& permlink, uint32_t limit, uint32_t offset
     ) const {
-        helper->select_active_votes(result, total_count, author, permlink, limit);
+        return helper->select_active_votes(author, permlink, limit, offset);
     }
 
-    discussion tags_plugin::impl::get_discussion(const comment_object& c, uint32_t vote_limit) const {
-        return helper->get_discussion(c, vote_limit);
+    discussion tags_plugin::impl::get_discussion(const comment_object& c, uint32_t vote_limit, uint32_t votes_offset) const {
+        return helper->get_discussion(c, vote_limit, votes_offset);
     }
 
     get_languages_result tags_plugin::impl::get_languages() {
@@ -145,7 +141,7 @@ namespace golos { namespace plugins { namespace tags {
     void tags_plugin::impl::fill_discussion(discussion& d, const discussion_query& query) const {
         set_url(d);
         set_pending_payout(d);
-        select_active_votes(d.active_votes, d.active_votes_count, d.author, d.permlink, query.vote_limit);
+        d.active_votes = select_active_votes(d.author, d.permlink, query.vote_limit, query.vote_offset);
         d.body_length = static_cast<uint32_t>(d.body.size());
         if (query.truncate_body) {
             if (d.body.size() > query.truncate_body) {
@@ -897,6 +893,7 @@ namespace golos { namespace plugins { namespace tags {
             (time_point_sec, before_date)
             (uint32_t,       limit)
             (uint32_t,       vote_limit, DEFAULT_VOTE_LIMIT)
+            (uint32_t,       vote_offset, 0)
         );
         GOLOS_CHECK_LIMIT_PARAM(limit, 100);
 
@@ -932,7 +929,7 @@ namespace golos { namespace plugins { namespace tags {
 
                 for (; itr != clu_idx.end() && itr->author == author && count < limit; ++itr) {
                     if (itr->parent_author.size() == 0) {
-                        result.push_back(pimpl->get_discussion(db.get_comment(itr->comment), vote_limit));
+                        result.push_back(pimpl->get_discussion(db.get_comment(itr->comment), vote_limit, vote_offset));
                         ++count;
                     }
                 }

@@ -89,6 +89,8 @@ namespace golos {
 
             int32_t net_votes = 0;
 
+            uint32_t total_votes = 0;
+
             id_type root_comment;
 
 

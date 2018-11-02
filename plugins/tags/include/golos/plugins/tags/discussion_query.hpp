@@ -17,7 +17,7 @@
 #include <golos/api/discussion.hpp>
 
 #ifndef DEFAULT_VOTE_LIMIT
-#  define DEFAULT_VOTE_LIMIT 10000
+#  define DEFAULT_VOTE_LIMIT 1000
 #endif
 
 namespace golos { namespace plugins { namespace tags {
@@ -43,6 +43,7 @@ namespace golos { namespace plugins { namespace tags {
         std::set<std::string>             filter_languages; ///< list of language to filter
         uint32_t                          truncate_body = 0; ///< the amount of bytes of the post body to return, 0 for all
         uint32_t                          vote_limit = DEFAULT_VOTE_LIMIT; ///< limit for active votes
+        uint32_t                          vote_offset = 0; ///< an amount of skipping votes
         std::set<std::string>             select_authors; ///< list of authors to select
         fc::optional<std::string>         start_author; ///< the author of discussion to start searching from
         fc::optional<std::string>         start_permlink; ///< the permlink of discussion to start searching from
@@ -107,7 +108,7 @@ namespace golos { namespace plugins { namespace tags {
 } } } // golos::plugins::tags
 
 FC_REFLECT((golos::plugins::tags::discussion_query),
-        (select_tags)(filter_tags)(select_authors)(truncate_body)(vote_limit)
+        (select_tags)(filter_tags)(select_authors)(truncate_body)(vote_limit)(vote_offset)
         (start_author)(start_permlink)(parent_author)
         (parent_permlink)(limit)(select_languages)(filter_languages)
 );

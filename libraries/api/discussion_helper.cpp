@@ -34,9 +34,7 @@ namespace golos { namespace api {
 
         discussion create_discussion(const comment_object& o) const ;
 
-        void select_active_votes(
-            std::vector<vote_state>& result, uint32_t& total_count,
-            const std::string& author, const std::string& permlink, uint32_t limit
+        std::vector<vote_state> select_active_votes(const std::string& author, const std::string& permlink, uint32_t limit, uint32_t offset
         ) const ;
 
         void set_pending_payout(discussion& d) const;
@@ -53,7 +51,7 @@ namespace golos { namespace api {
 
         comment_api_object create_comment_api_object(const comment_object& o) const;
 
-        discussion get_discussion(const comment_object& c, uint32_t vote_limit) const;
+        discussion get_discussion(const comment_object& c, uint32_t vote_limit, uint32_t offset) const;
 
         void fill_comment_api_object(const comment_object& o, comment_api_object& d) const;
 
@@ -131,49 +129,61 @@ namespace golos { namespace api {
     }
 
 // get_discussion
-    discussion discussion_helper::impl::get_discussion(const comment_object& c, uint32_t vote_limit) const {
+    discussion discussion_helper::impl::get_discussion(const comment_object& c, uint32_t vote_limit, uint32_t offset) const {
         discussion d = create_discussion(c);
         set_url(d);
         set_pending_payout(d);
-        select_active_votes(d.active_votes, d.active_votes_count, d.author, d.permlink, vote_limit);
+
+        d.active_votes_count = c.total_votes;
+
+        d.active_votes = select_active_votes(d.author, d.permlink, vote_limit, offset);
         return d;
     }
 
-    discussion discussion_helper::get_discussion(const comment_object& c, uint32_t vote_limit) const {
-        return pimpl->get_discussion(c, vote_limit);
+    discussion discussion_helper::get_discussion(const comment_object& c, uint32_t vote_limit, uint32_t offset) const {
+        return pimpl->get_discussion(c, vote_limit, offset);
     }
 //
 
 // select_active_votes
-    void discussion_helper::impl::select_active_votes(
-        std::vector<vote_state>& result, uint32_t& total_count,
-        const std::string& author, const std::string& permlink, uint32_t limit
+    std::vector<vote_state> discussion_helper::impl::select_active_votes(
+            const std::string& author, const std::string& permlink, uint32_t limit, uint32_t offset
     ) const {
         const auto& comment = database().get_comment(author, permlink);
-        const auto& idx = database().get_index<comment_vote_index>().indices().get<by_comment_voter>();
+        const auto& idx = database().get_index<comment_vote_index>().indices().get<by_comment_weight_voter>();
         comment_object::id_type cid(comment.id);
-        total_count = 0;
-        result.clear();
-        for (auto itr = idx.lower_bound(cid); itr != idx.end() && itr->comment == cid; ++itr, ++total_count) {
-            if (result.size() < limit) {
-                const auto& vo = database().get(itr->voter);
-                vote_state vstate;
-                vstate.voter = vo.name;
-                vstate.weight = itr->weight;
-                vstate.rshares = itr->rshares;
-                vstate.percent = itr->vote_percent;
-                vstate.time = itr->last_update;
-                fill_reputation_(database(), vo.name, vstate.reputation);
-                result.emplace_back(vstate);
-            }
+
+        offset = std::min(offset, comment.total_votes);
+        limit = std::min(limit, comment.total_votes - offset);
+
+        if (limit == 0) {
+            return {};
         }
+
+        auto itr = idx.lower_bound(cid);
+        for (uint32_t count = 0; itr != idx.end() && count != offset; ++itr, ++count) ;
+
+        std::vector<vote_state> result;
+        result.reserve(limit);
+
+        for (; itr != idx.end() && itr->comment == cid && result.size() < limit; ++itr) {
+            const auto& vo = database().get(itr->voter);
+            vote_state vstate;
+            vstate.voter = vo.name;
+            vstate.weight = itr->weight;
+            vstate.rshares = itr->rshares;
+            vstate.percent = itr->vote_percent;
+            vstate.time = itr->last_update;
+            fill_reputation_(database(), vo.name, vstate.reputation);
+            result.emplace_back(vstate);
+        }
+        return result;
     }
 
-    void discussion_helper::select_active_votes(
-        std::vector<vote_state>& result, uint32_t& total_count,
-        const std::string& author, const std::string& permlink, uint32_t limit
+    std::vector<vote_state> discussion_helper::select_active_votes(
+            const std::string& author, const std::string& permlink, uint32_t limit, uint32_t offset
     ) const {
-        pimpl->select_active_votes(result, total_count, author, permlink, limit);
+        return pimpl->select_active_votes(author, permlink, limit, offset);
     }
 
 
