@@ -111,7 +111,10 @@ namespace golos { namespace api {
         d.allow_replies = o.allow_replies;
         d.allow_votes = o.allow_votes;
         d.allow_curation_rewards = o.allow_curation_rewards;
+        d.auction_window_reward_destination = o.auction_window_reward_destination;
+        d.auction_window_size = o.auction_window_size;
         d.auction_window_weight = o.auction_window_weight;
+        d.votes_in_auction_window_weight = o.votes_in_auction_window_weight;
 
         for (auto& route : o.beneficiaries) {
             d.beneficiaries.push_back(route);

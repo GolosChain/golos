@@ -63,7 +63,7 @@ namespace golos { namespace api {
 
         comment_object::id_type root_comment;
 
-        auction_window_reward_destination_type auction_window_reward_destination;
+        auction_window_reward_destination_type auction_window_reward_destination = protocol::to_reward_fund;
         uint32_t auction_window_size = STEEMIT_REVERSE_AUCTION_WINDOW_SECONDS;
         uint64_t auction_window_weight = 0;
         uint64_t votes_in_auction_window_weight = 0;
