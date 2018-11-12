@@ -763,4 +763,9 @@ namespace mongo_db {
         return body;
     }
 
+    auto operation_writer::operator()(const auction_window_reward_operation& op) -> result_type {
+        result_type body;
+        return body;
+    }
+
 }}}

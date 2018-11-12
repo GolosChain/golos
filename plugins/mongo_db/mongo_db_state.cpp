@@ -1923,4 +1923,8 @@ namespace mongo_db {
 
     }
 
+    auto state_writer::operator()(const auction_window_reward_operation& op) -> result_type {
+
+    }
+
 }}}
