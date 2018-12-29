@@ -105,6 +105,7 @@ namespace golos { namespace chain {
     };
 
     struct by_permlink;
+    struct by_created;
 
     using worker_proposal_index = multi_index_container<
         worker_proposal_object,
@@ -120,7 +121,16 @@ namespace golos { namespace chain {
                     member<worker_proposal_object, shared_string, &worker_proposal_object::permlink>>,
                 composite_key_compare<
                     std::less<account_name_type>,
-                    chainbase::strcmp_less>>>,
+                    chainbase::strcmp_less>>,
+            ordered_non_unique<
+                tag<by_created>,
+                composite_key<
+                    worker_proposal_object,
+                    member<worker_proposal_object, time_point_sec, &worker_proposal_object::created>,
+                    member<worker_proposal_object, worker_proposal_object_id_type, &worker_proposal_object::id>>,
+                composite_key_compare<
+                    std::greater<time_point_sec>,
+                    std::less<worker_proposal_object_id_type>>>>,
         allocator<worker_proposal_object>>;
 
     struct by_worker_proposal;
@@ -211,6 +221,8 @@ namespace golos { namespace chain {
         allocator<worker_result_approve_object>>;
 
 } } // golos::chain
+
+FC_REFLECT_ENUM(golos::chain::worker_proposal_state, (created)(techspec)(work)(witnesses_review)(payment)(closed))
 
 CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_proposal_object,
