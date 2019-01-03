@@ -223,8 +223,8 @@ namespace golos {
             replies_are_not_allowed,
             cannot_delete_comment_with_replies,
             cannot_delete_comment_with_positive_votes,
-            cannot_delete_comment_with_worker_proposal,
-            cannot_delete_comment_with_worker_techspec,
+            cannot_delete_post_with_worker_proposal,
+            cannot_delete_post_with_worker_techspec,
             comment_options_requires_no_rshares,
             curation_rewards_cannot_be_reenabled,
             voting_cannot_be_reenabled,
@@ -503,8 +503,8 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (replies_are_not_allowed)
         (cannot_delete_comment_with_replies)
         (cannot_delete_comment_with_positive_votes)
-        (cannot_delete_comment_with_worker_proposal)
-        (cannot_delete_comment_with_worker_techspec)
+        (cannot_delete_post_with_worker_proposal)
+        (cannot_delete_post_with_worker_techspec)
         (comment_options_requires_no_rshares)
         (curation_rewards_cannot_be_reenabled)
         (voting_cannot_be_reenabled)

@@ -441,6 +441,22 @@ namespace golos { namespace chain {
                         "Operation cannot be processed because account is currently challenged.");
             }
 
+            if (_db.has_hardfork(STEEMIT_HARDFORK_0_20__1013)
+                && comment.parent_author == STEEMIT_ROOT_POST_PARENT) {
+
+                const auto& wpo_idx = db().get_index<worker_proposal_index, by_permlink>();
+                auto wpo_itr = wpo_idx.find(std::make_tuple(o.author, o.permlink));
+                GOLOS_CHECK_LOGIC(wpo_itr == wpo_idx.end(),
+                    logic_exception::cannot_delete_post_with_worker_proposal,
+                    "Cannot delete a post with worker proposal.");
+
+                const auto& wto_idx = _db.get_index<worker_techspec_index, by_permlink>();
+                auto wto_itr = wto_idx.find(std::make_tuple(o.author, o.permlink));
+                GOLOS_CHECK_LOGIC(wto_itr == wto_idx.end(),
+                    logic_exception::cannot_delete_post_with_worker_techspec,
+                    "Cannot delete a post with worker techspec.");
+            }
+
             const auto &comment = _db.get_comment(o.author, o.permlink);
             GOLOS_CHECK_LOGIC(comment.children == 0,
                     logic_exception::cannot_delete_comment_with_replies,
@@ -453,22 +469,6 @@ namespace golos { namespace chain {
             }
             if (comment.net_rshares > 0) {
                 return;
-            }
-
-            if (_db.has_hardfork(STEEMIT_HARDFORK_0_20__1013)
-                && comment.parent_author == STEEMIT_ROOT_POST_PARENT) {
-
-                const auto& wpo_idx = db().get_index<worker_proposal_index, by_permlink>();
-                auto wpo_itr = wpo_idx.find(std::make_tuple(o.author, o.permlink));
-                GOLOS_CHECK_LOGIC(wpo_itr == wpo_idx.end(),
-                    logic_exception::cannot_delete_comment_with_worker_proposal,
-                    "Cannot delete a comment with worker proposal.");
-
-                const auto& wto_idx = _db.get_index<worker_techspec_index, by_permlink>();
-                auto wto_itr = wto_idx.find(std::make_tuple(o.author, o.permlink));
-                GOLOS_CHECK_LOGIC(wto_itr == wto_idx.end(),
-                    logic_exception::cannot_delete_comment_with_worker_techspec,
-                    "Cannot delete a comment with worker techspec.");
             }
 
             const auto &vote_idx = _db.get_index<comment_vote_index>().indices().get<by_comment_voter>();
