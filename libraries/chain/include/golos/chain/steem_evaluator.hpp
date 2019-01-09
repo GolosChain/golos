@@ -85,5 +85,7 @@ namespace golos { namespace chain {
         DEFINE_EVALUATOR(worker_techspec)
         DEFINE_EVALUATOR(worker_techspec_delete)
         DEFINE_EVALUATOR(worker_techspec_approve)
+        DEFINE_EVALUATOR(worker_result_fill)
+        DEFINE_EVALUATOR(worker_result_clear)
 
 } } // golos::chain

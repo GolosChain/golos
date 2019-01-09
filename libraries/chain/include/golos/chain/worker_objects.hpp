@@ -4,7 +4,7 @@
 
 namespace golos { namespace chain {
 
-    enum worker_proposal_state {
+    enum class worker_proposal_state {
         created,
         techspec,
         work,
@@ -46,7 +46,7 @@ namespace golos { namespace chain {
 
         template <typename Constructor, typename Allocator>
         worker_techspec_object(Constructor&& c, allocator <Allocator> a)
-            : permlink(a), worker_proposal_permlink(a) {
+            : permlink(a), worker_proposal_permlink(a), worker_result_permlink(a) {
             c(*this);
         };
 
@@ -64,6 +64,8 @@ namespace golos { namespace chain {
         uint32_t development_eta;
         uint16_t payments_count;
         uint32_t payments_interval;
+        shared_string worker_result_permlink;
+        time_point_sec completion_date;
     };
 
     class worker_techspec_approve_object : public object<worker_techspec_approve_object_type, worker_techspec_approve_object> {
@@ -104,6 +106,7 @@ namespace golos { namespace chain {
         allocator<worker_proposal_object>>;
 
     struct by_worker_proposal;
+    struct by_worker_result;
 
     using worker_techspec_index = multi_index_container<
         worker_techspec_object,
@@ -126,6 +129,15 @@ namespace golos { namespace chain {
                     worker_techspec_object,
                     member<worker_techspec_object, account_name_type, &worker_techspec_object::worker_proposal_author>,
                     member<worker_techspec_object, shared_string, &worker_techspec_object::worker_proposal_permlink>>,
+                composite_key_compare<
+                    std::less<account_name_type>,
+                    chainbase::strcmp_less>>,
+            ordered_unique<
+                tag<by_worker_result>,
+                composite_key<
+                    worker_techspec_object,
+                    member<worker_techspec_object, account_name_type, &worker_techspec_object::worker_proposal_author>,
+                    member<worker_techspec_object, shared_string, &worker_techspec_object::worker_result_permlink>>,
                 composite_key_compare<
                     std::less<account_name_type>,
                     chainbase::strcmp_less>>>,

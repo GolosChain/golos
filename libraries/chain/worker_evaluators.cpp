@@ -32,7 +32,7 @@ namespace golos { namespace chain {
             wpo.author = o.author;
             wpo.permlink = comment.permlink;
             wpo.type = o.type;
-            wpo.state = created;
+            wpo.state = worker_proposal_state::created;
             wpo.created = now;
         });
     }
@@ -190,9 +190,82 @@ namespace golos { namespace chain {
                 _db.modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.approved_techspec_author = o.author;
                     from_string(wpo.approved_techspec_permlink, o.permlink);
+                    wpo.state = worker_proposal_state::techspec;
                 });
             }
         }
+    }
+
+    void worker_result_fill_evaluator::do_apply(const worker_result_fill_operation& o) {
+        ASSERT_REQ_HF(STEEMIT_HARDFORK_0_20__1013, "worker_result_fill_operation");
+
+        const auto now = _db.head_block_time();
+
+        GOLOS_CHECK_LOGIC(o.completion_date <= now,
+            logic_exception::work_completion_date_cannot_be_in_future,
+            "Work completion date cannot be in future");
+
+        const auto& comment = _db.get_comment(o.author, o.permlink);
+
+        GOLOS_CHECK_LOGIC(comment.parent_author == STEEMIT_ROOT_POST_PARENT,
+            logic_exception::worker_result_can_be_created_only_on_post,
+            "Worker result can be created only on post");
+
+        const auto& wto_idx = _db.get_index<worker_techspec_index, by_permlink>();
+        auto wto_itr = wto_idx.find(std::make_tuple(o.author, o.worker_techspec_permlink));
+
+        if (wto_itr == wto_idx.end()) {
+            GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("author",o.author)("permlink",o.worker_techspec_permlink));
+        }
+
+        const auto* wto_result = _db.find_worker_result(o.author, o.permlink);
+        GOLOS_CHECK_LOGIC(!wto_result,
+            logic_exception::this_post_already_used_as_worker_result,
+            "This post already used as worker result");
+
+        const auto& wpo_idx = _db.get_index<worker_proposal_index, by_permlink>();
+        auto wpo_itr = wpo_idx.find(std::make_tuple(wto_itr->worker_proposal_author, wto_itr->worker_proposal_permlink));
+
+        GOLOS_CHECK_LOGIC(wpo_itr->approved_techspec_author == o.author && wpo_itr->approved_techspec_permlink == wto_itr->permlink
+                && wpo_itr->state == worker_proposal_state::work,
+            logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
+            "Worker result can be created only for techspec in work");
+
+        _db.modify(*wto_itr, [&](worker_techspec_object& wro) {
+            from_string(wro.worker_result_permlink, o.permlink);
+
+            if (o.completion_date != time_point_sec::min()) {
+                wro.completion_date = o.completion_date;
+            } else {
+                wro.completion_date = now;
+            }
+        });
+
+        _db.modify(*wpo_itr, [&](worker_proposal_object& wpo) {
+            wpo.state = worker_proposal_state::witnesses_review;
+        });
+    }
+
+    void worker_result_clear_evaluator::do_apply(const worker_result_clear_operation& o) {
+        ASSERT_REQ_HF(STEEMIT_HARDFORK_0_20__1013, "worker_result_clear_operation");
+
+        const auto& wto = _db.get_worker_result(o.author, o.permlink);
+
+        const auto& wpo_idx = _db.get_index<worker_proposal_index, by_permlink>();
+        auto wpo_itr = wpo_idx.find(std::make_tuple(wto.worker_proposal_author, wto.worker_proposal_permlink));
+
+        GOLOS_CHECK_LOGIC(wpo_itr->state < worker_proposal_state::payment,
+            logic_exception::cannot_delete_worker_result_for_paying_proposal,
+            "Cannot delete worker result for paying proposal");
+
+        _db.modify(*wpo_itr, [&](worker_proposal_object& wpo) {
+            wpo.state = worker_proposal_state::work;
+        });
+
+        _db.modify(wto, [&](worker_techspec_object& wto) {
+            wto.worker_result_permlink.clear();
+            wto.completion_date = time_point::min();
+        });
     }
 
 } } // golos::chain

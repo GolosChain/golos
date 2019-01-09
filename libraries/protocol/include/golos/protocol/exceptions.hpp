@@ -225,6 +225,7 @@ namespace golos {
             cannot_delete_comment_with_positive_votes,
             cannot_delete_post_with_worker_proposal,
             cannot_delete_post_with_worker_techspec,
+            cannot_delete_post_with_worker_result,
             comment_options_requires_no_rshares,
             curation_rewards_cannot_be_reenabled,
             voting_cannot_be_reenabled,
@@ -347,6 +348,11 @@ namespace golos {
             cannot_delete_worker_techspec_for_paying_proposal,
             approver_of_techspec_should_be_in_top19_of_witnesses,
             techspec_is_already_approved,
+            work_completion_date_cannot_be_in_future,
+            worker_result_can_be_created_only_on_post,
+            worker_result_can_be_created_only_for_techspec_in_work,
+            cannot_delete_worker_result_for_paying_proposal,
+            this_post_already_used_as_worker_result,
 
             // custom operations
             inner_authorities_does_not_match_outer,
@@ -505,6 +511,7 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (cannot_delete_comment_with_positive_votes)
         (cannot_delete_post_with_worker_proposal)
         (cannot_delete_post_with_worker_techspec)
+        (cannot_delete_post_with_worker_result)
         (comment_options_requires_no_rshares)
         (curation_rewards_cannot_be_reenabled)
         (voting_cannot_be_reenabled)
@@ -627,6 +634,11 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (cannot_delete_worker_techspec_for_paying_proposal)
         (approver_of_techspec_should_be_in_top19_of_witnesses)
         (techspec_is_already_approved)
+        (work_completion_date_cannot_be_in_future)
+        (worker_result_can_be_created_only_on_post)
+        (worker_result_can_be_created_only_for_techspec_in_work)
+        (cannot_delete_worker_result_for_paying_proposal)
+        (this_post_already_used_as_worker_result)
 
         // custom operations
         (inner_authorities_does_not_match_outer)

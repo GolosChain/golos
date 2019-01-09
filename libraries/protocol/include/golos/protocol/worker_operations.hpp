@@ -95,6 +95,34 @@ namespace golos { namespace protocol {
         }
     };
 
+    struct worker_result_fill_operation : public base_operation {
+        account_name_type author;
+        std::string permlink;
+        std::string worker_techspec_permlink;
+        time_point_sec completion_date = time_point_sec::min();
+
+        extensions_type extensions;
+
+        void validate() const;
+
+        void get_required_posting_authorities(flat_set<account_name_type>& a) const {
+            a.insert(author);
+        }
+    };
+
+    struct worker_result_clear_operation : public base_operation {
+        account_name_type author;
+        std::string permlink;
+
+        extensions_type extensions;
+
+        void validate() const;
+
+        void get_required_posting_authorities(flat_set<account_name_type>& a) const {
+            a.insert(author);
+        }
+    };
+
 } } // golos::protocol
 
 FC_REFLECT_ENUM(golos::protocol::worker_proposal_type, (task)(premade_work)(_size))
@@ -119,3 +147,11 @@ FC_REFLECT_ENUM(golos::protocol::worker_techspec_approve_state, (approve)(disapp
 FC_REFLECT(
     (golos::protocol::worker_techspec_approve_operation),
     (approver)(author)(permlink)(state)(extensions))
+
+FC_REFLECT(
+    (golos::protocol::worker_result_fill_operation),
+    (author)(permlink)(worker_techspec_permlink)(completion_date)(extensions))
+
+FC_REFLECT(
+    (golos::protocol::worker_result_clear_operation),
+    (author)(permlink)(extensions))

@@ -47,4 +47,15 @@ namespace golos { namespace protocol {
         });
     }
 
+    void worker_result_fill_operation::validate() const {
+        GOLOS_CHECK_PARAM_ACCOUNT(author);
+        GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
+        GOLOS_CHECK_PARAM(worker_techspec_permlink, validate_permlink(worker_techspec_permlink));
+    }
+
+    void worker_result_clear_operation::validate() const {
+        GOLOS_CHECK_PARAM_ACCOUNT(author);
+        GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
+    }
+
 } } // golos::protocol

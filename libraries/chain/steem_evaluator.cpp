@@ -457,6 +457,11 @@ namespace golos { namespace chain {
                 GOLOS_CHECK_LOGIC(wto_itr == wto_idx.end(),
                     logic_exception::cannot_delete_post_with_worker_techspec,
                     "Cannot delete a post with worker techspec.");
+
+                const auto* wto_result = _db.find_worker_result(o.author, o.permlink);
+                GOLOS_CHECK_LOGIC(!wto_result,
+                    logic_exception::cannot_delete_post_with_worker_result,
+                    "Cannot delete a post with worker result.");
             }
 
             GOLOS_CHECK_LOGIC(comment.children == 0,

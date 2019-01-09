@@ -185,6 +185,10 @@ namespace golos { namespace chain {
             const worker_techspec_object& get_worker_techspec(const account_name_type& author, const shared_string& permlink) const;
             const worker_techspec_object* find_worker_techspec(const account_name_type& author, const std::string& permlink) const;
             const worker_techspec_object* find_worker_techspec(const account_name_type& author, const shared_string& permlink) const;
+            const worker_techspec_object& get_worker_result(const account_name_type& author, const std::string& permlink) const;
+            const worker_techspec_object& get_worker_result(const account_name_type& author, const shared_string& permlink) const;
+            const worker_techspec_object* find_worker_result(const account_name_type& author, const std::string& permlink) const;
+            const worker_techspec_object* find_worker_result(const account_name_type& author, const shared_string& permlink) const;
 
             const comment_object &get_comment(const account_name_type &author, const shared_string &permlink) const;
 
