@@ -446,15 +446,13 @@ namespace golos { namespace chain {
             if (_db.has_hardfork(STEEMIT_HARDFORK_0_20__1013)
                 && comment.parent_author == STEEMIT_ROOT_POST_PARENT) {
 
-                const auto& wpo_idx = _db.get_index<worker_proposal_index, by_permlink>();
-                auto wpo_itr = wpo_idx.find(std::make_tuple(o.author, o.permlink));
-                GOLOS_CHECK_LOGIC(wpo_itr == wpo_idx.end(),
+                const auto* wpo = _db.find_worker_proposal(o.author, o.permlink);
+                GOLOS_CHECK_LOGIC(!wpo,
                     logic_exception::cannot_delete_post_with_worker_proposal,
                     "Cannot delete a post with worker proposal.");
 
-                const auto& wto_idx = _db.get_index<worker_techspec_index, by_permlink>();
-                auto wto_itr = wto_idx.find(std::make_tuple(o.author, o.permlink));
-                GOLOS_CHECK_LOGIC(wto_itr == wto_idx.end(),
+                const auto* wto = _db.find_worker_techspec(o.author, o.permlink);
+                GOLOS_CHECK_LOGIC(!wto,
                     logic_exception::cannot_delete_post_with_worker_techspec,
                     "Cannot delete a post with worker techspec.");
 
