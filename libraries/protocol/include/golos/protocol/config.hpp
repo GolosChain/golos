@@ -4,7 +4,7 @@
 #pragma once
 
 
-#define STEEMIT_BLOCKCHAIN_VERSION              (version(0, 20, 0))
+#define STEEMIT_BLOCKCHAIN_VERSION              (version(0, 21, 0))
 #define STEEMIT_BLOCKCHAIN_HARDFORK_VERSION     (hardfork_version(STEEMIT_BLOCKCHAIN_VERSION))
 
 
