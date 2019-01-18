@@ -4955,7 +4955,8 @@ namespace golos { namespace chain {
                 }
 
                 total_supply += gpo.total_vesting_fund_steem +
-                                gpo.total_reward_fund_steem;
+                                gpo.total_reward_fund_steem +
+                                gpo.total_worker_fund_steem;
 
                 FC_ASSERT(gpo.current_supply ==
                           total_supply, "", ("gpo.current_supply", gpo.current_supply)("total_supply", total_supply));
