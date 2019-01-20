@@ -85,7 +85,7 @@ namespace golos { namespace chain {
 
             auto witness_reward = total_reward - content_reward - vesting_reward - worker_reward;
 
-            auto witness_normalize = 25;
+            auto witness_normalize = db_.get_witness_schedule_object().witness_pay_normalization_factor;
             witness_reward = witness_reward * STEEMIT_MAX_WITNESSES / witness_normalize;
 
             vesting_fund_ += asset(vesting_reward, STEEM_SYMBOL);
