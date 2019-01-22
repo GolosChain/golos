@@ -33,6 +33,7 @@ namespace golos { namespace chain {
         shared_string approved_techspec_permlink;
         time_point_sec created;
         time_point_sec modified;
+        share_type net_rshares;
     };
 
     class worker_techspec_object : public object<worker_techspec_object_type, worker_techspec_object> {
@@ -106,6 +107,7 @@ namespace golos { namespace chain {
 
     struct by_permlink;
     struct by_created;
+    struct by_net_rshares;
 
     using worker_proposal_index = multi_index_container<
         worker_proposal_object,
@@ -130,6 +132,15 @@ namespace golos { namespace chain {
                     member<worker_proposal_object, worker_proposal_object_id_type, &worker_proposal_object::id>>,
                 composite_key_compare<
                     std::greater<time_point_sec>,
+                    std::less<worker_proposal_object_id_type>>>,
+            ordered_non_unique<
+                tag<by_net_rshares>,
+                composite_key<
+                    worker_proposal_object,
+                    member<worker_proposal_object, share_type, &worker_proposal_object::net_rshares>,
+                    member<worker_proposal_object, worker_proposal_object_id_type, &worker_proposal_object::id>>,
+                composite_key_compare<
+                    std::greater<share_type>,
                     std::less<worker_proposal_object_id_type>>>>,
         allocator<worker_proposal_object>>;
 

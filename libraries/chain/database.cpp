@@ -2474,6 +2474,7 @@ namespace golos { namespace chain {
                     adjust_rshares2(comment, old_rshares2, 0);
                 }
 
+                share_type net_rshares_new;
                 modify(comment, [&](comment_object &c) {
                     /**
                     * A payout is only made for positive rshares, negative rshares hang around
@@ -2505,7 +2506,10 @@ namespace golos { namespace chain {
                     }
 
                     c.last_payout = head_block_time();
+
+                    net_rshares_new = c.net_rshares;
                 });
+                update_worker_proposal_rshares(comment, net_rshares_new);
 
                 push_virtual_operation(comment_payout_update_operation(comment.author, to_string(comment.permlink)));
 

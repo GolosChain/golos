@@ -14,7 +14,8 @@ public:
             : _db(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
     }
 
-    void select_worker_proposals(const worker_proposal_query& query, std::vector<worker_proposal_api_object>& result);
+    template<typename WorkerProposalOrder>
+    void select_ordered_worker_proposals(const worker_proposal_query& query, std::vector<worker_proposal_api_object>& result);
 
     ~worker_api_plugin_impl() = default;
 
@@ -52,7 +53,8 @@ void worker_api_plugin::plugin_shutdown() {
     ilog("Shutting down worker api plugin");
 }
 
-void worker_api_plugin::worker_api_plugin_impl::select_worker_proposals(const worker_proposal_query& query, std::vector<worker_proposal_api_object>& result) {
+template<typename WorkerProposalOrder>
+void worker_api_plugin::worker_api_plugin_impl::select_ordered_worker_proposals(const worker_proposal_query& query, std::vector<worker_proposal_api_object>& result) {
     query.validate();
 
     if (!_db.has_index<worker_proposal_index>()) {
@@ -60,10 +62,7 @@ void worker_api_plugin::worker_api_plugin_impl::select_worker_proposals(const wo
     }
 
     _db.with_weak_read_lock([&]() {
-        auto& wpo_idx = _db.get_index<worker_proposal_index, by_created>();
-        if (query.sort == worker_proposal_sort::by_rshares) {
-            // TODO
-        }
+        const auto& wpo_idx = _db.get_index<worker_proposal_index, WorkerProposalOrder>();
         auto wpo_itr = wpo_idx.begin();
 
         if (query.has_start()) {
@@ -97,10 +96,16 @@ void worker_api_plugin::worker_api_plugin_impl::select_worker_proposals(const wo
 DEFINE_API(worker_api_plugin, get_worker_proposals) {
     PLUGIN_API_VALIDATE_ARGS(
         (worker_proposal_query, query)
+        (worker_proposal_sort, sort)
     )
     std::vector<worker_proposal_api_object> result;
 
-    my->select_worker_proposals(query, result);
+    if (sort == worker_proposal_sort::by_created) {
+        my->select_ordered_worker_proposals<by_created>(query, result);
+    } else if (sort == worker_proposal_sort::by_net_rshares) {
+        my->select_ordered_worker_proposals<by_net_rshares>(query, result);
+    }
+
     return result;
 }
 

@@ -34,6 +34,7 @@ namespace golos { namespace chain {
             wpo.type = o.type;
             wpo.state = worker_proposal_state::created;
             wpo.created = now;
+            wpo.net_rshares = comment.net_rshares;
         });
     }
 

@@ -4,6 +4,7 @@ list(APPEND CURRENT_TARGET_HEADERS
         include/golos/plugins/worker_api/worker_api_plugin.hpp
         include/golos/plugins/worker_api/worker_api_objects.hpp
         include/golos/plugins/worker_api/worker_proposal_query.hpp
+        include/golos/plugins/worker_api/worker_proposal_sort.hpp
         )
 
 list(APPEND CURRENT_TARGET_SOURCES

@@ -4,6 +4,7 @@
 #include <golos/chain/database.hpp>
 #include <golos/plugins/worker_api/worker_api_objects.hpp>
 #include <golos/plugins/worker_api/worker_proposal_query.hpp>
+#include <golos/plugins/worker_api/worker_proposal_sort.hpp>
 
 #include <golos/plugins/json_rpc/plugin.hpp>
 

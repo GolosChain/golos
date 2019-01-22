@@ -279,6 +279,8 @@ namespace golos { namespace chain {
 
             void clear_expired_proposals();
 
+            void update_worker_proposal_rshares(const comment_object& comment, share_type net_rshares_new);
+
             signed_block generate_block(
                     const fc::time_point_sec when,
                     const account_name_type &witness_owner,

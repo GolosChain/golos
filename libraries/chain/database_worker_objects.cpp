@@ -1,6 +1,7 @@
 #include <golos/chain/database.hpp>
 #include <golos/chain/worker_objects.hpp>
 #include <golos/chain/account_object.hpp>
+#include <golos/chain/comment_object.hpp>
 #include <golos/protocol/exceptions.hpp>
 
 namespace golos { namespace chain {
@@ -139,6 +140,15 @@ namespace golos { namespace chain {
             }
 
             push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_itr->permlink), reward));
+        }
+    }
+
+    void database::update_worker_proposal_rshares(const comment_object& comment, share_type net_rshares_new) {
+        auto* wpo = find_worker_proposal(comment.author, comment.permlink);
+        if (wpo) {
+            modify(*wpo, [&](worker_proposal_object& wpo) {
+                wpo.net_rshares = net_rshares_new;
+            });
         }
     }
 

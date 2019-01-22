@@ -15,7 +15,8 @@ namespace golos { namespace plugins { namespace worker_api {
               approved_techspec_author(o.approved_techspec_author),
               approved_techspec_permlink(to_string(o.approved_techspec_permlink)),
               created(o.created),
-              modified(o.modified) {
+              modified(o.modified),
+              net_rshares(o.net_rshares) {
         }
 
         worker_proposal_api_object() {
@@ -29,10 +30,11 @@ namespace golos { namespace plugins { namespace worker_api {
         std::string approved_techspec_permlink;
         time_point_sec created;
         time_point_sec modified;
+        share_type net_rshares;
     };
 
 } } } // golos::plugins::worker_api
 
 FC_REFLECT((golos::plugins::worker_api::worker_proposal_api_object),
-    (author)(permlink)(type)(state)(approved_techspec_author)(approved_techspec_permlink)(created)(modified)
+    (author)(permlink)(type)(state)(approved_techspec_author)(approved_techspec_permlink)(created)(modified)(net_rshares)
 )

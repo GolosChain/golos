@@ -8,11 +8,6 @@ using namespace golos::chain;
 
 namespace golos { namespace plugins { namespace worker_api {
 
-    enum class worker_proposal_sort {
-        by_created,
-        by_rshares
-    };
-
     struct worker_proposal_query {
         uint32_t                        limit = 20;
         fc::optional<std::string>       start_author;
@@ -20,7 +15,6 @@ namespace golos { namespace plugins { namespace worker_api {
         std::set<std::string>           select_authors;
         std::set<worker_proposal_state> select_states;
         std::set<worker_proposal_type>  select_types;
-        worker_proposal_sort            sort = worker_proposal_sort::by_created;
 
         void validate() const;
 
@@ -31,8 +25,6 @@ namespace golos { namespace plugins { namespace worker_api {
 
 } } } // golos::plugins::worker_api
 
-FC_REFLECT_ENUM(golos::plugins::worker_api::worker_proposal_sort, (by_created)(by_rshares))
-
 FC_REFLECT((golos::plugins::worker_api::worker_proposal_query),
-    (limit)(start_author)(start_permlink)(select_authors)(select_states)(select_types)(sort)
+    (limit)(start_author)(start_permlink)(select_authors)(select_states)(select_types)
 );
