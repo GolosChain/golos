@@ -55,9 +55,6 @@ void worker_api_plugin::plugin_shutdown() {
 void worker_api_plugin::worker_api_plugin_impl::select_worker_proposals(const worker_proposal_query& query, std::vector<worker_proposal_api_object>& result) {
     query.validate();
 
-    GOLOS_CHECK_PARAM(query.start_permlink.valid() ? query.start_author.valid() : true,
-        GOLOS_CHECK_VALUE(query.start_permlink, "start_permlink without start_author is useless"));
-
     if (!_db.has_index<worker_proposal_index>()) {
         return;
     }
