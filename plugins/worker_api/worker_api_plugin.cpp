@@ -14,8 +14,8 @@ public:
             : _db(appbase::app().get_plugin<golos::plugins::chain::plugin>().db()) {
     }
 
-    template<typename WorkerProposalOrder>
-    void select_ordered_worker_proposals(const worker_proposal_query& query, std::vector<worker_proposal_api_object>& result);
+    template <typename DatabaseIndex, typename OrderIndex, typename Selector>
+    void select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select);
 
     ~worker_api_plugin_impl() = default;
 
@@ -53,40 +53,34 @@ void worker_api_plugin::plugin_shutdown() {
     ilog("Shutting down worker api plugin");
 }
 
-template<typename WorkerProposalOrder>
-void worker_api_plugin::worker_api_plugin_impl::select_ordered_worker_proposals(const worker_proposal_query& query, std::vector<worker_proposal_api_object>& result) {
+template <typename DatabaseIndex, typename OrderIndex, typename Selector>
+void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select) {
     query.validate();
 
-    if (!_db.has_index<worker_proposal_index>()) {
+    if (!_db.has_index<DatabaseIndex>()) {
         return;
     }
 
     _db.with_weak_read_lock([&]() {
-        const auto& wpo_idx = _db.get_index<worker_proposal_index, WorkerProposalOrder>();
-        auto wpo_itr = wpo_idx.begin();
+        const auto& idx = _db.get_index<DatabaseIndex, OrderIndex>();
+        auto itr = idx.begin();
 
         if (query.has_start()) {
-            const auto& wpo_post_idx = _db.get_index<worker_proposal_index, by_permlink>();
-            const auto wpo_post_itr = wpo_post_idx.find(std::make_tuple(*query.start_author, *query.start_permlink));
-            if (wpo_post_itr == wpo_post_idx.end()) {
+            const auto& post_idx = _db.get_index<DatabaseIndex, by_permlink>();
+            const auto post_itr = post_idx.find(std::make_tuple(*query.start_author, *query.start_permlink));
+            if (post_itr == post_idx.end()) {
                 return;
             }
-            wpo_itr = wpo_idx.iterator_to(*wpo_post_itr);
+            itr = idx.iterator_to(*post_itr);
         }
 
         result.reserve(query.limit);
 
-        for (; wpo_itr != wpo_idx.end() && result.size() < query.limit; ++wpo_itr) {
-            if (!query.select_authors.empty() && !query.select_authors.count(wpo_itr->author)) {
+        for (; itr != idx.end() && result.size() < query.limit; ++itr) {
+            if (!select(query, *itr)) {
                 continue;
             }
-            if (!query.select_states.empty() && !query.select_states.count(wpo_itr->state)) {
-                continue;
-            }
-            if (!query.select_types.empty() && !query.select_types.count(wpo_itr->type)) {
-                continue;
-            }
-            result.emplace_back(*wpo_itr);
+            result.emplace_back(*itr);
         }
     });
 }
@@ -100,10 +94,55 @@ DEFINE_API(worker_api_plugin, get_worker_proposals) {
     )
     std::vector<worker_proposal_api_object> result;
 
+    auto wpo_selector = [&](const worker_proposal_query& query, const worker_proposal_object& wpo) -> bool {
+        if (!query.select_authors.empty() && !query.select_authors.count(wpo.author)) {
+            return false;
+        }
+        if (!query.select_states.empty() && !query.select_states.count(wpo.state)) {
+            return false;
+        }
+        if (!query.select_types.empty() && !query.select_types.count(wpo.type)) {
+            return false;
+        }
+        return true;
+    };
+
     if (sort == worker_proposal_sort::by_created) {
-        my->select_ordered_worker_proposals<by_created>(query, result);
+        my->select_postbased_results_ordered<worker_proposal_index, by_created>(query, result, wpo_selector);
     } else if (sort == worker_proposal_sort::by_net_rshares) {
-        my->select_ordered_worker_proposals<by_net_rshares>(query, result);
+        my->select_postbased_results_ordered<worker_proposal_index, by_net_rshares>(query, result, wpo_selector);
+    }
+
+    return result;
+}
+
+DEFINE_API(worker_api_plugin, get_worker_techspecs) {
+    PLUGIN_API_VALIDATE_ARGS(
+        (worker_techspec_query, query)
+        (worker_techspec_sort, sort)
+    )
+    std::vector<worker_techspec_api_object> result;
+
+    auto wto_selector = [&](const worker_techspec_query& query, const worker_techspec_object& wto) -> bool {
+        if (!query.select_authors.empty() && !query.select_authors.count(wto.author)) {
+            return false;
+        }
+        if (!!query.worker_proposal_author
+                && query.worker_proposal_author != wto.worker_proposal_author
+                && query.worker_proposal_permlink != to_string(wto.worker_proposal_permlink)) {
+            return false;
+        }
+        return true;
+    };
+
+    if (sort == worker_techspec_sort::by_created) {
+        my->select_postbased_results_ordered<worker_techspec_index, by_created>(query, result, wto_selector);
+    } else if (sort == worker_techspec_sort::by_net_rshares) {
+        my->select_postbased_results_ordered<worker_techspec_index, by_net_rshares>(query, result, wto_selector);
+    } else if (sort == worker_techspec_sort::by_approves) {
+        my->select_postbased_results_ordered<worker_techspec_index, by_approves>(query, result, wto_selector);
+    } else if (sort == worker_techspec_sort::by_disapproves) {
+        my->select_postbased_results_ordered<worker_techspec_index, by_disapproves>(query, result, wto_selector);
     }
 
     return result;

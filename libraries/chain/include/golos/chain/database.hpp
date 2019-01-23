@@ -281,6 +281,12 @@ namespace golos { namespace chain {
 
             void update_worker_proposal_rshares(const comment_object& comment, share_type net_rshares_new);
 
+            void update_worker_techspec_rshares(const comment_object& comment, share_type net_rshares_new);
+
+            void update_worker_techspec_approves(const worker_techspec_object& wto,
+                    const worker_techspec_approve_state& old_state,
+                    const worker_techspec_approve_state& new_state);
+
             signed_block generate_block(
                     const fc::time_point_sec when,
                     const account_name_type &witness_owner,

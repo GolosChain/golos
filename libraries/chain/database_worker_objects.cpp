@@ -152,4 +152,35 @@ namespace golos { namespace chain {
         }
     }
 
+    void database::update_worker_techspec_rshares(const comment_object& comment, share_type net_rshares_new) {
+        auto* wto = find_worker_techspec(comment.author, comment.permlink);
+        if (wto) {
+            modify(*wto, [&](worker_techspec_object& wto) {
+                wto.net_rshares = net_rshares_new;
+            });
+        }
+    }
+
+    void database::update_worker_techspec_approves(const worker_techspec_object& wto,
+            const worker_techspec_approve_state& old_state,
+            const worker_techspec_approve_state& new_state) {
+        if (old_state == new_state) {
+            return;
+        }
+        modify(wto, [&](worker_techspec_object& wto) {
+            if (old_state == worker_techspec_approve_state::approve) {
+                wto.approves--;
+            }
+            if (old_state == worker_techspec_approve_state::disapprove) {
+                wto.disapproves--;
+            }
+            if (new_state == worker_techspec_approve_state::approve) {
+                wto.approves++;
+            }
+            if (new_state == worker_techspec_approve_state::disapprove) {
+                wto.disapproves++;
+            }
+        });
+    }
+
 } } // golos::chain
