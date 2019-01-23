@@ -3,13 +3,13 @@ set(CURRENT_TARGET worker_api)
 list(APPEND CURRENT_TARGET_HEADERS
         include/golos/plugins/worker_api/worker_api_plugin.hpp
         include/golos/plugins/worker_api/worker_api_objects.hpp
-        include/golos/plugins/worker_api/worker_proposal_query.hpp
-        include/golos/plugins/worker_api/worker_proposal_sort.hpp
+        include/golos/plugins/worker_api/worker_api_queries.hpp
+        include/golos/plugins/worker_api/worker_api_sorts.hpp
         )
 
 list(APPEND CURRENT_TARGET_SOURCES
         worker_api_plugin.cpp
-        worker_proposal_query.cpp
+        worker_api_queries.cpp
         )
 
 if(BUILD_SHARED_LIBRARIES)

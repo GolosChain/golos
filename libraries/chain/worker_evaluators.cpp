@@ -106,6 +106,7 @@ namespace golos { namespace chain {
             wto.worker_proposal_author = o.worker_proposal_author;
             from_string(wto.worker_proposal_permlink, o.worker_proposal_permlink);
             wto.created = now;
+            wto.net_rshares = comment.net_rshares;
             wto.specification_cost = o.specification_cost;
             wto.specification_eta = o.specification_eta;
             wto.development_cost = o.development_cost;
@@ -156,6 +157,8 @@ namespace golos { namespace chain {
 
         if (o.state == worker_techspec_approve_state::abstain) {
             if (wtao_itr != wtao_idx.end()) {
+                _db.update_worker_techspec_approves(wto, wtao_itr->state, worker_techspec_approve_state::abstain);
+
                 _db.remove(*wtao_itr);
             }
 
@@ -163,10 +166,14 @@ namespace golos { namespace chain {
         }
 
         if (wtao_itr != wtao_idx.end()) {
+            _db.update_worker_techspec_approves(wto, wtao_itr->state, o.state);
+
             _db.modify(*wtao_itr, [&](worker_techspec_approve_object& wtao) {
                 wtao.state = o.state;
             });
         } else {
+            _db.update_worker_techspec_approves(wto, worker_techspec_approve_state::abstain, o.state);
+
             _db.create<worker_techspec_approve_object>([&](worker_techspec_approve_object& wtao) {
                 wtao.approver = o.approver;
                 wtao.author = o.author;
