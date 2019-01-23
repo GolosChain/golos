@@ -124,7 +124,7 @@ namespace golos { namespace chain {
                 composite_key_compare<
                     std::less<account_name_type>,
                     chainbase::strcmp_less>>,
-            ordered_non_unique<
+            ordered_unique<
                 tag<by_created>,
                 composite_key<
                     worker_proposal_object,
@@ -133,7 +133,7 @@ namespace golos { namespace chain {
                 composite_key_compare<
                     std::greater<time_point_sec>,
                     std::less<worker_proposal_object_id_type>>>,
-            ordered_non_unique<
+            ordered_unique<
                 tag<by_net_rshares>,
                 composite_key<
                     worker_proposal_object,
