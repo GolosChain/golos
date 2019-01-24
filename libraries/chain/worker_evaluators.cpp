@@ -48,7 +48,7 @@ namespace golos { namespace chain {
             "Cannot delete worker proposal with approved techspec");
 
         const auto& wto_idx = _db.get_index<worker_techspec_index, by_worker_proposal>();
-        auto wto_itr = wto_idx.lower_bound(std::make_tuple(o.author, o.permlink));
+        auto wto_itr = wto_idx.find(std::make_tuple(o.author, o.permlink));
         GOLOS_CHECK_LOGIC(wto_itr == wto_idx.end(),
             logic_exception::cannot_delete_worker_proposal_with_techspecs,
             "Cannot delete worker proposal with techspecs");
