@@ -344,6 +344,7 @@ namespace golos {
             worker_techspec_can_be_created_only_on_post,
             worker_techspec_can_be_created_only_for_existing_proposal,
             this_worker_proposal_already_has_approved_techspec,
+            there_already_is_your_techspec_with_another_permlink,
             cannot_change_cost_symbol,
             cannot_delete_worker_techspec_for_paying_proposal,
             approver_of_techspec_should_be_in_top19_of_witnesses,
@@ -633,6 +634,7 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (worker_techspec_can_be_created_only_on_post)
         (worker_techspec_can_be_created_only_for_existing_proposal)
         (this_worker_proposal_already_has_approved_techspec)
+        (there_already_is_your_techspec_with_another_permlink)
         (cannot_change_cost_symbol)
         (cannot_delete_worker_techspec_for_paying_proposal)
         (approver_of_techspec_should_be_in_top19_of_witnesses)

@@ -95,13 +95,13 @@ DEFINE_API(worker_api_plugin, get_worker_proposals) {
     std::vector<worker_proposal_api_object> result;
 
     auto wpo_selector = [&](const worker_proposal_query& query, const worker_proposal_object& wpo) -> bool {
-        if (!query.select_authors.empty() && !query.select_authors.count(wpo.author)) {
+        if (!query.is_good_author(wpo.author)) {
             return false;
         }
-        if (!query.select_states.empty() && !query.select_states.count(wpo.state)) {
+        if (!query.is_good_state(wpo.state)) {
             return false;
         }
-        if (!query.select_types.empty() && !query.select_types.count(wpo.type)) {
+        if (!query.is_good_type(wpo.type)) {
             return false;
         }
         return true;
@@ -124,12 +124,10 @@ DEFINE_API(worker_api_plugin, get_worker_techspecs) {
     std::vector<worker_techspec_api_object> result;
 
     auto wto_selector = [&](const worker_techspec_query& query, const worker_techspec_object& wto) -> bool {
-        if (!query.select_authors.empty() && !query.select_authors.count(wto.author)) {
+        if (!query.is_good_author(wto.author)) {
             return false;
         }
-        if (!!query.worker_proposal_author
-                && query.worker_proposal_author != wto.worker_proposal_author
-                && query.worker_proposal_permlink != to_string(wto.worker_proposal_permlink)) {
+        if (!query.is_good_worker_proposal(wto.worker_proposal_author, to_string(wto.worker_proposal_permlink))) {
             return false;
         }
         return true;

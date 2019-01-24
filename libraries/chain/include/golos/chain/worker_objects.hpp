@@ -173,15 +173,17 @@ namespace golos { namespace chain {
                 composite_key<
                     worker_techspec_object,
                     member<worker_techspec_object, account_name_type, &worker_techspec_object::worker_proposal_author>,
-                    member<worker_techspec_object, shared_string, &worker_techspec_object::worker_proposal_permlink>>,
+                    member<worker_techspec_object, shared_string, &worker_techspec_object::worker_proposal_permlink>,
+                    member<worker_techspec_object, account_name_type, &worker_techspec_object::author>>,
                 composite_key_compare<
                     std::less<account_name_type>,
-                    chainbase::strcmp_less>>,
+                    chainbase::strcmp_less,
+                    std::less<account_name_type>>>,
             ordered_unique<
                 tag<by_worker_result>,
                 composite_key<
                     worker_techspec_object,
-                    member<worker_techspec_object, account_name_type, &worker_techspec_object::worker_proposal_author>,
+                    member<worker_techspec_object, account_name_type, &worker_techspec_object::author>,
                     member<worker_techspec_object, shared_string, &worker_techspec_object::worker_result_permlink>>,
                 composite_key_compare<
                     std::less<account_name_type>,

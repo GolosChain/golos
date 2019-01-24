@@ -21,6 +21,18 @@ namespace golos { namespace plugins { namespace worker_api {
         bool has_start() const {
             return !!start_author;
         }
+
+        bool is_good_author(const std::string& author) const {
+            return select_authors.empty() || select_authors.count(author);
+        }
+
+        bool is_good_state(const worker_proposal_state& state) const {
+            return select_states.empty() || select_states.count(state);
+        }
+
+        bool is_good_type(const worker_proposal_type& type) const {
+            return select_types.empty() || select_types.count(type);
+        }
     };
 
     struct worker_techspec_query {
@@ -35,6 +47,15 @@ namespace golos { namespace plugins { namespace worker_api {
 
         bool has_start() const {
             return !!start_author;
+        }
+
+        bool is_good_author(const std::string& author) const {
+            return select_authors.empty() || select_authors.count(author);
+        }
+
+        bool is_good_worker_proposal(const std::string& author, const std::string& permlink) const {
+            return !worker_proposal_author
+                || (worker_proposal_author == author && worker_proposal_permlink == permlink);
         }
     };
 

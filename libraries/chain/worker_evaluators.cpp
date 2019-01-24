@@ -48,7 +48,7 @@ namespace golos { namespace chain {
             "Cannot delete worker proposal with approved techspec");
 
         const auto& wto_idx = _db.get_index<worker_techspec_index, by_worker_proposal>();
-        auto wto_itr = wto_idx.find(std::make_tuple(o.author, o.permlink));
+        auto wto_itr = wto_idx.lower_bound(std::make_tuple(o.author, o.permlink));
         GOLOS_CHECK_LOGIC(wto_itr == wto_idx.end(),
             logic_exception::cannot_delete_worker_proposal_with_techspecs,
             "Cannot delete worker proposal with techspecs");
@@ -78,8 +78,11 @@ namespace golos { namespace chain {
             "This worker proposal already has approved techspec");
 
         const auto& wto_idx = _db.get_index<worker_techspec_index, by_worker_proposal>();
-        auto wto_itr = wto_idx.find(std::make_tuple(o.worker_proposal_author, o.worker_proposal_permlink));
+        auto wto_itr = wto_idx.find(std::make_tuple(o.worker_proposal_author, o.worker_proposal_permlink, o.author));
         if (wto_itr != wto_idx.end()) {
+            GOLOS_CHECK_LOGIC(o.permlink == to_string(wto_itr->permlink),
+                logic_exception::there_already_is_your_techspec_with_another_permlink,
+                "There already is your techspec with another permlink");
             GOLOS_CHECK_LOGIC(o.specification_cost.symbol == wto_itr->specification_cost.symbol,
                 logic_exception::cannot_change_cost_symbol,
                 "Cannot change cost symbol");
