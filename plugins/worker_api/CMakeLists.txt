@@ -33,6 +33,9 @@ target_link_libraries(
         golos::protocol
         golos::network
         golos::json_rpc
+        golos::api
+        golos::follow
+        golos::social_network
         graphene_utilities
         graphene_time
         appbase
