@@ -59,6 +59,24 @@ namespace golos { namespace plugins { namespace worker_api {
         }
     };
 
+    struct worker_intermediate_query {
+        uint32_t                        limit = 20;
+        fc::optional<std::string>       start_author;
+        fc::optional<std::string>       start_permlink;
+        std::string                     worker_techspec_author;
+        std::string                     worker_techspec_permlink;
+
+        void validate() const;
+
+        bool has_start() const {
+            return !!start_author;
+        }
+
+        bool is_good_worker_techspec(const std::string& author, const std::string& permlink) const {
+            return (worker_techspec_author == author && worker_techspec_permlink == permlink);
+        }
+    };
+
 } } } // golos::plugins::worker_api
 
 FC_REFLECT((golos::plugins::worker_api::worker_proposal_query),
@@ -67,4 +85,8 @@ FC_REFLECT((golos::plugins::worker_api::worker_proposal_query),
 
 FC_REFLECT((golos::plugins::worker_api::worker_techspec_query),
     (limit)(start_author)(start_permlink)(select_authors)(worker_proposal_author)(worker_proposal_permlink)
+);
+
+FC_REFLECT((golos::plugins::worker_api::worker_intermediate_query),
+    (limit)(start_author)(start_permlink)(worker_techspec_author)(worker_techspec_permlink)
 );

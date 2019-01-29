@@ -67,5 +67,25 @@ namespace golos { namespace plugins { namespace worker_api {
         }
     }
 
+    void worker_intermediate_query::validate() const {
+        GOLOS_CHECK_LIMIT_PARAM(limit, 100);
+
+        if (!!start_author) {
+            GOLOS_CHECK_PARAM_ACCOUNT(*start_author);
+
+            GOLOS_CHECK_PARAM(start_permlink,
+                GOLOS_CHECK_VALUE(!!start_permlink, "start_author without start_permlink is useless"));
+        }
+        if (!!start_permlink) {
+            GOLOS_CHECK_PARAM(*start_permlink, validate_permlink(*start_permlink));
+
+            GOLOS_CHECK_PARAM(start_author,
+                GOLOS_CHECK_VALUE(!!start_author, "start_permlink without start_author is useless"));
+        }
+
+        GOLOS_CHECK_PARAM_ACCOUNT(worker_techspec_author);
+        GOLOS_CHECK_PARAM(worker_techspec_permlink, validate_permlink(worker_techspec_permlink));
+    }
+
 } } } // golos::plugins::worker_api
 

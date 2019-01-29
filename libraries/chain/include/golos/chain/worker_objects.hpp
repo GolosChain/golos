@@ -285,7 +285,16 @@ namespace golos { namespace chain {
                     member<worker_intermediate_object, shared_string, &worker_intermediate_object::permlink>>,
                 composite_key_compare<
                     std::less<account_name_type>,
-                    chainbase::strcmp_less>>>,
+                    chainbase::strcmp_less>>,
+            ordered_unique<
+                tag<by_created>,
+                composite_key<
+                    worker_intermediate_object,
+                    member<worker_intermediate_object, time_point_sec, &worker_intermediate_object::created>,
+                    member<worker_intermediate_object, worker_intermediate_object_id_type, &worker_intermediate_object::id>>,
+                composite_key_compare<
+                    std::greater<time_point_sec>,
+                    std::less<worker_intermediate_object_id_type>>>>,
         allocator<worker_intermediate_object>>;
 
     struct by_result_approver;

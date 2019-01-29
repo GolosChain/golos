@@ -146,4 +146,22 @@ DEFINE_API(worker_api_plugin, get_worker_techspecs) {
     return result;
 }
 
+DEFINE_API(worker_api_plugin, get_worker_intermediates) {
+    PLUGIN_API_VALIDATE_ARGS(
+        (worker_intermediate_query, query)
+    )
+    std::vector<worker_intermediate_api_object> result;
+
+    auto wio_selector = [&](const worker_intermediate_query& query, const worker_intermediate_object& wio) -> bool {
+        if (!query.is_good_worker_techspec(wio.author, to_string(wio.worker_techspec_permlink))) {
+            return false;
+        }
+        return true;
+    };
+
+    my->select_postbased_results_ordered<worker_intermediate_index, by_created>(query, result, wio_selector);
+
+    return result;
+}
+
 } } } // golos::plugins::worker_api
