@@ -127,7 +127,6 @@ namespace golos { namespace chain {
     };
 
     struct by_permlink;
-    struct by_created;
     struct by_net_rshares;
 
     using worker_proposal_index = multi_index_container<
@@ -145,15 +144,6 @@ namespace golos { namespace chain {
                 composite_key_compare<
                     std::less<account_name_type>,
                     chainbase::strcmp_less>>,
-            ordered_unique<
-                tag<by_created>,
-                composite_key<
-                    worker_proposal_object,
-                    member<worker_proposal_object, time_point_sec, &worker_proposal_object::created>,
-                    member<worker_proposal_object, worker_proposal_object_id_type, &worker_proposal_object::id>>,
-                composite_key_compare<
-                    std::greater<time_point_sec>,
-                    std::less<worker_proposal_object_id_type>>>,
             ordered_unique<
                 tag<by_net_rshares>,
                 composite_key<
@@ -212,15 +202,6 @@ namespace golos { namespace chain {
                     worker_techspec_object,
                     member<worker_techspec_object, time_point_sec, &worker_techspec_object::next_cashout_time>,
                     member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>>,
-            ordered_unique<
-                tag<by_created>,
-                composite_key<
-                    worker_techspec_object,
-                    member<worker_techspec_object, time_point_sec, &worker_techspec_object::created>,
-                    member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>,
-                composite_key_compare<
-                    std::greater<time_point_sec>,
-                    std::less<worker_techspec_object_id_type>>>,
             ordered_unique<
                 tag<by_net_rshares>,
                 composite_key<
@@ -285,16 +266,7 @@ namespace golos { namespace chain {
                     member<worker_intermediate_object, shared_string, &worker_intermediate_object::permlink>>,
                 composite_key_compare<
                     std::less<account_name_type>,
-                    chainbase::strcmp_less>>,
-            ordered_unique<
-                tag<by_created>,
-                composite_key<
-                    worker_intermediate_object,
-                    member<worker_intermediate_object, time_point_sec, &worker_intermediate_object::created>,
-                    member<worker_intermediate_object, worker_intermediate_object_id_type, &worker_intermediate_object::id>>,
-                composite_key_compare<
-                    std::greater<time_point_sec>,
-                    std::less<worker_intermediate_object_id_type>>>>,
+                    chainbase::strcmp_less>>>,
         allocator<worker_intermediate_object>>;
 
     struct by_result_approver;

@@ -22,7 +22,7 @@ public:
         );
     }
 
-    template <typename DatabaseIndex, typename OrderIndex, typename Selector>
+    template <typename DatabaseIndex, typename OrderIndex, bool ReverseSort, typename Selector>
     void select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select, bool fill_posts);
 
     ~worker_api_plugin_impl() = default;
@@ -63,7 +63,7 @@ void worker_api_plugin::plugin_shutdown() {
     ilog("Shutting down worker api plugin");
 }
 
-template <typename DatabaseIndex, typename OrderIndex, typename Selector>
+template <typename DatabaseIndex, typename OrderIndex, bool ReverseSort, typename Selector>
 void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select, bool fill_posts) {
     query.validate();
 
@@ -74,6 +74,9 @@ void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered
     _db.with_weak_read_lock([&]() {
         const auto& idx = _db.get_index<DatabaseIndex, OrderIndex>();
         auto itr = idx.begin();
+        if (ReverseSort) {
+            itr = idx.end();
+        }
 
         if (query.has_start()) {
             const auto& post_idx = _db.get_index<DatabaseIndex, by_permlink>();
@@ -86,15 +89,25 @@ void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered
 
         result.reserve(query.limit);
 
-        for (; itr != idx.end() && result.size() < query.limit; ++itr) {
+        auto handle = [&]() {
             if (!select(query, *itr)) {
-                continue;
+                return;
             }
             if (fill_posts) {
                 const auto& comment = _db.get_comment(itr->author, itr->permlink);
                 result.emplace_back(*itr, helper->create_comment_api_object(comment));
             } else {
                 result.emplace_back(*itr, comment_api_object());
+            }
+        };
+
+        if (ReverseSort) {
+            for (; itr != idx.begin() && result.size() < query.limit; --itr) {
+                handle();
+            }
+        } else {
+            for (; itr != idx.end() && result.size() < query.limit; ++itr) {
+                handle();
             }
         }
     });
@@ -124,9 +137,9 @@ DEFINE_API(worker_api_plugin, get_worker_proposals) {
     };
 
     if (sort == worker_proposal_sort::by_created) {
-        my->select_postbased_results_ordered<worker_proposal_index, by_created>(query, result, wpo_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_proposal_index, by_id, true>(query, result, wpo_selector, fill_posts);
     } else if (sort == worker_proposal_sort::by_net_rshares) {
-        my->select_postbased_results_ordered<worker_proposal_index, by_net_rshares>(query, result, wpo_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_proposal_index, by_net_rshares, false>(query, result, wpo_selector, fill_posts);
     }
 
     return result;
@@ -151,13 +164,13 @@ DEFINE_API(worker_api_plugin, get_worker_techspecs) {
     };
 
     if (sort == worker_techspec_sort::by_created) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_created>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_id, true>(query, result, wto_selector, fill_posts);
     } else if (sort == worker_techspec_sort::by_net_rshares) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_net_rshares>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_net_rshares, false>(query, result, wto_selector, fill_posts);
     } else if (sort == worker_techspec_sort::by_approves) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_approves>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_approves, false>(query, result, wto_selector, fill_posts);
     } else if (sort == worker_techspec_sort::by_disapproves) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_disapproves>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_disapproves, false>(query, result, wto_selector, fill_posts);
     }
 
     return result;
@@ -177,7 +190,7 @@ DEFINE_API(worker_api_plugin, get_worker_intermediates) {
         return true;
     };
 
-    my->select_postbased_results_ordered<worker_intermediate_index, by_created>(query, result, wio_selector, fill_posts);
+    my->select_postbased_results_ordered<worker_intermediate_index, by_id, true>(query, result, wio_selector, fill_posts);
 
     return result;
 }
