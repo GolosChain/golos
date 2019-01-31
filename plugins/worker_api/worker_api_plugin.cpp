@@ -89,25 +89,26 @@ void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered
 
         result.reserve(query.limit);
 
-        auto handle = [&]() {
-            if (!select(query, *itr)) {
+        auto handle = [&](auto obj) {
+            if (!select(query, obj)) {
                 return;
             }
             if (fill_posts) {
                 const auto& comment = _db.get_comment(itr->author, itr->permlink);
-                result.emplace_back(*itr, helper->create_comment_api_object(comment));
+                result.emplace_back(obj, helper->create_comment_api_object(comment));
             } else {
-                result.emplace_back(*itr, comment_api_object());
+                result.emplace_back(obj, comment_api_object());
             }
         };
 
         if (ReverseSort) {
-            for (; itr != idx.begin() && result.size() < query.limit; --itr) {
-                handle();
+            auto ritr = boost::make_reverse_iterator(itr);
+            for (; ritr != idx.rend() && result.size() < query.limit; ++ritr) {
+                handle(*ritr);
             }
         } else {
             for (; itr != idx.end() && result.size() < query.limit; ++itr) {
-                handle();
+                handle(*itr);
             }
         }
     });
