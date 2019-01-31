@@ -510,7 +510,7 @@ namespace golos { namespace protocol {
          * and well functioning network. Any time @owner is in the active set of witnesses these
          * properties will be used to control the blockchain configuration.
          */
-        struct chain_properties_18 : public chain_properties_17 {
+        struct chain_properties_18: public chain_properties_17 {
 
             /**
              *  Minimum fee (in GOLOS) payed when create account with delegation
@@ -556,7 +556,7 @@ namespace golos { namespace protocol {
          * Users can invite referrals, and they will pay some percent of rewards to their referrers.
          * Referral can break paying for some fee.
          */
-        struct chain_properties_19 : public chain_properties_18 {
+        struct chain_properties_19: public chain_properties_18 {
 
             /**
              * Maximum percent of referral deductions

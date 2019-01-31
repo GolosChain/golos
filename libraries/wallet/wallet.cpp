@@ -2234,7 +2234,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             signed_transaction tx;
             chain_properties_update_operation op;
             chain_api_properties ap;
-            chain_properties_18 p;
+            chain_properties_19 p;
 
             // copy defaults in case of missing witness object
             ap.account_creation_fee = p.account_creation_fee;
@@ -2256,41 +2256,29 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             SET_PROP(p, create_account_min_delegation);
             SET_PROP(p, create_account_delegation_time);
             SET_PROP(p, min_delegation);
+            SET_PROP(p, max_referral_interest_rate);
+            SET_PROP(p, max_referral_term_sec);
+            SET_PROP(p, min_referral_break_fee);
+            SET_PROP(p, max_referral_break_fee);
+            SET_PROP(p, posts_window);
+            SET_PROP(p, posts_per_window);
+            SET_PROP(p, comments_window);
+            SET_PROP(p, comments_per_window);
+            SET_PROP(p, votes_window);
+            SET_PROP(p, votes_per_window);
+            SET_PROP(p, auction_window_size);
+            SET_PROP(p, max_delegated_vesting_interest_rate);
+            SET_PROP(p, custom_ops_bandwidth_multiplier);
+            SET_PROP(p, min_curation_percent);
+            SET_PROP(p, max_curation_percent);
+            SET_PROP(p, curation_reward_curve);
+            SET_PROP(p, allow_distribute_auction_reward);
+            SET_PROP(p, allow_return_auction_reward_to_fund);
             op.props = p;
             auto hf = my->_remote_database_api->get_hardfork_version();
-            chain_properties_19 p19;
-            chain_properties_21 p21;
-            if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_19) || !!props.max_referral_interest_rate
-                    || !!props.max_referral_term_sec || !!props.min_referral_break_fee || !!props.max_referral_break_fee
-                    || !!props.posts_window || !!props.posts_per_window
-                    || !!props.comments_window || !!props.comments_per_window
-                    || !!props.votes_window || !!props.votes_per_window
-                    || !!props.auction_window_size || !!props.max_delegated_vesting_interest_rate || !!props.custom_ops_bandwidth_multiplier
-                    || !!props.min_curation_percent || !!props.max_curation_percent || !!props.curation_reward_curve
-                    || !!props.allow_return_auction_reward_to_fund || !!props.allow_distribute_auction_reward) {
-                p19 = p;
-                SET_PROP(p19, max_referral_interest_rate);
-                SET_PROP(p19, max_referral_term_sec);
-                SET_PROP(p19, min_referral_break_fee);
-                SET_PROP(p19, max_referral_break_fee);
-                SET_PROP(p19, posts_window);
-                SET_PROP(p19, posts_per_window);
-                SET_PROP(p19, comments_window);
-                SET_PROP(p19, comments_per_window);
-                SET_PROP(p19, votes_window);
-                SET_PROP(p19, votes_per_window);
-                SET_PROP(p19, auction_window_size);
-                SET_PROP(p19, max_delegated_vesting_interest_rate);
-                SET_PROP(p19, custom_ops_bandwidth_multiplier);
-                SET_PROP(p19, min_curation_percent);
-                SET_PROP(p19, max_curation_percent);
-                SET_PROP(p19, curation_reward_curve);
-                SET_PROP(p19, allow_distribute_auction_reward);
-                SET_PROP(p19, allow_return_auction_reward_to_fund);
-                op.props = p19;
-            }
             if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_21)) {
-                p21 = p19;
+                chain_properties_21 p21;
+                p21 = p;
                 op.props = p21;
             }
 #undef SET_PROP
