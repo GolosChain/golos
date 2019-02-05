@@ -364,6 +364,7 @@ namespace golos {
             worker_cannot_be_assigned_to_premade_proposal,
             cannot_unassign_worker_from_finished_or_not_started_work,
             worker_can_be_unassigned_only_by_techspec_author_or_himself,
+            insufficient_funds_to_approve_worker_result,
 
             // custom operations
             inner_authorities_does_not_match_outer,
@@ -661,6 +662,7 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (worker_cannot_be_assigned_to_premade_proposal)
         (cannot_unassign_worker_from_finished_or_not_started_work)
         (worker_can_be_unassigned_only_by_techspec_author_or_himself)
+        (insufficient_funds_to_approve_worker_result)
 
         // custom operations
         (inner_authorities_does_not_match_outer)

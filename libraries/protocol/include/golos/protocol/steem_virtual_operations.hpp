@@ -237,13 +237,13 @@ namespace golos { namespace protocol {
         struct worker_reward_operation : public virtual_operation {
             worker_reward_operation() {
             }
-            worker_reward_operation(const account_name_type& w, const account_name_type& wpa, const string& wpp, const asset& r)
-                    : worker(w), worker_proposal_author(wpa), worker_proposal_permlink(wpp), reward(r) {
+            worker_reward_operation(const account_name_type& w, const account_name_type& wta, const string& wtp, const asset& r)
+                    : worker(w), worker_techspec_author(wta), worker_techspec_permlink(wtp), reward(r) {
             }
 
             account_name_type worker;
-            account_name_type worker_proposal_author;
-            string worker_proposal_permlink;
+            account_name_type worker_techspec_author;
+            string worker_techspec_permlink;
             asset reward;
         };
 
@@ -277,4 +277,4 @@ FC_REFLECT((golos::protocol::return_vesting_delegation_operation), (account)(ves
 FC_REFLECT((golos::protocol::producer_reward_operation), (producer)(vesting_shares))
 FC_REFLECT((golos::protocol::delegation_reward_operation), (delegator)(delegatee)(payout_strategy)(vesting_shares))
 FC_REFLECT((golos::protocol::techspec_reward_operation), (author)(permlink)(reward))
-FC_REFLECT((golos::protocol::worker_reward_operation), (worker)(worker_proposal_author)(worker_proposal_permlink)(reward))
+FC_REFLECT((golos::protocol::worker_reward_operation), (worker)(worker_techspec_author)(worker_techspec_permlink)(reward))

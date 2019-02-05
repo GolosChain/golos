@@ -57,11 +57,11 @@ namespace golos { namespace plugins { namespace worker_api {
               work_beginning_time(o.work_beginning_time),
               worker_result_permlink(to_string(o.worker_result_permlink)),
               completion_date(o.completion_date),
-              payments_count(o.payments_count),
-              payments_interval(o.payments_interval),
-              payment_beginning_time(o.payment_beginning_time),
+              author_payment_per_month(o.author_payment_per_month),
+              worker_payment_per_month(o.worker_payment_per_month),
               next_cashout_time(o.next_cashout_time),
-              finished_payments_count(o.finished_payments_count) {
+              finished_author_payments_count(o.finished_author_payments_count),
+              finished_worker_payments_count(o.finished_worker_payments_count) {
         }
 
         worker_techspec_api_object() {
@@ -85,11 +85,11 @@ namespace golos { namespace plugins { namespace worker_api {
         time_point_sec work_beginning_time;
         std::string worker_result_permlink;
         time_point_sec completion_date;
-        uint16_t payments_count = 0;
-        uint32_t payments_interval = 0;
-        time_point_sec payment_beginning_time;
+        asset author_payment_per_month;
+        asset worker_payment_per_month;
         time_point_sec next_cashout_time = time_point_sec::maximum();
-        uint8_t finished_payments_count = 0;
+        uint16_t finished_author_payments_count = 0;
+        uint16_t finished_worker_payments_count = 0;
     };
 
     struct worker_intermediate_api_object {
@@ -120,8 +120,8 @@ FC_REFLECT((golos::plugins::worker_api::worker_proposal_api_object),
 FC_REFLECT((golos::plugins::worker_api::worker_techspec_api_object),
     (author)(permlink)(post)(worker_proposal_author)(worker_proposal_permlink)(created)(modified)(net_rshares)(specification_cost)
     (specification_eta)(development_cost)(development_eta)(approves)(disapproves)(worker)(work_beginning_time)
-    (worker_result_permlink)(completion_date)(payments_count)(payments_interval)(payment_beginning_time)(next_cashout_time)
-    (finished_payments_count)
+    (worker_result_permlink)(completion_date)(author_payment_per_month)(worker_payment_per_month)(next_cashout_time)
+    (finished_author_payments_count)(finished_worker_payments_count)
 )
 
 FC_REFLECT((golos::plugins::worker_api::worker_intermediate_api_object),

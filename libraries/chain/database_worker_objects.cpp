@@ -153,37 +153,68 @@ namespace golos { namespace chain {
 
         const auto now = head_block_time();
 
+        const auto& gpo = get_dynamic_global_properties();
+        if (now < (gpo.last_worker_cashout + GOLOS_WORKER_CASHOUT_WINDOW)) {
+            return;
+        }
+        modify(gpo, [&](dynamic_global_property_object& gpo) {
+            gpo.last_worker_cashout = now;
+        });
+
         const auto& wto_idx = get_index<worker_techspec_index, by_next_cashout_time>();
 
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time <= now; ++wto_itr) {
-            const auto& wpo = get_worker_proposal(wto_itr->worker_proposal_author, wto_itr->worker_proposal_permlink);
 
-            const auto& reward = wto_itr->development_cost / wto_itr->payments_count;
+            auto author_remaining = wto_itr->specification_cost - (wto_itr->finished_author_payments_count * wto_itr->author_payment_per_month);
+            auto worker_remaining = wto_itr->development_cost - (wto_itr->finished_worker_payments_count * wto_itr->worker_payment_per_month);
 
-            const auto& gpo = get_dynamic_global_properties();
-            modify(gpo, [&](dynamic_global_property_object& gpo) {
-                gpo.total_worker_fund_steem -= reward;
-            });
+            asset author_reward;
 
-            adjust_balance(get_account(wto_itr->worker), reward);
+            if (author_remaining.amount > 0) {
+                author_reward = std::min(wto_itr->author_payment_per_month, author_remaining);
 
-            if (wto_itr->finished_payments_count+1 == wto_itr->payments_count) {
+                adjust_balance(get_account(wto_itr->author), author_reward);
+
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
-                    wto.finished_payments_count++;
+                    wto.finished_author_payments_count++;
+                    wto.next_cashout_time = head_block_time();
+                });
+
+                push_virtual_operation(techspec_reward_operation(wto_itr->author, to_string(wto_itr->permlink), author_reward));
+            }
+
+            asset worker_reward;
+
+            if (worker_remaining.amount > 0) {
+                worker_reward = std::min(wto_itr->worker_payment_per_month, worker_remaining);
+
+                adjust_balance(get_account(wto_itr->worker), worker_reward);
+
+                modify(*wto_itr, [&](worker_techspec_object& wto) {
+                    wto.finished_worker_payments_count++;
+                    wto.next_cashout_time = head_block_time();
+                });
+
+                push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_itr->permlink), worker_reward));
+            }
+
+            if (author_remaining.amount == 0 && worker_remaining.amount == 0) {
+                modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.next_cashout_time = time_point_sec::maximum();
                 });
+
+                const auto& wpo = get_worker_proposal(wto_itr->worker_proposal_author, wto_itr->worker_proposal_permlink);
 
                 modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::closed;
                 });
-            } else {
-                modify(*wto_itr, [&](worker_techspec_object& wto) {
-                    wto.finished_payments_count++;
-                    wto.next_cashout_time = now + wto.payments_interval;
-                });
+
+                continue;
             }
 
-            push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_itr->permlink), reward));
+            modify(gpo, [&](dynamic_global_property_object& gpo) {
+                gpo.total_worker_fund_steem -= (author_reward + worker_reward);
+            });
         }
     }
 

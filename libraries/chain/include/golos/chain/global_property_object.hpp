@@ -6,6 +6,12 @@
 
 #include <golos/protocol/asset.hpp>
 
+#ifdef STEEMIT_BUILD_TESTNET
+#define STEEMIT_HARDFORK_0_21_TIME  1547787600 // 18 jan 2019 12:00:00 MSK
+#else
+#define STEEMIT_HARDFORK_0_21_TIME  1561194000 // 22 jun 2019 12:00:00 MSK
+#endif
+
 namespace golos {
     namespace chain {
 
@@ -145,6 +151,10 @@ namespace golos {
             uint32_t vote_regeneration_per_day = 40;
 
             uint16_t custom_ops_bandwidth_multiplier = STEEMIT_CUSTOM_OPS_BANDWIDTH_MULTIPLIER;
+
+            asset worker_revenue_per_month = asset(0, STEEM_SYMBOL);
+            asset worker_consumption_per_month = asset(0, STEEM_SYMBOL);
+            time_point_sec last_worker_cashout = time_point_sec(STEEMIT_HARDFORK_0_21_TIME + GOLOS_WORKER_CASHOUT_WINDOW);
         };
 
         typedef multi_index_container <
@@ -191,5 +201,8 @@ FC_REFLECT((golos::chain::dynamic_global_property_object),
                 (vote_regeneration_per_day)
                 (custom_ops_bandwidth_multiplier)
                 (is_forced_min_price)
+                (worker_revenue_per_month)
+                (worker_consumption_per_month)
+                (last_worker_cashout)
 )
 CHAINBASE_SET_INDEX_TYPE(golos::chain::dynamic_global_property_object, golos::chain::dynamic_global_property_index)

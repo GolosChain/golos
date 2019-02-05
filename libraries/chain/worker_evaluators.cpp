@@ -83,10 +83,18 @@ namespace golos { namespace chain {
             GOLOS_CHECK_LOGIC(o.permlink == to_string(wto_itr->permlink),
                 logic_exception::there_already_is_your_techspec_with_another_permlink,
                 "There already is your techspec with another permlink");
+
             GOLOS_CHECK_LOGIC(o.specification_cost.symbol == wto_itr->specification_cost.symbol,
                 logic_exception::cannot_change_cost_symbol,
                 "Cannot change cost symbol");
             GOLOS_CHECK_LOGIC(o.development_cost.symbol == wto_itr->development_cost.symbol,
+                logic_exception::cannot_change_cost_symbol,
+                "Cannot change cost symbol");
+
+            GOLOS_CHECK_LOGIC(o.author_payment_per_month.symbol == wto_itr->author_payment_per_month.symbol,
+                logic_exception::cannot_change_cost_symbol,
+                "Cannot change cost symbol");
+            GOLOS_CHECK_LOGIC(o.worker_payment_per_month.symbol == wto_itr->worker_payment_per_month.symbol,
                 logic_exception::cannot_change_cost_symbol,
                 "Cannot change cost symbol");
 
@@ -96,8 +104,8 @@ namespace golos { namespace chain {
                 wto.specification_eta = o.specification_eta;
                 wto.development_cost = o.development_cost;
                 wto.development_eta = o.development_eta;
-                wto.payments_count = o.payments_count;
-                wto.payments_interval = o.payments_interval;
+                wto.author_payment_per_month = o.author_payment_per_month;
+                wto.worker_payment_per_month = o.worker_payment_per_month;
             });
 
             return;
@@ -114,8 +122,8 @@ namespace golos { namespace chain {
             wto.specification_eta = o.specification_eta;
             wto.development_cost = o.development_cost;
             wto.development_eta = o.development_eta;
-            wto.payments_count = o.payments_count;
-            wto.payments_interval = o.payments_interval;
+            wto.author_payment_per_month = o.author_payment_per_month;
+            wto.worker_payment_per_month = o.worker_payment_per_month;
         });
     }
 
@@ -386,23 +394,25 @@ namespace golos { namespace chain {
             auto approvers = count_approvers(worker_techspec_approve_state::approve);
 
             if (approvers >= STEEMIT_MAJOR_VOTED_WITNESSES) {
+                auto consumption = wto.author_payment_per_month + wto.worker_payment_per_month;
+
+                const auto& gpo = _db.get_dynamic_global_properties();
+
+                GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,
+                    logic_exception::insufficient_funds_to_approve_worker_result,
+                    "Insufficient funds to approve worker result");
+
+                _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
+                    gpo.worker_consumption_per_month += consumption;
+                });
+
                 _db.modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::payment;
                 });
 
                 _db.modify(wto, [&](worker_techspec_object& wto) {
-                    wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;
-                    wto.payment_beginning_time = wto.next_cashout_time;
+                    wto.next_cashout_time = _db.head_block_time();
                 });
-
-                const auto& gpo = _db.get_dynamic_global_properties();
-                _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
-                    gpo.total_worker_fund_steem -= wto.specification_cost;
-                });
-
-                _db.adjust_balance(_db.get_account(wto.author), wto.specification_cost);
-
-                _db.push_virtual_operation(techspec_reward_operation(wto.author, to_string(wto.permlink), wto.specification_cost));
             }
         }
     }
