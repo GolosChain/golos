@@ -463,6 +463,8 @@ namespace golos { namespace chain {
 
             void process_comment_cashout();
 
+            void update_worker_finances();
+
             void process_worker_cashout();
 
             void process_funds();

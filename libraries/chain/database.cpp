@@ -3672,6 +3672,7 @@ namespace golos { namespace chain {
                 process_funds();
                 process_conversions();
                 process_comment_cashout();
+                update_worker_finances();
                 process_worker_cashout();
                 process_vesting_withdrawals();
                 process_savings_withdraws();

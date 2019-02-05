@@ -33,13 +33,8 @@ namespace golos { namespace protocol {
             GOLOS_CHECK_VALUE_GE(development_cost.amount, 0);
         });
 
-        GOLOS_CHECK_PARAM(author_payment_per_month, {
-            GOLOS_CHECK_ASSET_GOLOS(author_payment_per_month);
-            GOLOS_CHECK_VALUE_LEGE(author_payment_per_month.amount, 1, specification_cost.amount);
-        });
-        GOLOS_CHECK_PARAM(worker_payment_per_month, {
-            GOLOS_CHECK_ASSET_GOLOS(worker_payment_per_month);
-            GOLOS_CHECK_VALUE_LEGE(worker_payment_per_month.amount, 1, development_cost.amount);
+        GOLOS_CHECK_PARAM(payments_count, {
+            GOLOS_CHECK_VALUE_GE(payments_count, 1);
         });
     }
 
