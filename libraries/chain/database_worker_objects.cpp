@@ -146,26 +146,6 @@ namespace golos { namespace chain {
         return find<worker_intermediate_object, by_permlink>(std::make_tuple(author, permlink));
     }
 
-    void database::update_worker_finances() {
-        if (!has_hardfork(STEEMIT_HARDFORK_0_21__1013)) {
-            return;
-        }
-
-        const auto now = head_block_time();
-
-        const auto& gpo = get_dynamic_global_properties();
-        if (now < gpo.next_worker_finances_update) {
-            return;
-        }
-
-        modify(gpo, [&](dynamic_global_property_object& gpo) {
-            gpo.worker_revenue_per_month = asset(0, STEEM_SYMBOL);
-            gpo.worker_consumption_per_month = asset(0, STEEM_SYMBOL);
-
-            gpo.next_worker_finances_update = now + GOLOS_WORKER_PAYMENTS_INTERVAL;
-        });
-    }
-
     void database::process_worker_cashout() {
         if (!has_hardfork(STEEMIT_HARDFORK_0_21__1013)) {
             return;
@@ -175,6 +155,33 @@ namespace golos { namespace chain {
 
         const auto& wto_idx = get_index<worker_techspec_index, by_next_cashout_time>();
 
+        // Updating consumption
+
+        asset consumption;
+
+        auto month_end = now + 60*60*24*30;
+        for (auto wto_itr = wto_idx.lower_bound(now); wto_itr != wto_idx.end() && wto_itr->next_cashout_time <= month_end; ++wto_itr) {
+            auto payments = 0;
+
+            for (auto i = wto_itr->next_cashout_time; i <= month_end; i += wto_itr->payments_interval) {
+                 payments++;
+            }
+
+            auto payment = (wto_itr->specification_cost + wto_itr->development_cost) / wto_itr->payments_count;
+
+            auto wto_consumption = payment * payments;
+
+            consumption += wto_consumption;
+        }
+
+        {
+            const auto& gpo = get_dynamic_global_properties();
+            modify(gpo, [&](dynamic_global_property_object& gpo) {
+                gpo.worker_consumption_per_month = consumption;
+            });
+        }
+
+        // Cashout
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time <= now; ++wto_itr) {
             auto author_reward = wto_itr->specification_cost / wto_itr->payments_count;
             auto worker_reward = wto_itr->development_cost / wto_itr->payments_count;
@@ -208,7 +215,7 @@ namespace golos { namespace chain {
             } else {
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
-                    wto.next_cashout_time = head_block_time() + GOLOS_WORKER_PAYMENTS_INTERVAL;;
+                    wto.next_cashout_time = head_block_time() + wto.payments_interval;
                 });
             }
         }

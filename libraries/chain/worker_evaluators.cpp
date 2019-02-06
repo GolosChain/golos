@@ -98,6 +98,7 @@ namespace golos { namespace chain {
                 wto.development_cost = o.development_cost;
                 wto.development_eta = o.development_eta;
                 wto.payments_count = o.payments_count;
+                wto.payments_interval = o.payments_interval;
             });
 
             return;
@@ -115,6 +116,7 @@ namespace golos { namespace chain {
             wto.development_cost = o.development_cost;
             wto.development_eta = o.development_eta;
             wto.payments_count = o.payments_count;
+            wto.payments_interval = o.payments_interval;
         });
     }
 
@@ -382,27 +384,30 @@ namespace golos { namespace chain {
                 });
             }
         } else if (o.state == worker_techspec_approve_state::approve) {
+            auto payment = (wto.specification_cost + wto.development_cost) / wto.payments_count;
+
+            asset consumption;
+
+            uint32_t month = 60*60*24*30;
+            if (wto.payments_interval < month) {
+                consumption = payment * std::min(month / wto.payments_interval, uint32_t(wto.payments_count));
+            }
+
+            const auto& gpo = _db.get_dynamic_global_properties();
+            GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,
+                logic_exception::insufficient_funds_to_approve_worker_result,
+                "Insufficient funds to approve worker result");
+
             auto approvers = count_approvers(worker_techspec_approve_state::approve);
 
             if (approvers >= STEEMIT_MAJOR_VOTED_WITNESSES) {
-                auto consumption = (wto.specification_cost + wto.development_cost) / wto.payments_count;
-
-                const auto& gpo = _db.get_dynamic_global_properties();
-
-                GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,
-                    logic_exception::insufficient_funds_to_approve_worker_result,
-                    "Insufficient funds to approve worker result");
-
-                _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
-                    gpo.worker_consumption_per_month += consumption;
-                });
 
                 _db.modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::payment;
                 });
 
                 _db.modify(wto, [&](worker_techspec_object& wto) {
-                    wto.next_cashout_time = _db.head_block_time() + GOLOS_WORKER_PAYMENTS_INTERVAL;
+                    wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;
                     wto.payment_beginning_time = wto.next_cashout_time;
                 });
             }

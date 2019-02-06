@@ -66,6 +66,7 @@ namespace golos { namespace chain {
         shared_string worker_result_permlink;
         time_point_sec completion_date;
         uint16_t payments_count;
+        uint32_t payments_interval;
         time_point_sec payment_beginning_time;
         time_point_sec next_cashout_time = time_point_sec::maximum();
         uint16_t finished_payments_count = 0;

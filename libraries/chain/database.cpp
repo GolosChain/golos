@@ -2652,7 +2652,7 @@ namespace golos { namespace chain {
 
                     modify(props, [&](dynamic_global_property_object& p) {
                         p.total_worker_fund_steem += asset(worker_reward, STEEM_SYMBOL);
-                        p.worker_revenue_per_month += asset(worker_reward, STEEM_SYMBOL);
+                        p.worker_revenue_per_month = asset(worker_reward * STEEMIT_BLOCKS_PER_DAY * 30, STEEM_SYMBOL);
                     });
                 }
 
@@ -3672,7 +3672,6 @@ namespace golos { namespace chain {
                 process_funds();
                 process_conversions();
                 process_comment_cashout();
-                update_worker_finances();
                 process_worker_cashout();
                 process_vesting_withdrawals();
                 process_savings_withdraws();

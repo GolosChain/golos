@@ -36,6 +36,12 @@ namespace golos { namespace protocol {
         GOLOS_CHECK_PARAM(payments_count, {
             GOLOS_CHECK_VALUE_GE(payments_count, 1);
         });
+        if (payments_count == 1) {
+            GOLOS_CHECK_PARAM(payments_interval, {
+                GOLOS_CHECK_VALUE_EQ(payments_interval, 0);
+                return;
+            });
+        }
     }
 
     void worker_techspec_delete_operation::validate() const {
