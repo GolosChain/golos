@@ -86,7 +86,7 @@ namespace golos { namespace plugins { namespace worker_api {
         std::string worker_result_permlink;
         time_point_sec completion_date;
         uint16_t payments_count = 0;
-        uint32_t payments_interval;
+        uint32_t payments_interval = 0;
         time_point_sec payment_beginning_time;
         time_point_sec next_cashout_time = time_point_sec::maximum();
         uint16_t finished_payments_count = 0;
