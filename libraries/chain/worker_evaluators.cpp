@@ -388,9 +388,9 @@ namespace golos { namespace chain {
 
             asset consumption;
 
-            uint32_t month = 60*60*24*30;
-            if (wto.payments_interval < month) {
-                consumption = payment * std::min(month / wto.payments_interval, uint32_t(wto.payments_count));
+            auto month_sec = fc::days(30).to_seconds();
+            if (wto.payments_interval < month_sec) {
+                consumption = payment * std::min(month_sec / wto.payments_interval, int64_t(wto.payments_count));
             }
 
             const auto& gpo = _db.get_dynamic_global_properties();
