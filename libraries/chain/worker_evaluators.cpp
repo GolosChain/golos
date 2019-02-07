@@ -386,12 +386,7 @@ namespace golos { namespace chain {
         } else if (o.state == worker_techspec_approve_state::approve) {
             auto payment = (wto.specification_cost + wto.development_cost) / wto.payments_count;
 
-            asset consumption;
-
-            auto month_sec = fc::days(30).to_seconds();
-            if (wto.payments_interval < month_sec) {
-                consumption = payment * std::min(month_sec / wto.payments_interval, int64_t(wto.payments_count));
-            }
+            asset consumption = payment * (fc::days(30).to_seconds() / wto.payments_interval);
 
             const auto& gpo = _db.get_dynamic_global_properties();
             GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,

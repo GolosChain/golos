@@ -159,14 +159,11 @@ namespace golos { namespace chain {
 
         asset consumption;
 
-        auto month_end = now + fc::days(30);
-        for (auto wto_itr = wto_idx.lower_bound(now); wto_itr != wto_idx.end() && wto_itr->next_cashout_time <= month_end; ++wto_itr) {
-            auto payments = 1;
-            payments += ((month_end - wto_itr->next_cashout_time).to_seconds() / wto_itr->payments_interval);
-
+        auto month_sec = fc::days(30).to_seconds();
+        for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time < time_point_sec::maximum(); ++wto_itr) {
             auto payment = (wto_itr->specification_cost + wto_itr->development_cost) / wto_itr->payments_count;
 
-            consumption += (payment * payments);
+            consumption += (payment * (month_sec / wto_itr->payments_interval));
         }
 
         {
