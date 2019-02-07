@@ -1390,6 +1390,189 @@ namespace golos { namespace wallet {
                 const std::string& from, const std::string& to,
                 const std::string& start_date, const std::string& stop_date, bool broadcast);
 
+            /**
+             * Create worker proposal based on specified post
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param type type of worker proposal
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction create_worker_proposal(
+                const std::string& author, const std::string& permlink, worker_proposal_type type, bool broadcast
+                );
+
+            /**
+             * Edit worker proposal based on specified post
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param type new type of worker proposal
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction edit_worker_proposal(
+                const std::string& author, const std::string& permlink, worker_proposal_type type, bool broadcast
+                );
+            /**
+
+             * Delete worker proposal based on specified post
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction delete_worker_proposal(
+                const std::string& author, const std::string& permlink, bool broadcast
+                );
+
+            /**
+             * Create worker techspec based on specified post, for specified worker proposal
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param worker_proposal_author author of the worker proposal
+             * @param worker_proposal_permlink permlink of the worker proposal
+             * @param specification_cost cost of specification
+             * @param specification_eta time amount to create specification in seconds
+             * @param development_cost cost of work
+             * @param development_eta time amount to work in seconds
+             * @param payments_count count of payments for work and techspec
+             * @param payments_interval interval between payments in seconds
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction create_worker_techspec(
+                const std::string& author, const std::string& permlink,
+                const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
+                const asset& specification_cost, uint32_t specification_eta,
+                const asset& development_cost, uint32_t development_eta,
+                uint16_t payments_count, uint32_t payments_interval, bool broadcast
+                );
+
+            /**
+             * Edit worker techspec based on specified post
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param worker_proposal_author author of the worker proposal
+             * @param worker_proposal_permlink permlink of the worker proposal
+             * @param specification_cost cost of specification
+             * @param specification_eta time amount to create specification in seconds
+             * @param development_cost cost of work
+             * @param development_eta time amount to work in seconds
+             * @param payments_count count of payments for work and techspec
+             * @param payments_interval interval between payments in seconds
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction edit_worker_techspec(
+                const std::string& author, const std::string& permlink,
+                const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
+                const asset& specification_cost, uint32_t specification_eta,
+                const asset& development_cost, uint32_t development_eta,
+                uint16_t payments_count, uint32_t payments_interval, bool broadcast
+                );
+
+            /**
+             * Delete worker techspec based on specified post
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction delete_worker_techspec(
+                const std::string& author, const std::string& permlink, bool broadcast
+                );
+
+            /**
+             * Approve or disapprove worker techspec based on specified post, or cancel this
+             *
+             * @param approver witness account
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param state approve, disapprove or abstain
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction approve_worker_techspec(
+                const std::string& approver, const std::string& author, const std::string& permlink,
+                worker_techspec_approve_state state, bool broadcast
+                );
+
+            /**
+             * Create worker intermediate based on specified post, for specified worker techspec
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param worker_techspec_permlink techspec for which intermediate is creating
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction create_worker_intermediate(
+                const std::string& author, const std::string& permlink, const std::string& worker_techspec_permlink,
+                bool broadcast
+                );
+
+            /**
+             * Delete worker intermediate based on specified post
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction delete_worker_intermediate(
+                const std::string& author, const std::string& permlink, bool broadcast
+                );
+
+            /**
+             * Assign worker to worker techspec based on specified post, or unassign it
+             *
+             * @param assigner worker or worker techspec author
+             * @param worker_techspec_author author of the post
+             * @param worker_techspec_permlink permlink of the post
+             * @param worker empty if unassigning
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction assign_worker(
+                const std::string& assigner, const std::string& worker_techspec_author,
+                const std::string& worker_techspec_permlink, const std::string& worker, bool broadcast
+                );
+
+            /**
+             * Fill worker result of specified worker techspec using specified post
+             *
+             * @param author author of the post and of the worker techspec
+             * @param permlink permlink of the post
+             * @param worker_techspec_permlink permlink of the worker techspec
+             * @param completion_date date when work on techspec is finished 
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction fill_worker_result(
+                const std::string& author, const std::string& permlink, const std::string& worker_techspec_permlink,
+                time_point_sec completion_date, bool broadcast
+                );
+
+            /**
+             * Clear worker result of specified worker techspec
+             *
+             * @param author author of the worker techspec
+             * @param permlink permlink of the worker techspec post
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction clear_worker_result(
+                const std::string& author, const std::string& permlink, bool broadcast
+                );
+
+            /**
+             * Approve or disapprove worker result based on specified post, or cancel this
+             *
+             * @param approver witness account
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param state approve, disapprove or abstain
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction approve_worker_result(
+                const std::string& approver, const std::string& author, const std::string& permlink,
+                worker_techspec_approve_state state, bool broadcast
+                );
+
         private:
             void decrypt_history_memos(history_operations& result);
 
@@ -1526,6 +1709,20 @@ FC_API( golos::wallet::wallet_api,
                 (delete_outbox_private_messages)
                 (mark_private_message)
                 (mark_private_messages)
+
+                (create_worker_proposal)
+                (edit_worker_proposal)
+                (delete_worker_proposal)
+                (create_worker_techspec)
+                (edit_worker_techspec)
+                (delete_worker_techspec)
+                (approve_worker_techspec)
+                (create_worker_intermediate)
+                (delete_worker_intermediate)
+                (assign_worker)
+                (fill_worker_result)
+                (clear_worker_result)
+                (approve_worker_result)
 )
 
 FC_REFLECT((golos::wallet::memo_data), (from)(to)(nonce)(check)(encrypted))
