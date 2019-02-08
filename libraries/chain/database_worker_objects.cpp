@@ -163,7 +163,7 @@ namespace golos { namespace chain {
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time < time_point_sec::maximum(); ++wto_itr) {
             auto payment = (wto_itr->specification_cost + wto_itr->development_cost) / wto_itr->payments_count;
 
-            consumption += (payment * (month_sec / wto_itr->payments_interval));
+            consumption += (payment * std::min(month_sec / wto_itr->payments_interval, int64_t(wto_itr->payments_count - wto_itr->finished_payments_count)));
         }
 
         {
