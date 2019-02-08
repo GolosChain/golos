@@ -155,38 +155,6 @@ namespace golos { namespace chain {
 
         const auto& wto_idx = get_index<worker_techspec_index, by_next_cashout_time>();
 
-        // Updating consumption
-
-        asset consumption;
-
-        auto month_sec = fc::days(30).to_seconds();
-        for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time < time_point_sec::maximum(); ++wto_itr) {
-            auto payment = (wto_itr->specification_cost + wto_itr->development_cost) / wto_itr->payments_count;
-            auto remaining = wto_itr->development_cost + wto_itr->specification_cost - (payment * wto_itr->finished_payments_count);
-            payment = remaining / (wto_itr->payments_count - wto_itr->finished_payments_count);
-
-            auto month_payments = std::min(month_sec / wto_itr->payments_interval, int64_t(wto_itr->payments_count - wto_itr->finished_payments_count));
-
-            auto wto_consumption = payment * (month_payments - 1);
-
-            if (wto_itr->finished_payments_count + month_payments == wto_itr->payments_count) {
-                wto_consumption += (wto_itr->specification_cost + wto_itr->development_cost - wto_consumption);
-            } else {
-                wto_consumption += payment;
-            }
-
-            consumption += wto_consumption;
-        }
-
-        {
-            const auto& gpo = get_dynamic_global_properties();
-            modify(gpo, [&](dynamic_global_property_object& gpo) {
-                gpo.worker_consumption_per_month = consumption;
-            });
-        }
-
-        // Cashout
-
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time <= now; ++wto_itr) {
             auto author_reward = wto_itr->specification_cost / wto_itr->payments_count;
             auto author_remaining = wto_itr->specification_cost - (author_reward * wto_itr->finished_payments_count);
@@ -211,6 +179,14 @@ namespace golos { namespace chain {
                 const auto& wpo = get_worker_proposal(wto_itr->worker_proposal_author, wto_itr->worker_proposal_permlink);
                 modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::closed;
+                });
+
+                auto consumption = (wto_itr->development_cost + wto_itr->specification_cost) * fc::days(30).to_seconds()
+                    / (wto_itr->payments_interval * wto_itr->payments_count);
+                consumption = std::min(consumption, wto_itr->development_cost + wto_itr->specification_cost);
+
+                modify(gpo, [&](dynamic_global_property_object& gpo) {
+                    gpo.worker_consumption_per_month -= consumption;
                 });
             } else {
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
