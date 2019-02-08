@@ -148,7 +148,6 @@ namespace golos {
 
             asset worker_revenue_per_month = asset(0, STEEM_SYMBOL);
             asset worker_consumption_per_month = asset(0, STEEM_SYMBOL);
-            time_point_sec next_worker_finances_update = time_point_sec::min();
         };
 
         typedef multi_index_container <
@@ -197,6 +196,5 @@ FC_REFLECT((golos::chain::dynamic_global_property_object),
                 (is_forced_min_price)
                 (worker_revenue_per_month)
                 (worker_consumption_per_month)
-                (next_worker_finances_update)
 )
 CHAINBASE_SET_INDEX_TYPE(golos::chain::dynamic_global_property_object, golos::chain::dynamic_global_property_index)

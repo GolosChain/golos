@@ -156,13 +156,15 @@ namespace golos { namespace chain {
         const auto& wto_idx = get_index<worker_techspec_index, by_next_cashout_time>();
 
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time <= now; ++wto_itr) {
+            auto remaining_payments_count = wto_itr->payments_count - wto_itr->finished_payments_count;
+
             auto author_reward = wto_itr->specification_cost / wto_itr->payments_count;
             auto author_remaining = wto_itr->specification_cost - (author_reward * wto_itr->finished_payments_count);
-            author_reward = author_remaining / (wto_itr->payments_count - wto_itr->finished_payments_count);
+            author_reward = author_remaining / remaining_payments_count;
 
             auto worker_reward = wto_itr->development_cost / wto_itr->payments_count;
             auto worker_remaining = wto_itr->development_cost - (worker_reward * wto_itr->finished_payments_count);
-            worker_reward = worker_remaining / (wto_itr->payments_count - wto_itr->finished_payments_count);
+            worker_reward = worker_remaining / remaining_payments_count;
 
             const auto& gpo = get_dynamic_global_properties();
 
@@ -182,7 +184,7 @@ namespace golos { namespace chain {
                 });
 
                 auto consumption = (wto_itr->development_cost + wto_itr->specification_cost) * fc::days(30).to_seconds()
-                    / (wto_itr->payments_interval * wto_itr->payments_count);
+                    / (uint64_t(wto_itr->payments_interval) * wto_itr->payments_count);
                 consumption = std::min(consumption, wto_itr->development_cost + wto_itr->specification_cost);
 
                 modify(gpo, [&](dynamic_global_property_object& gpo) {
@@ -191,7 +193,7 @@ namespace golos { namespace chain {
             } else {
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
-                    wto.next_cashout_time = head_block_time() + wto.payments_interval;
+                    wto.next_cashout_time = now + wto.payments_interval;
                 });
             }
 

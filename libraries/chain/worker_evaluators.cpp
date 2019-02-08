@@ -349,11 +349,7 @@ namespace golos { namespace chain {
             return;
         }
 
-        worker_techspec_approve_state old_state = worker_techspec_approve_state::abstain;
-
         if (wrao_itr != wrao_idx.end()) {
-            old_state = wrao_itr->state;
-
             _db.modify(*wrao_itr, [&](worker_result_approve_object& wrao) {
                 wrao.state = o.state;
             });
@@ -380,7 +376,7 @@ namespace golos { namespace chain {
         };
 
         auto consumption = (wto.development_cost + wto.specification_cost) * fc::days(30).to_seconds()
-             / (wto.payments_interval * wto.payments_count);
+             / (uint64_t(wto.payments_interval) * wto.payments_count);
         consumption = std::min(consumption, wto.development_cost + wto.specification_cost);
 
         const auto& gpo = _db.get_dynamic_global_properties();
@@ -392,12 +388,6 @@ namespace golos { namespace chain {
                 _db.modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::closed;
                 });
-            }
-
-            if (old_state == worker_techspec_approve_state::approve) {
-               _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
-                   gpo.worker_consumption_per_month -= consumption;
-               });
             }
         } else if (o.state == worker_techspec_approve_state::approve) {
             GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,
@@ -415,12 +405,10 @@ namespace golos { namespace chain {
                     wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;
                     wto.payment_beginning_time = wto.next_cashout_time;
                 });
-            }
 
-            if (old_state != worker_techspec_approve_state::approve) {
-               _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
-                   gpo.worker_consumption_per_month += consumption;
-               });
+                _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
+                    gpo.worker_consumption_per_month += consumption;
+                });
             }
         }
     }
