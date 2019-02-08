@@ -350,6 +350,8 @@ namespace golos { namespace wallet {
                         result["worker_from_content_fund_percent"] = median_props.worker_from_content_fund_percent;
                         result["worker_from_vesting_fund_percent"] = median_props.worker_from_vesting_fund_percent;
                         result["worker_from_witness_fund_percent"] = median_props.worker_from_witness_fund_percent;
+                        result["worker_techspec_approve_term_sec"] = median_props.worker_techspec_approve_term_sec;
+                        result["worker_result_approve_term_sec"] = median_props.worker_result_approve_term_sec;
                     }
 
                     return result;
@@ -2281,12 +2283,16 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             SET_PROP(p, allow_return_auction_reward_to_fund);
             op.props = p;
             auto hf = my->_remote_database_api->get_hardfork_version();
-            if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_21)) {
+            if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_21) || !!props.worker_from_content_fund_percent
+                    || !!props.worker_from_vesting_fund_percent || !!props.worker_from_witness_fund_percent
+                    || !!props.worker_techspec_approve_term_sec || !!props.worker_result_approve_term_sec) {
                 chain_properties_21 p21;
                 p21 = p;
                 SET_PROP(p21, worker_from_content_fund_percent);
                 SET_PROP(p21, worker_from_vesting_fund_percent);
                 SET_PROP(p21, worker_from_witness_fund_percent);
+                SET_PROP(p21, worker_techspec_approve_term_sec);
+                SET_PROP(p21, worker_result_approve_term_sec);
                 op.props = p21;
             }
 #undef SET_PROP

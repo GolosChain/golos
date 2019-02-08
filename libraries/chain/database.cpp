@@ -1939,6 +1939,8 @@ namespace golos { namespace chain {
             calc_median(&chain_properties_21::worker_from_content_fund_percent);
             calc_median(&chain_properties_21::worker_from_vesting_fund_percent);
             calc_median(&chain_properties_21::worker_from_witness_fund_percent);
+            calc_median(&chain_properties_21::worker_techspec_approve_term_sec);
+            calc_median(&chain_properties_21::worker_result_approve_term_sec);
 
             const auto& dynamic_global_properties = get_dynamic_global_properties();
 

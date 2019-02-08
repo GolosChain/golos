@@ -75,6 +75,8 @@ namespace golos { namespace wallet {
             fc::optional<uint16_t> worker_from_content_fund_percent;
             fc::optional<uint16_t> worker_from_vesting_fund_percent;
             fc::optional<uint16_t> worker_from_witness_fund_percent;
+            fc::optional<uint32_t> worker_techspec_approve_term_sec;
+            fc::optional<uint32_t> worker_result_approve_term_sec;
         };
 
         struct optional_private_box_query {
@@ -1712,7 +1714,8 @@ FC_REFLECT((golos::wallet::optional_chain_props),
     (posts_window)(posts_per_window)(comments_window)(comments_per_window)(votes_window)(votes_per_window)(auction_window_size)
     (max_delegated_vesting_interest_rate)(custom_ops_bandwidth_multiplier)(min_curation_percent)(max_curation_percent)
     (curation_reward_curve)(allow_distribute_auction_reward)(allow_return_auction_reward_to_fund)
-    (worker_from_content_fund_percent)(worker_from_vesting_fund_percent)(worker_from_witness_fund_percent))
+    (worker_from_content_fund_percent)(worker_from_vesting_fund_percent)(worker_from_witness_fund_percent)
+    (worker_techspec_approve_term_sec)(worker_result_approve_term_sec))
 
 FC_REFLECT(
     (golos::wallet::message_body),

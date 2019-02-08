@@ -681,6 +681,16 @@ namespace golos { namespace protocol {
              */
             uint16_t worker_from_witness_fund_percent = GOLOS_WORKER_FROM_WITNESS_FUND_PERCENT;
 
+            /**
+             * Maximum term of worker techspec approving
+             */
+            uint32_t worker_techspec_approve_term_sec = GOLOS_WORKER_TECHSPEC_APPROVE_TERM_SEC;
+
+            /**
+             * Maximum term of worker result approving
+             */
+            uint32_t worker_result_approve_term_sec = GOLOS_WORKER_RESULT_APPROVE_TERM_SEC;
+
             void validate() const;
 
             chain_properties_21& operator=(const chain_properties_17& src) {
@@ -1405,7 +1415,8 @@ FC_REFLECT_DERIVED(
     (curation_reward_curve)(allow_distribute_auction_reward)(allow_return_auction_reward_to_fund))
 FC_REFLECT_DERIVED(
     (golos::protocol::chain_properties_21), ((golos::protocol::chain_properties_19)),
-    (worker_from_content_fund_percent)(worker_from_vesting_fund_percent)(worker_from_witness_fund_percent))
+    (worker_from_content_fund_percent)(worker_from_vesting_fund_percent)(worker_from_witness_fund_percent)
+    (worker_techspec_approve_term_sec)(worker_result_approve_term_sec))
 
 FC_REFLECT_TYPENAME((golos::protocol::versioned_chain_properties))
 

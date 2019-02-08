@@ -156,6 +156,11 @@ namespace golos { namespace chain {
             logic_exception::techspec_is_already_approved,
             "Techspec is already approved");
 
+        const auto& mprops = _db.get_witness_schedule_object().median_props;
+        GOLOS_CHECK_LOGIC(_db.head_block_time() <= wto.created + mprops.worker_techspec_approve_term_sec,
+            logic_exception::approve_term_has_expired,
+            "Approve term has expired");
+
         const auto& wtao_idx = _db.get_index<worker_techspec_approve_index, by_techspec_approver>();
         auto wtao_itr = wtao_idx.find(std::make_tuple(o.author, o.permlink, o.approver));
 
@@ -337,6 +342,11 @@ namespace golos { namespace chain {
                 logic_exception::worker_proposal_should_be_in_review_state_to_approve,
                 "Worker proposal should be in review state to approve");
         }
+
+        const auto& mprops = _db.get_witness_schedule_object().median_props;
+        GOLOS_CHECK_LOGIC(_db.head_block_time() <= wto.completion_date + mprops.worker_result_approve_term_sec,
+            logic_exception::approve_term_has_expired,
+            "Approve term has expired");
 
         const auto& wrao_idx = _db.get_index<worker_result_approve_index, by_result_approver>();
         auto wrao_itr = wrao_idx.find(std::make_tuple(o.author, o.permlink, o.approver));
