@@ -163,7 +163,17 @@ namespace golos { namespace chain {
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time < time_point_sec::maximum(); ++wto_itr) {
             auto payment = (wto_itr->specification_cost + wto_itr->development_cost) / wto_itr->payments_count;
 
-            consumption += (payment * std::min(month_sec / wto_itr->payments_interval, int64_t(wto_itr->payments_count - wto_itr->finished_payments_count)));
+            auto month_payments = std::min(month_sec / wto_itr->payments_interval, int64_t(wto_itr->payments_count - wto_itr->finished_payments_count));
+
+            auto wto_consumption = payment * (month_payments - 1);
+
+            if (wto_itr->finished_payments_count + month_payments == wto_itr->payments_count) {
+                wto_consumption += (wto_itr->specification_cost + wto_itr->development_cost - wto_consumption);
+            } else {
+                wto_consumption += payment;
+            }
+
+            consumption += wto_consumption;
         }
 
         {
@@ -184,17 +194,10 @@ namespace golos { namespace chain {
                 return;
             }
 
-            modify(gpo, [&](dynamic_global_property_object& gpo) {
-                gpo.total_worker_fund_steem -= (author_reward + worker_reward);
-            });
-
-            adjust_balance(get_account(wto_itr->author), author_reward);
-            adjust_balance(get_account(wto_itr->worker), worker_reward);
-
-            push_virtual_operation(techspec_reward_operation(wto_itr->author, to_string(wto_itr->permlink), author_reward));
-            push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_itr->permlink), worker_reward));
-
             if (wto_itr->finished_payments_count+1 == wto_itr->payments_count) {
+                author_reward = wto_itr->specification_cost - (wto_itr->finished_payments_count * author_reward);
+                worker_reward = wto_itr->development_cost - (wto_itr->finished_payments_count * worker_reward);
+
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
                     wto.next_cashout_time = time_point_sec::maximum();
@@ -210,6 +213,16 @@ namespace golos { namespace chain {
                     wto.next_cashout_time = head_block_time() + wto.payments_interval;
                 });
             }
+
+            modify(gpo, [&](dynamic_global_property_object& gpo) {
+                gpo.total_worker_fund_steem -= (author_reward + worker_reward);
+            });
+
+            adjust_balance(get_account(wto_itr->author), author_reward);
+            adjust_balance(get_account(wto_itr->worker), worker_reward);
+
+            push_virtual_operation(techspec_reward_operation(wto_itr->author, to_string(wto_itr->permlink), author_reward));
+            push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_itr->permlink), worker_reward));
         }
     }
 

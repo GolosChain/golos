@@ -386,7 +386,14 @@ namespace golos { namespace chain {
         } else if (o.state == worker_techspec_approve_state::approve) {
             auto payment = (wto.specification_cost + wto.development_cost) / wto.payments_count;
 
-            asset consumption = payment * std::min(fc::days(30).to_seconds() / wto.payments_interval, int64_t(wto.payments_count));
+            auto month_payments = std::min(fc::days(30).to_seconds() / wto.payments_interval, int64_t(wto.payments_count));
+
+            asset consumption = payment * (month_payments - 1);
+            if (month_payments == wto.payments_count) {
+                consumption += (wto.specification_cost + wto.development_cost - consumption);
+            } else {
+                consumption += payment;
+            }
 
             const auto& gpo = _db.get_dynamic_global_properties();
             GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,
@@ -396,7 +403,6 @@ namespace golos { namespace chain {
             auto approvers = count_approvers(worker_techspec_approve_state::approve);
 
             if (approvers >= STEEMIT_MAJOR_VOTED_WITNESSES) {
-
                 _db.modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::payment;
                 });
