@@ -162,6 +162,8 @@ namespace golos { namespace chain {
         auto month_sec = fc::days(30).to_seconds();
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time < time_point_sec::maximum(); ++wto_itr) {
             auto payment = (wto_itr->specification_cost + wto_itr->development_cost) / wto_itr->payments_count;
+            auto remaining = wto_itr->development_cost + wto_itr->specification_cost - (payment * wto_itr->finished_payments_count);
+            payment = remaining / (wto_itr->payments_count - wto_itr->finished_payments_count);
 
             auto month_payments = std::min(month_sec / wto_itr->payments_interval, int64_t(wto_itr->payments_count - wto_itr->finished_payments_count));
 
@@ -184,9 +186,15 @@ namespace golos { namespace chain {
         }
 
         // Cashout
+
         for (auto wto_itr = wto_idx.begin(); wto_itr != wto_idx.end() && wto_itr->next_cashout_time <= now; ++wto_itr) {
             auto author_reward = wto_itr->specification_cost / wto_itr->payments_count;
+            auto author_remaining = wto_itr->specification_cost - (author_reward * wto_itr->finished_payments_count);
+            author_reward = author_remaining / (wto_itr->payments_count - wto_itr->finished_payments_count);
+
             auto worker_reward = wto_itr->development_cost / wto_itr->payments_count;
+            auto worker_remaining = wto_itr->development_cost - (worker_reward * wto_itr->finished_payments_count);
+            worker_reward = worker_remaining / (wto_itr->payments_count - wto_itr->finished_payments_count);
 
             const auto& gpo = get_dynamic_global_properties();
 
@@ -195,9 +203,6 @@ namespace golos { namespace chain {
             }
 
             if (wto_itr->finished_payments_count+1 == wto_itr->payments_count) {
-                author_reward = wto_itr->specification_cost - (wto_itr->finished_payments_count * author_reward);
-                worker_reward = wto_itr->development_cost - (wto_itr->finished_payments_count * worker_reward);
-
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
                     wto.next_cashout_time = time_point_sec::maximum();
