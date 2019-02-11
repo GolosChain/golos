@@ -161,7 +161,7 @@ namespace golos { namespace chain {
             auto author_reward = wto_itr->specification_cost / wto_itr->payments_count;
             auto worker_reward = wto_itr->development_cost / wto_itr->payments_count;
 
-            if (wto_itr->finished_payments_count+1 == wto_itr->payments_count) {
+            if (remaining_payments_count == 1) {
                 author_reward = wto_itr->specification_cost - (author_reward * wto_itr->finished_payments_count);
                 worker_reward = wto_itr->development_cost - (worker_reward * wto_itr->finished_payments_count);
             }
@@ -172,7 +172,7 @@ namespace golos { namespace chain {
                 return;
             }
 
-            if (wto_itr->finished_payments_count+1 == wto_itr->payments_count) {
+            if (remaining_payments_count == 1) {
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
                     wto.next_cashout_time = time_point_sec::maximum();
@@ -183,8 +183,14 @@ namespace golos { namespace chain {
                     wpo.state = worker_proposal_state::closed;
                 });
 
-                auto consumption = (wto_itr->development_cost + wto_itr->specification_cost) * fc::days(30).to_seconds()
-                    / (uint64_t(wto_itr->payments_interval) * wto_itr->payments_count);
+                auto payments_period = int64_t(wto_itr->payments_interval) * wto_itr->payments_count;
+
+                u256 cost(wto_itr->development_cost.amount.value);
+                cost += wto_itr->specification_cost.amount.value;
+                cost *= std::min(fc::days(30).to_seconds(), payments_period);
+                cost /= payments_period;
+
+                auto consumption = asset(static_cast<uint64_t>(cost), STEEM_SYMBOL);
                 consumption = std::min(consumption, wto_itr->development_cost + wto_itr->specification_cost);
 
                 modify(gpo, [&](dynamic_global_property_object& gpo) {
