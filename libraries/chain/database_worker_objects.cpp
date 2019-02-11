@@ -159,12 +159,12 @@ namespace golos { namespace chain {
             auto remaining_payments_count = wto_itr->payments_count - wto_itr->finished_payments_count;
 
             auto author_reward = wto_itr->specification_cost / wto_itr->payments_count;
-            auto author_remaining = wto_itr->specification_cost - (author_reward * wto_itr->finished_payments_count);
-            author_reward = author_remaining / remaining_payments_count;
-
             auto worker_reward = wto_itr->development_cost / wto_itr->payments_count;
-            auto worker_remaining = wto_itr->development_cost - (worker_reward * wto_itr->finished_payments_count);
-            worker_reward = worker_remaining / remaining_payments_count;
+
+            if (wto_itr->finished_payments_count+1 == wto_itr->payments_count) {
+                author_reward = wto_itr->specification_cost - (author_reward * wto_itr->finished_payments_count);
+                worker_reward = wto_itr->development_cost - (worker_reward * wto_itr->finished_payments_count);
+            }
 
             const auto& gpo = get_dynamic_global_properties();
 
