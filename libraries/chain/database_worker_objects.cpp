@@ -173,28 +173,19 @@ namespace golos { namespace chain {
             }
 
             if (remaining_payments_count == 1) {
-                modify(*wto_itr, [&](worker_techspec_object& wto) {
-                    wto.finished_payments_count++;
-                    wto.next_cashout_time = time_point_sec::maximum();
-                });
-
                 const auto& wpo = get_worker_proposal(wto_itr->worker_proposal_author, wto_itr->worker_proposal_permlink);
                 modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::closed;
                 });
 
-                auto payments_period = int64_t(wto_itr->payments_interval) * wto_itr->payments_count;
-
-                u256 cost(wto_itr->development_cost.amount.value);
-                cost += wto_itr->specification_cost.amount.value;
-                cost *= std::min(fc::days(30).to_seconds(), payments_period);
-                cost /= payments_period;
-
-                auto consumption = asset(static_cast<uint64_t>(cost), STEEM_SYMBOL);
-                consumption = std::min(consumption, wto_itr->development_cost + wto_itr->specification_cost);
-
                 modify(gpo, [&](dynamic_global_property_object& gpo) {
-                    gpo.worker_consumption_per_month -= consumption;
+                    gpo.worker_consumption_per_month -= wto_itr->month_consumption;
+                });
+
+                modify(*wto_itr, [&](worker_techspec_object& wto) {
+                    wto.finished_payments_count++;
+                    wto.next_cashout_time = time_point_sec::maximum();
+                    wto.month_consumption = asset(0, STEEM_SYMBOL);
                 });
             } else {
                 modify(*wto_itr, [&](worker_techspec_object& wto) {

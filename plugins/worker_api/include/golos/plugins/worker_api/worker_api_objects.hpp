@@ -59,6 +59,7 @@ namespace golos { namespace plugins { namespace worker_api {
               completion_date(o.completion_date),
               payments_count(o.payments_count),
               payments_interval(o.payments_interval),
+              month_consumption(o.month_consumption),
               payment_beginning_time(o.payment_beginning_time),
               next_cashout_time(o.next_cashout_time),
               finished_payments_count(o.finished_payments_count) {
@@ -87,6 +88,7 @@ namespace golos { namespace plugins { namespace worker_api {
         time_point_sec completion_date;
         uint16_t payments_count = 0;
         uint32_t payments_interval = 0;
+        asset month_consumption;
         time_point_sec payment_beginning_time;
         time_point_sec next_cashout_time = time_point_sec::maximum();
         uint16_t finished_payments_count = 0;
@@ -120,8 +122,8 @@ FC_REFLECT((golos::plugins::worker_api::worker_proposal_api_object),
 FC_REFLECT((golos::plugins::worker_api::worker_techspec_api_object),
     (author)(permlink)(post)(worker_proposal_author)(worker_proposal_permlink)(created)(modified)(net_rshares)(specification_cost)
     (specification_eta)(development_cost)(development_eta)(approves)(disapproves)(worker)(work_beginning_time)
-    (worker_result_permlink)(completion_date)(payments_count)(payments_interval)(payment_beginning_time)(next_cashout_time)
-    (finished_payments_count)
+    (worker_result_permlink)(completion_date)(payments_count)(payments_interval)(month_consumption)(payment_beginning_time)
+    (next_cashout_time)(finished_payments_count)
 )
 
 FC_REFLECT((golos::plugins::worker_api::worker_intermediate_api_object),

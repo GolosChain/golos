@@ -375,10 +375,6 @@ namespace golos { namespace chain {
             return approvers;
         };
 
-        auto consumption = (wto.development_cost + wto.specification_cost) * fc::days(30).to_seconds()
-             / (uint64_t(wto.payments_interval) * wto.payments_count);
-        consumption = std::min(consumption, wto.development_cost + wto.specification_cost);
-
         const auto& gpo = _db.get_dynamic_global_properties();
 
         if (o.state == worker_techspec_approve_state::disapprove) {
@@ -390,6 +386,14 @@ namespace golos { namespace chain {
                 });
             }
         } else if (o.state == worker_techspec_approve_state::approve) {
+            auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
+
+            uint128_t cost(wto.development_cost.amount.value);
+            cost += wto.specification_cost.amount.value;
+            cost *= std::min(fc::days(30).to_seconds(), payments_period);
+            cost /= payments_period;
+            auto consumption = asset(cost.to_uint64(), STEEM_SYMBOL);
+
             GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,
                 logic_exception::insufficient_funds_to_approve_worker_result,
                 "Insufficient funds to approve worker result");
@@ -402,6 +406,7 @@ namespace golos { namespace chain {
                 });
 
                 _db.modify(wto, [&](worker_techspec_object& wto) {
+                    wto.month_consumption = consumption;
                     wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;
                     wto.payment_beginning_time = wto.next_cashout_time;
                 });
