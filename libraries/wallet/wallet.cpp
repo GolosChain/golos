@@ -1240,50 +1240,6 @@ namespace golos { namespace wallet {
                     return sign_transaction(trx, broadcast);
                 }
 
-                annotated_signed_transaction worker_proposal(
-                    const std::string& author, const std::string& permlink,
-                    worker_proposal_type type, bool broadcast
-                ) {
-                    WALLET_CHECK_UNLOCKED();
-
-                    worker_proposal_operation op;
-                    op.author = author;
-                    op.permlink = permlink;
-                    op.type = type;
-
-                    signed_transaction tx;
-                    tx.operations.push_back(op);
-                    tx.validate();
-                    return sign_transaction(tx, broadcast);
-                }
-
-                annotated_signed_transaction worker_techspec(
-                    const std::string& author, const std::string& permlink,
-                    const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
-                    const asset& specification_cost, uint32_t specification_eta,
-                    const asset& development_cost, uint32_t development_eta,
-                    uint16_t payments_count, uint32_t payments_interval, bool broadcast
-                ) {
-                    WALLET_CHECK_UNLOCKED();
-
-                    worker_techspec_operation op;
-                    op.author = author;
-                    op.permlink = permlink;
-                    op.worker_proposal_author = worker_proposal_author;
-                    op.worker_proposal_permlink = worker_proposal_permlink;
-                    op.specification_cost = specification_cost;
-                    op.specification_eta = specification_eta;
-                    op.development_cost = development_cost;
-                    op.development_eta = development_eta;
-                    op.payments_count = payments_count;
-                    op.payments_interval = payments_interval;
-
-                    signed_transaction tx;
-                    tx.operations.push_back(op);
-                    tx.validate();
-                    return sign_transaction(tx, broadcast);
-                }
-
                 string                                  _wallet_filename;
                 wallet_data                             _wallet;
                 golos::protocol::chain_id_type          steem_chain_id;
@@ -3151,16 +3107,20 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction( trx, broadcast );
         }
 
-        annotated_signed_transaction wallet_api::create_worker_proposal(
+        annotated_signed_transaction wallet_api::worker_proposal(
                 const std::string& author, const std::string& permlink, worker_proposal_type type, bool broadcast
         ) {
-            return my->worker_proposal(author, permlink, type, broadcast);
-        }
+            WALLET_CHECK_UNLOCKED();
 
-        annotated_signed_transaction wallet_api::edit_worker_proposal(
-                const std::string& author, const std::string& permlink, worker_proposal_type type, bool broadcast
-        ) {
-            return my->worker_proposal(author, permlink, type, broadcast);
+            worker_proposal_operation op;
+            op.author = author;
+            op.permlink = permlink;
+            op.type = type;
+
+            signed_transaction tx;
+            tx.operations.push_back(op);
+            tx.validate();
+            return sign_transaction(tx, broadcast);
         }
 
         annotated_signed_transaction wallet_api::delete_worker_proposal(
@@ -3178,28 +3138,31 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction(tx, broadcast);
         }
 
-        annotated_signed_transaction wallet_api::create_worker_techspec(
+        annotated_signed_transaction wallet_api::worker_techspec(
                 const std::string& author, const std::string& permlink,
                 const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
                 const asset& specification_cost, uint32_t specification_eta,
                 const asset& development_cost, uint32_t development_eta,
                 uint16_t payments_count, uint32_t payments_interval, bool broadcast
         ) {
-            return my->worker_techspec(author, permlink, worker_proposal_author, worker_proposal_permlink,
-                specification_cost, specification_eta, development_cost, development_eta, payments_count,
-                payments_interval, broadcast);
-        }
+            WALLET_CHECK_UNLOCKED();
 
-        annotated_signed_transaction wallet_api::edit_worker_techspec(
-                const std::string& author, const std::string& permlink,
-                const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
-                const asset& specification_cost, uint32_t specification_eta,
-                const asset& development_cost, uint32_t development_eta,
-                uint16_t payments_count, uint32_t payments_interval, bool broadcast
-        ) {
-            return my->worker_techspec(author, permlink, worker_proposal_author, worker_proposal_permlink,
-                specification_cost, specification_eta, development_cost, development_eta, payments_count,
-                payments_interval, broadcast);
+            worker_techspec_operation op;
+            op.author = author;
+            op.permlink = permlink;
+            op.worker_proposal_author = worker_proposal_author;
+            op.worker_proposal_permlink = worker_proposal_permlink;
+            op.specification_cost = specification_cost;
+            op.specification_eta = specification_eta;
+            op.development_cost = development_cost;
+            op.development_eta = development_eta;
+            op.payments_count = payments_count;
+            op.payments_interval = payments_interval;
+
+            signed_transaction tx;
+            tx.operations.push_back(op);
+            tx.validate();
+            return sign_transaction(tx, broadcast);
         }
 
         annotated_signed_transaction wallet_api::delete_worker_techspec(
@@ -3235,7 +3198,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction(tx, broadcast);
         }
 
-        annotated_signed_transaction wallet_api::create_worker_intermediate(
+        annotated_signed_transaction wallet_api::worker_intermediate(
                 const std::string& author, const std::string& permlink, const std::string& worker_techspec_permlink,
                 bool broadcast
         ) {
@@ -3286,7 +3249,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction(tx, broadcast);
         }
 
-        annotated_signed_transaction wallet_api::fill_worker_result(
+        annotated_signed_transaction wallet_api::worker_result(
                 const std::string& author, const std::string& permlink, const std::string& worker_techspec_permlink,
                 time_point_sec completion_date, bool broadcast
         ) {
@@ -3304,7 +3267,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction(tx, broadcast);
         }
 
-        annotated_signed_transaction wallet_api::clear_worker_result(
+        annotated_signed_transaction wallet_api::delete_worker_result(
                 const std::string& author, const std::string& permlink, bool broadcast
         ) {
             WALLET_CHECK_UNLOCKED();
