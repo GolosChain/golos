@@ -152,15 +152,9 @@ namespace golos { namespace chain {
         const auto& wto_post = _db.get_comment(o.author, o.permlink);
         const auto& wto = _db.get_worker_techspec(wto_post.id);
 
-
         GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::created,
             logic_exception::techspec_is_already_approved_or_closed,
             "Techspec is already approved or closed");
-
-        const auto& mprops = _db.get_witness_schedule_object().median_props;
-        GOLOS_CHECK_LOGIC(_db.head_block_time() <= wto.created + mprops.worker_techspec_approve_term_sec,
-            logic_exception::approve_term_has_expired,
-            "Approve term has expired");
 
         const auto& wtao_idx = _db.get_index<worker_techspec_approve_index, by_techspec_approver>();
         auto wtao_itr = wtao_idx.find(std::make_tuple(wto.post, o.approver));
@@ -210,23 +204,18 @@ namespace golos { namespace chain {
                 return;
             }
 
-            _db.modify(wto, [&](worker_techspec_object& wto) {
-                wto.state = worker_techspec_state::closed;
-            });
-        } else if (o.state == worker_techspec_approve_state::approve) {
-            auto approvers = count_approvers(worker_techspec_approve_state::approve);
-
-            if (approvers < STEEMIT_MAJOR_VOTED_WITNESSES) {
-                return;
-            }
+            _db.clear_worker_techspec_approves(wto);
 
             const auto& wpo_post = _db.get_comment(wto.worker_proposal_author, wto.worker_proposal_permlink);
             const auto& wpo = _db.get_worker_proposal(wpo_post.id);
+
             _db.modify(wpo, [&](worker_proposal_object& wpo) {
                 wpo.approved_techspec_author = o.author;
                 from_string(wpo.approved_techspec_permlink, o.permlink);
                 wpo.state = worker_proposal_state::techspec;
             });
+
+            _db.clear_worker_techspec_approves(wto);
 
             _db.modify(wto, [&](worker_techspec_object& wto) {
                 wto.state = worker_techspec_state::approved;

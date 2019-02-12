@@ -153,4 +153,40 @@ namespace golos { namespace chain {
         });
     }
 
+    void database::set_clear_old_worker_techspec_approves(bool clear_old_worker_techspec_approves) {
+        _clear_old_worker_techspec_approves = clear_old_worker_techspec_approves;
+    }
+
+    void database::clear_worker_techspec_approves(const worker_techspec_object& wto) {
+        if (!_clear_old_worker_techspec_approves) {
+            return;
+        }
+
+        const auto& wtao_idx = get_index<worker_techspec_approve_index, by_techspec_approver>();
+        auto wtao_itr = wtao_idx.find(std::make_tuple(wto.author, wto.permlink));
+        while (wtao_itr != wtao_idx.end() && wtao_itr->author == wto.author && wtao_itr->permlink == wto.permlink) {
+            const auto& wtao = *wtao_itr;
+            ++wtao_itr;
+            remove(wtao);
+        }
+    }
+
+    void database::clear_expired_worker_objects() {
+        if (!has_hardfork(STEEMIT_HARDFORK_0_21__1013)) {
+            return;
+        }
+
+        const auto& mprops = get_witness_schedule_object().median_props;
+
+        const auto& idx = get_index<worker_techspec_index>().indices().get<by_created>();
+        auto itr = idx.begin();
+        while (itr != idx.end() && itr->created + mprops.worker_techspec_approve_term_sec <= head_block_time()) {
+            clear_worker_techspec_approves(*itr);
+
+            modify(*itr, [&](worker_techspec_object& wto) {
+                wto.state = worker_techspec_state::closed;
+            });
+        }
+    }
+
 } } // golos::chain

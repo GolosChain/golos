@@ -122,6 +122,8 @@ namespace golos { namespace chain {
             void set_store_memo_in_savings_withdraws(bool store_memo_in_savings_withdraws);
             bool store_memo_in_savings_withdraws() const;
 
+            void set_clear_old_worker_techspec_approves(bool clear_old_worker_techspec_approves);
+
             /**
              * @brief wipe Delete database from disk, and potentially the raw chain as well.
              * @param include_blocks If true, delete the raw chain as well as the database.
@@ -280,6 +282,10 @@ namespace golos { namespace chain {
             void update_worker_techspec_approves(const worker_techspec_object& wto,
                     const worker_techspec_approve_state& old_state,
                     const worker_techspec_approve_state& new_state);
+
+            void clear_worker_techspec_approves(const worker_techspec_object& wto);
+
+            void clear_expired_worker_objects();
 
             signed_block generate_block(
                     const fc::time_point_sec when,
@@ -674,6 +680,8 @@ namespace golos { namespace chain {
             std::vector<std::string> _accounts_to_store_metadata;
 
             bool _store_memo_in_savings_withdraws = true;
+
+            bool _clear_old_worker_techspec_approves = false;
 
             flat_map<std::string, std::shared_ptr<custom_operation_interpreter>> _custom_operation_interpreters;
             std::string _json_schema;

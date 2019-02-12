@@ -3661,6 +3661,7 @@ namespace golos { namespace chain {
                 clear_expired_transactions();
                 clear_expired_orders();
                 clear_expired_delegations();
+                clear_expired_worker_objects();
                 update_witness_schedule();
 
                 update_median_feed();
