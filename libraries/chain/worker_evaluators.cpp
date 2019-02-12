@@ -394,7 +394,7 @@ namespace golos { namespace chain {
             cost /= payments_period;
             auto consumption = asset(cost.to_uint64(), STEEM_SYMBOL);
 
-            GOLOS_CHECK_LOGIC((gpo.worker_consumption_per_month + consumption) <= gpo.worker_revenue_per_month,
+            GOLOS_CHECK_LOGIC(gpo.worker_consumption_per_month + consumption <= gpo.total_worker_fund_steem + gpo.worker_revenue_per_month,
                 logic_exception::insufficient_funds_to_approve_worker_result,
                 "Insufficient funds to approve worker result");
 
