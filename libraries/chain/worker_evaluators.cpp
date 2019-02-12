@@ -386,16 +386,18 @@ namespace golos { namespace chain {
                 });
             }
         } else if (o.state == worker_techspec_approve_state::approve) {
+            auto month_sec = fc::days(30).to_seconds();
             auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
+            auto months = payments_period / month_sec;
 
             uint128_t cost(wto.development_cost.amount.value);
             cost += wto.specification_cost.amount.value;
-            cost *= std::min(fc::days(30).to_seconds(), payments_period);
+            cost *= std::min(month_sec, payments_period);
             cost /= payments_period;
             auto consumption = asset(cost.to_uint64(), STEEM_SYMBOL);
 
-            auto prognosis_funds = gpo.total_worker_fund_steem - gpo.worker_consumption_per_month + gpo.worker_revenue_per_month;
-            GOLOS_CHECK_LOGIC(consumption <= prognosis_funds,
+            auto prognosis_funds = gpo.total_worker_fund_steem + (-gpo.worker_consumption_per_month - consumption + gpo.worker_revenue_per_month) * months;
+            GOLOS_CHECK_LOGIC(prognosis_funds.amount >= 0,
                 logic_exception::insufficient_funds_to_approve_worker_result,
                 "Insufficient funds to approve worker result");
 
