@@ -36,6 +36,12 @@ namespace golos { namespace chain {
         share_type net_rshares;
     };
 
+    enum class worker_techspec_state {
+        created,
+        approved,
+        closed
+    };
+
     class worker_techspec_object : public object<worker_techspec_object_type, worker_techspec_object> {
     public:
         worker_techspec_object() = delete;
@@ -52,6 +58,7 @@ namespace golos { namespace chain {
         shared_string permlink;
         account_name_type worker_proposal_author;
         shared_string worker_proposal_permlink;
+        worker_techspec_state state;
         time_point_sec created;
         time_point_sec modified;
         share_type net_rshares;
@@ -296,6 +303,8 @@ FC_REFLECT_ENUM(golos::chain::worker_proposal_state, (created)(techspec)(work)(w
 CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_proposal_object,
     golos::chain::worker_proposal_index);
+
+FC_REFLECT_ENUM(golos::chain::worker_techspec_state, (created)(approved)(closed))
 
 CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_techspec_object,

@@ -44,6 +44,7 @@ namespace golos { namespace plugins { namespace worker_api {
               post(p),
               worker_proposal_author(o.worker_proposal_author),
               worker_proposal_permlink(to_string(o.worker_proposal_permlink)),
+              state(o.state),
               created(o.created),
               modified(o.modified),
               net_rshares(o.net_rshares),
@@ -71,6 +72,7 @@ namespace golos { namespace plugins { namespace worker_api {
         comment_api_object post;
         account_name_type worker_proposal_author;
         std::string worker_proposal_permlink;
+        worker_techspec_state state;
         time_point_sec created;
         time_point_sec modified;
         share_type net_rshares;
@@ -116,7 +118,7 @@ FC_REFLECT((golos::plugins::worker_api::worker_proposal_api_object),
 )
 
 FC_REFLECT((golos::plugins::worker_api::worker_techspec_api_object),
-    (author)(permlink)(post)(worker_proposal_author)(worker_proposal_permlink)(created)(modified)(net_rshares)(specification_cost)
+    (author)(permlink)(post)(worker_proposal_author)(worker_proposal_permlink)(state)(created)(modified)(net_rshares)(specification_cost)
     (development_cost)(approves)(disapproves)(worker)(work_beginning_time)(worker_result_permlink)(completion_date)(payments_count)
     (payments_interval)(month_consumption)(payment_beginning_time)(next_cashout_time)(finished_payments_count)
 )

@@ -158,6 +158,9 @@ DEFINE_API(worker_api_plugin, get_worker_techspecs) {
         if (!query.is_good_author(wto.author)) {
             return false;
         }
+        if (!query.is_good_state(wto.state)) {
+            return false;
+        }
         if (!query.is_good_worker_proposal(wto.worker_proposal_author, to_string(wto.worker_proposal_permlink))) {
             return false;
         }

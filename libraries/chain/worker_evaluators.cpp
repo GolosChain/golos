@@ -111,6 +111,7 @@ namespace golos { namespace chain {
             wto.permlink = comment.permlink;
             wto.worker_proposal_author = o.worker_proposal_author;
             from_string(wto.worker_proposal_permlink, o.worker_proposal_permlink);
+            wto.state = worker_techspec_state::created;
             wto.created = now;
             wto.net_rshares = comment.net_rshares;
             wto.specification_cost = o.specification_cost;
@@ -131,7 +132,7 @@ namespace golos { namespace chain {
             logic_exception::cannot_delete_worker_techspec_for_paying_proposal,
             "Cannot delete worker techspec for paying proposal");
 
-        if (wpo.approved_techspec_author == wto.author && wpo.approved_techspec_permlink == wto.permlink) {
+        if (wto.state == worker_techspec_state::approved) {
             _db.modify(wpo, [&](worker_proposal_object& wpo) {
                 wpo.state = worker_proposal_state::created;
             });
@@ -150,11 +151,9 @@ namespace golos { namespace chain {
 
         const auto& wto = _db.get_worker_techspec(o.author, o.permlink);
 
-        const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_author, wto.worker_proposal_permlink);
-
-        GOLOS_CHECK_LOGIC(wpo.approved_techspec_permlink.empty(),
-            logic_exception::techspec_is_already_approved,
-            "Techspec is already approved");
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::created,
+            logic_exception::techspec_is_already_approved_or_closed,
+            "Techspec is already approved or closed");
 
         const auto& mprops = _db.get_witness_schedule_object().median_props;
         GOLOS_CHECK_LOGIC(_db.head_block_time() <= wto.created + mprops.worker_techspec_approve_term_sec,
@@ -207,10 +206,15 @@ namespace golos { namespace chain {
                 return;
             }
 
+             const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_author, wto.worker_proposal_permlink);
             _db.modify(wpo, [&](worker_proposal_object& wpo) {
                 wpo.approved_techspec_author = o.author;
                 from_string(wpo.approved_techspec_permlink, o.permlink);
                 wpo.state = worker_proposal_state::techspec;
+            });
+
+            _db.modify(wto, [&](worker_techspec_object& wto) {
+                wto.state = worker_techspec_state::approved;
             });
         }
     }
@@ -272,7 +276,7 @@ namespace golos { namespace chain {
 
         const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_author, wto.worker_proposal_permlink);
 
-        GOLOS_CHECK_LOGIC(wpo.approved_techspec_author == o.author && wpo.approved_techspec_permlink == wto.permlink,
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::approved,
             logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
             "Worker result can be created only for techspec in work");
         if (wpo.type == worker_proposal_type::premade_work) {
@@ -458,8 +462,7 @@ namespace golos { namespace chain {
             return;
         }
 
-        GOLOS_CHECK_LOGIC(wpo.approved_techspec_author == wto.author && wpo.approved_techspec_permlink == wto.permlink
-                && wpo.state == worker_proposal_state::techspec,
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::approved && wpo.state == worker_proposal_state::techspec,
             logic_exception::worker_can_be_assigned_only_to_proposal_with_approved_techspec,
             "Worker can be assigned only to proposal with approved techspec");
 

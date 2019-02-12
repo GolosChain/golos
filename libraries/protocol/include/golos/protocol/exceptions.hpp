@@ -350,7 +350,7 @@ namespace golos {
             cannot_change_cost_symbol,
             cannot_delete_worker_techspec_for_paying_proposal,
             approver_of_techspec_should_be_in_top19_of_witnesses,
-            techspec_is_already_approved,
+            techspec_is_already_approved_or_closed,
             work_completion_date_cannot_be_in_future,
             worker_result_can_be_created_only_on_post,
             worker_result_can_be_created_only_for_techspec_in_work,
@@ -650,7 +650,7 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (cannot_change_cost_symbol)
         (cannot_delete_worker_techspec_for_paying_proposal)
         (approver_of_techspec_should_be_in_top19_of_witnesses)
-        (techspec_is_already_approved)
+        (techspec_is_already_approved_or_closed)
         (work_completion_date_cannot_be_in_future)
         (worker_result_can_be_created_only_on_post)
         (worker_result_can_be_created_only_for_techspec_in_work)

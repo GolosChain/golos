@@ -40,6 +40,7 @@ namespace golos { namespace plugins { namespace worker_api {
         fc::optional<std::string>       start_author;
         fc::optional<std::string>       start_permlink;
         std::set<std::string>           select_authors;
+        std::set<worker_techspec_state> select_states;
         fc::optional<std::string>       worker_proposal_author;
         fc::optional<std::string>       worker_proposal_permlink;
 
@@ -51,6 +52,10 @@ namespace golos { namespace plugins { namespace worker_api {
 
         bool is_good_author(const std::string& author) const {
             return select_authors.empty() || select_authors.count(author);
+        }
+
+        bool is_good_state(const worker_techspec_state& state) const {
+            return select_states.empty() || select_states.count(state);
         }
 
         bool is_good_worker_proposal(const std::string& author, const std::string& permlink) const {
@@ -84,7 +89,7 @@ FC_REFLECT((golos::plugins::worker_api::worker_proposal_query),
 );
 
 FC_REFLECT((golos::plugins::worker_api::worker_techspec_query),
-    (limit)(start_author)(start_permlink)(select_authors)(worker_proposal_author)(worker_proposal_permlink)
+    (limit)(start_author)(start_permlink)(select_authors)(select_states)(worker_proposal_author)(worker_proposal_permlink)
 );
 
 FC_REFLECT((golos::plugins::worker_api::worker_intermediate_query),
