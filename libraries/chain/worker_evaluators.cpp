@@ -397,12 +397,12 @@ namespace golos { namespace chain {
             cost /= payments_period;
             auto consumption = asset(cost.to_uint64(), STEEM_SYMBOL);
 
-            int128_t prognosis_funds(gpo.total_worker_fund_steem.amount.value);
-            prognosis_funds += gpo.worker_revenue_per_month.amount.value;
+            int128_t prognosis_funds(gpo.worker_revenue_per_month.amount.value);
             prognosis_funds -= gpo.worker_consumption_per_month.amount.value;
             prognosis_funds -= consumption.amount.value;
             prognosis_funds *= payments_period;
             prognosis_funds /= month_sec;
+            prognosis_funds += gpo.total_worker_fund_steem.amount.value;
 
             GOLOS_CHECK_LOGIC(prognosis_funds >= 0,
                 logic_exception::insufficient_funds_to_approve_worker_result,
