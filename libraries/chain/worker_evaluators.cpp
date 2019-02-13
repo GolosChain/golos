@@ -7,6 +7,8 @@
 
 namespace golos { namespace chain {
 
+    using int128_t = boost::multiprecision::int128_t;
+
     void worker_proposal_evaluator::do_apply(const worker_proposal_operation& o) {
         ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_proposal_operation");
 
@@ -388,7 +390,6 @@ namespace golos { namespace chain {
         } else if (o.state == worker_techspec_approve_state::approve) {
             auto month_sec = fc::days(30).to_seconds();
             auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
-            auto months = payments_period / month_sec;
 
             uint128_t cost(wto.development_cost.amount.value);
             cost += wto.specification_cost.amount.value;
@@ -396,8 +397,14 @@ namespace golos { namespace chain {
             cost /= payments_period;
             auto consumption = asset(cost.to_uint64(), STEEM_SYMBOL);
 
-            auto prognosis_funds = gpo.total_worker_fund_steem + (-gpo.worker_consumption_per_month - consumption + gpo.worker_revenue_per_month) * months;
-            GOLOS_CHECK_LOGIC(prognosis_funds.amount >= 0,
+            int128_t prognosis_funds(gpo.total_worker_fund_steem.amount.value);
+            prognosis_funds += gpo.worker_revenue_per_month.amount.value;
+            prognosis_funds -= gpo.worker_consumption_per_month.amount.value;
+            prognosis_funds -= consumption.amount.value;
+            prognosis_funds *= payments_period;
+            prognosis_funds /= month_sec;
+
+            GOLOS_CHECK_LOGIC(prognosis_funds >= 0,
                 logic_exception::insufficient_funds_to_approve_worker_result,
                 "Insufficient funds to approve worker result");
 
