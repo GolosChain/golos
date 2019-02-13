@@ -190,17 +190,38 @@ namespace golos { namespace chain {
             });
         }
 
-        if (o.state == worker_techspec_approve_state::approve) {
+        auto count_approvers = [&](auto state) {
             auto approvers = 0;
-
             wtao_itr = wtao_idx.lower_bound(std::make_tuple(o.author, o.permlink));
             for (; wtao_itr != wtao_idx.end()
                     && wtao_itr->author == o.author && to_string(wtao_itr->permlink) == o.permlink; ++wtao_itr) {
                 auto witness = _db.find_witness(wtao_itr->approver);
-                if (witness && witness->schedule == witness_object::top19 && wtao_itr->state == worker_techspec_approve_state::approve) {
+                if (witness && witness->schedule == witness_object::top19 && wtao_itr->state == state) {
                     approvers++;
                 }
             }
+            return approvers;
+        };
+
+        if (o.state == worker_techspec_approve_state::disapprove) {
+            auto disapprovers = count_approvers(worker_techspec_approve_state::disapprove);
+
+            if (disapprovers < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
+                return;
+            }
+
+            wtao_itr = wtao_idx.find(std::make_tuple(o.author, o.permlink));
+            while (wtao_itr != wtao_idx.end() && wtao_itr->author == o.author && to_string(wtao_itr->permlink) == o.permlink) {
+                const auto& wtao = *wtao_itr;
+                ++wtao_itr;
+                _db.remove(wtao);
+            }
+
+            _db.modify(wto, [&](worker_techspec_object& wto) {
+                wto.state = worker_techspec_state::closed;
+            });
+        } else if (o.state == worker_techspec_approve_state::approve) {
+            auto approvers = count_approvers(worker_techspec_approve_state::approve);
 
             if (approvers < STEEMIT_MAJOR_VOTED_WITNESSES) {
                 return;
