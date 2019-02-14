@@ -122,15 +122,6 @@ namespace golos { namespace chain {
         }
     }
 
-    void database::update_worker_proposal_rshares(const comment_object& post, share_type net_rshares_new) {
-        auto* wpo = find_worker_proposal(post.id);
-        if (wpo) {
-            modify(*wpo, [&](worker_proposal_object& wpo) {
-                wpo.net_rshares = net_rshares_new;
-            });
-        }
-    }
-
     void database::update_worker_techspec_rshares(const comment_object& post, share_type net_rshares_new) {
         auto* wto = find_worker_techspec(post.id);
         if (wto) {

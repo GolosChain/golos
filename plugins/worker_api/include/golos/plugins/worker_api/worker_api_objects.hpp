@@ -8,19 +8,77 @@ namespace golos { namespace plugins { namespace worker_api {
     using namespace golos::chain;
     using golos::api::comment_api_object;
 
+#ifndef WORKER_API_SPACE_ID
+#define WORKER_API_SPACE_ID 15
+#endif
+
+    enum worker_api_plugin_object_type {
+        worker_proposal_metadata_object_type = (WORKER_API_SPACE_ID << 8)
+    };
+
+    class worker_proposal_metadata_object : public object<worker_proposal_metadata_object_type, worker_proposal_metadata_object> {
+    public:
+        worker_proposal_metadata_object() = delete;
+
+        template <typename Constructor, typename Allocator>
+        worker_proposal_metadata_object(Constructor&& c, allocator <Allocator> a)
+            : permlink(a) {
+            c(*this);
+        };
+
+        id_type id;
+
+        account_name_type author;
+        shared_string permlink;
+        time_point_sec created;
+        time_point_sec modified;
+        share_type net_rshares;
+    };
+
+    using worker_proposal_metadata_id_type = object_id<worker_proposal_metadata_object>;
+
+    using worker_proposal_metadata_index = multi_index_container<
+        worker_proposal_metadata_object,
+        indexed_by<
+            ordered_unique<
+                tag<by_id>,
+                member<worker_proposal_metadata_object, worker_proposal_metadata_id_type, &worker_proposal_metadata_object::id>>,
+            ordered_unique<
+                tag<by_permlink>,
+                composite_key<
+                    worker_proposal_metadata_object,
+                    member<worker_proposal_metadata_object, account_name_type, &worker_proposal_metadata_object::author>,
+                    member<worker_proposal_metadata_object, shared_string, &worker_proposal_metadata_object::permlink>>,
+                composite_key_compare<
+                    std::less<account_name_type>,
+                    chainbase::strcmp_less>>,
+            ordered_unique<
+                tag<by_net_rshares>,
+                composite_key<
+                    worker_proposal_metadata_object,
+                    member<worker_proposal_metadata_object, share_type, &worker_proposal_metadata_object::net_rshares>,
+                    member<worker_proposal_metadata_object, worker_proposal_metadata_id_type, &worker_proposal_metadata_object::id>>,
+                composite_key_compare<
+                    std::greater<share_type>,
+                    std::less<worker_proposal_metadata_id_type>>>>,
+        allocator<worker_proposal_metadata_object>>;
+
     struct worker_proposal_api_object {
-        worker_proposal_api_object(const worker_proposal_object& o, const comment_api_object& p)
+        worker_proposal_api_object(const worker_proposal_metadata_object& o, const comment_api_object& p)
             : post(p),
-              type(o.type),
-              state(o.state),
-              approved_techspec_author(o.approved_techspec_author),
-              approved_techspec_permlink(to_string(o.approved_techspec_permlink)),
               created(o.created),
               modified(o.modified),
               net_rshares(o.net_rshares) {
         }
 
         worker_proposal_api_object() {
+        }
+
+        void fill_worker_proposal(const worker_proposal_object& wpo) {
+            type = wpo.type;
+            state = wpo.state;
+            approved_techspec_author = wpo.approved_techspec_author;
+            approved_techspec_permlink = to_string(wpo.approved_techspec_permlink);
         }
 
         comment_api_object post;
@@ -85,6 +143,10 @@ namespace golos { namespace plugins { namespace worker_api {
     };
 
 } } } // golos::plugins::worker_api
+
+CHAINBASE_SET_INDEX_TYPE(
+    golos::plugins::worker_api::worker_proposal_metadata_object,
+    golos::plugins::worker_api::worker_proposal_metadata_index)
 
 FC_REFLECT((golos::plugins::worker_api::worker_proposal_api_object),
     (post)(type)(state)(approved_techspec_author)(approved_techspec_permlink)(created)(modified)(net_rshares)

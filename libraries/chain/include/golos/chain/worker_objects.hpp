@@ -31,9 +31,6 @@ namespace golos { namespace chain {
         worker_proposal_state state;
         account_name_type approved_techspec_author;
         shared_string approved_techspec_permlink;
-        time_point_sec created;
-        time_point_sec modified;
-        share_type net_rshares;
     };
 
     enum class worker_techspec_state {
@@ -111,7 +108,6 @@ namespace golos { namespace chain {
     };
 
     struct by_post;
-    struct by_net_rshares;
 
     using worker_proposal_index = multi_index_container<
         worker_proposal_object,
@@ -121,21 +117,13 @@ namespace golos { namespace chain {
                 member<worker_proposal_object, worker_proposal_object_id_type, &worker_proposal_object::id>>,
             ordered_unique<
                 tag<by_post>,
-                member<worker_proposal_object, comment_id_type, &worker_proposal_object::post>>,
-            ordered_unique<
-                tag<by_net_rshares>,
-                composite_key<
-                    worker_proposal_object,
-                    member<worker_proposal_object, share_type, &worker_proposal_object::net_rshares>,
-                    member<worker_proposal_object, worker_proposal_object_id_type, &worker_proposal_object::id>>,
-                composite_key_compare<
-                    std::greater<share_type>,
-                    std::less<worker_proposal_object_id_type>>>>,
+                member<worker_proposal_object, comment_id_type, &worker_proposal_object::post>>>,
         allocator<worker_proposal_object>>;
 
     struct by_worker_proposal;
     struct by_worker_result;
     struct by_next_cashout_time;
+    struct by_net_rshares;
     struct by_approves;
     struct by_disapproves;
 

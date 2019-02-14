@@ -27,7 +27,6 @@ namespace golos { namespace chain {
 
             _db.modify(*wpo, [&](worker_proposal_object& wpo) {
                 wpo.type = o.type;
-                wpo.modified = now;
             });
             return;
         }
@@ -37,8 +36,6 @@ namespace golos { namespace chain {
             wpo.post = post.id;
             wpo.type = o.type;
             wpo.state = worker_proposal_state::created;
-            wpo.created = now;
-            wpo.net_rshares = post.net_rshares;
         });
     }
 

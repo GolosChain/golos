@@ -2514,7 +2514,6 @@ namespace golos { namespace chain {
 
                     net_rshares_new = c.net_rshares;
                 });
-                update_worker_proposal_rshares(comment, net_rshares_new);
                 update_worker_techspec_rshares(comment, net_rshares_new);
 
                 push_virtual_operation(comment_payout_update_operation(comment.author, to_string(comment.permlink)));

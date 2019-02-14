@@ -3,12 +3,73 @@
 #include <golos/plugins/chain/plugin.hpp>
 #include <golos/plugins/social_network/social_network.hpp>
 #include <golos/chain/comment_object.hpp>
+#include <golos/chain/index.hpp>
+#include <golos/chain/operation_notification.hpp>
 #include <appbase/application.hpp>
 
 namespace golos { namespace plugins { namespace worker_api {
 
 namespace bpo = boost::program_options;
 using golos::api::discussion_helper;
+
+struct post_operation_visitor {
+    golos::chain::database& _db;
+
+    post_operation_visitor(golos::chain::database& db) : _db(db) {
+    }
+
+    typedef void result_type;
+
+    template<typename T>
+    result_type operator()(const T&) const {
+    }
+
+    result_type operator()(const worker_proposal_operation& o) const {
+        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_permlink>();
+        auto wpmo_itr = wpmo_idx.find(std::make_tuple(o.author, o.permlink));
+
+        const auto now = _db.head_block_time();
+
+        if (wpmo_itr != wpmo_idx.end()) { // Edit case
+            _db.modify(*wpmo_itr, [&](worker_proposal_metadata_object& wpmo) {
+                wpmo.modified = now;
+            });
+
+            return;
+        }
+
+        // Create case
+
+        const auto& comment = _db.get_comment(o.author, o.permlink);
+
+        _db.create<worker_proposal_metadata_object>([&](worker_proposal_metadata_object& wpmo) {
+            wpmo.created = now;
+            wpmo.net_rshares = comment.net_rshares;
+        });
+    }
+
+    result_type operator()(const worker_proposal_delete_operation& o) const {
+        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_permlink>();
+        auto wpmo_itr = wpmo_idx.find(std::make_tuple(o.author, o.permlink));
+
+        _db.remove(*wpmo_itr);
+    }
+
+    result_type operator()(const vote_operation& o) {
+        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_permlink>();
+        auto wpmo_itr = wpmo_idx.find(std::make_tuple(o.author, o.permlink));
+
+        if (wpmo_itr == wpmo_idx.end()) {
+            return;
+        }
+
+        const auto& comment = _db.get_comment(o.author, o.permlink);
+
+        _db.modify(*wpmo_itr, [&](worker_proposal_metadata_object& wpmo) {
+            wpmo.net_rshares = comment.net_rshares;
+        });
+    }
+};
 
 class worker_api_plugin::worker_api_plugin_impl final {
 public:
@@ -22,8 +83,18 @@ public:
         );
     }
 
-    template <typename DatabaseIndex, typename OrderIndex, bool ReverseSort, typename Selector>
-    void select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select, bool fill_posts);
+    void post_operation(const operation_notification& note) {
+        try {
+            note.op.visit(post_operation_visitor(_db));
+        } catch (const fc::assert_exception&) {
+            if (_db.is_producing()) {
+                throw;
+            }
+        }
+    }
+
+    template <typename DatabaseIndex, typename OrderIndex, bool ReverseSort, typename Selector, typename FillWorkerFields>
+    void select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select, FillWorkerFields&& fill_worker_fields, bool fill_posts);
 
     ~worker_api_plugin_impl() = default;
 
@@ -52,6 +123,12 @@ void worker_api_plugin::plugin_initialize(const boost::program_options::variable
 
     my = std::make_unique<worker_api_plugin::worker_api_plugin_impl>(*this);
 
+    my->_db.post_apply_operation.connect([&](const operation_notification& note) {
+        my->post_operation(note);
+    });
+
+    add_plugin_index<worker_proposal_metadata_index>(my->_db);
+
     JSON_RPC_REGISTER_API(name())
 }
 
@@ -63,8 +140,8 @@ void worker_api_plugin::plugin_shutdown() {
     ilog("Shutting down worker api plugin");
 }
 
-template <typename DatabaseIndex, typename OrderIndex, bool ReverseSort, typename Selector>
-void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select, bool fill_posts) {
+template <typename DatabaseIndex, typename OrderIndex, bool ReverseSort, typename Selector, typename FillWorkerFields>
+void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered(const auto& query, std::vector<auto>& result, Selector&& select, FillWorkerFields&& fill_worker_fields, bool fill_posts) {
     query.validate();
 
     if (!_db.has_index<DatabaseIndex>()) {
@@ -100,14 +177,18 @@ void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered
             if (!select(query, obj)) {
                 return;
             }
+            comment_api_object ca;
             if (fill_posts) {
                 if (!post) {
                     post = &_db.get_comment(itr->post);
                 }
-                result.emplace_back(obj, helper->create_comment_api_object(*post));
+                ca = helper->create_comment_api_object(*post);
                 post = nullptr;
-            } else {
-                result.emplace_back(obj, comment_api_object());
+            }
+            result.emplace_back(obj, ca);
+            auto res_obj = result.back();
+            if (!fill_worker_fields(_db, res_obj, query)) {
+                result.pop_back();
             }
         };
 
@@ -134,23 +215,29 @@ DEFINE_API(worker_api_plugin, get_worker_proposals) {
     )
     std::vector<worker_proposal_api_object> result;
 
-    auto wpo_selector = [&](const worker_proposal_query& query, const worker_proposal_object& wpo) -> bool {
-        if (!query.is_good_author(wpo.author)) {
+    auto wpo_selector = [&](const worker_proposal_query& query, const worker_proposal_metadata_object& wpmo) -> bool {
+        if (!query.is_good_author(wpmo.author)) {
             return false;
         }
+        return true;
+    };
+
+    auto wpo_fill_worker_fields = [&](const golos::chain::database& _db, worker_proposal_api_object& wpo_api, const worker_proposal_query& query) -> bool {
+        auto wpo = _db.get_worker_proposal(wpo_api.author, wpo_api.permlink);
         if (!query.is_good_state(wpo.state)) {
             return false;
         }
         if (!query.is_good_type(wpo.type)) {
             return false;
         }
+        wpo_api.fill_worker_proposal(wpo);
         return true;
     };
 
     if (sort == worker_proposal_sort::by_created) {
-        my->select_postbased_results_ordered<worker_proposal_index, by_id, true>(query, result, wpo_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_proposal_metadata_index, by_id, true>(query, result, wpo_selector, wpo_fill_worker_fields, fill_posts);
     } else if (sort == worker_proposal_sort::by_net_rshares) {
-        my->select_postbased_results_ordered<worker_proposal_index, by_net_rshares, false>(query, result, wpo_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_proposal_metadata_index, by_net_rshares, false>(query, result, wpo_selector, wpo_fill_worker_fields, fill_posts);
     }
 
     return result;
@@ -177,14 +264,18 @@ DEFINE_API(worker_api_plugin, get_worker_techspecs) {
         return true;
     };
 
+    auto wto_fill_worker_fields = [&](const golos::chain::database& _db, worker_techspec_api_object& wto_api, const worker_techspec_query& query) -> bool {
+        return true;
+    };
+
     if (sort == worker_techspec_sort::by_created) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_id, true>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_id, true>(query, result, wto_selector, wto_fill_worker_fields, fill_posts);
     } else if (sort == worker_techspec_sort::by_net_rshares) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_net_rshares, false>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_net_rshares, false>(query, result, wto_selector, wto_fill_worker_fields, fill_posts);
     } else if (sort == worker_techspec_sort::by_approves) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_approves, false>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_approves, false>(query, result, wto_selector, wto_fill_worker_fields, fill_posts);
     } else if (sort == worker_techspec_sort::by_disapproves) {
-        my->select_postbased_results_ordered<worker_techspec_index, by_disapproves, false>(query, result, wto_selector, fill_posts);
+        my->select_postbased_results_ordered<worker_techspec_index, by_disapproves, false>(query, result, wto_selector, wto_fill_worker_fields, fill_posts);
     }
 
     return result;

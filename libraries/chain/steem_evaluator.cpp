@@ -1558,7 +1558,6 @@ namespace golos { namespace chain {
 
                         net_rshares_new = c.net_rshares;
                     });
-                    _db.update_worker_proposal_rshares(comment, net_rshares_new);
                     _db.update_worker_techspec_rshares(comment, net_rshares_new);
 
                     _db.modify(root, [&](comment_object &c) {
@@ -1699,7 +1698,6 @@ namespace golos { namespace chain {
 
                         net_rshares_new = c.net_rshares;
                     });
-                    _db.update_worker_proposal_rshares(comment, net_rshares_new);
                     _db.update_worker_techspec_rshares(comment, net_rshares_new);
 
                     _db.modify(root, [&](comment_object &c) {
