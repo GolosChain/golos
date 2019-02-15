@@ -19,14 +19,14 @@ namespace golos { namespace chain {
 
         template <typename Constructor, typename Allocator>
         worker_proposal_object(Constructor&& c, allocator <Allocator> a)
-            : permlink(a), approved_techspec_permlink(a) {
+            : approved_techspec_permlink(a) {
             c(*this);
         };
 
         id_type id;
 
         account_name_type author;
-        shared_string permlink;
+        comment_id_type post;
         worker_proposal_type type;
         worker_proposal_state state;
         account_name_type approved_techspec_author;
@@ -48,14 +48,14 @@ namespace golos { namespace chain {
 
         template <typename Constructor, typename Allocator>
         worker_techspec_object(Constructor&& c, allocator <Allocator> a)
-            : permlink(a), worker_proposal_permlink(a), worker_result_permlink(a) {
+            : worker_proposal_permlink(a), worker_result_permlink(a) {
             c(*this);
         };
 
         id_type id;
 
         account_name_type author;
-        shared_string permlink;
+        comment_id_type post;
         account_name_type worker_proposal_author;
         shared_string worker_proposal_permlink;
         worker_techspec_state state;
@@ -83,16 +83,14 @@ namespace golos { namespace chain {
         worker_techspec_approve_object() = delete;
 
         template <typename Constructor, typename Allocator>
-        worker_techspec_approve_object(Constructor&& c, allocator <Allocator> a)
-            : permlink(a) {
+        worker_techspec_approve_object(Constructor&& c, allocator <Allocator> a) {
             c(*this);
         };
 
         id_type id;
 
         account_name_type approver;
-        account_name_type author;
-        shared_string permlink;
+        comment_id_type post;
         worker_techspec_approve_state state;
     };
 
@@ -101,20 +99,18 @@ namespace golos { namespace chain {
         worker_result_approve_object() = delete;
 
         template <typename Constructor, typename Allocator>
-        worker_result_approve_object(Constructor&& c, allocator <Allocator> a)
-            : permlink(a) {
+        worker_result_approve_object(Constructor&& c, allocator <Allocator> a) {
             c(*this);
         };
 
         id_type id;
 
         account_name_type approver;
-        account_name_type author;
-        shared_string permlink;
+        comment_id_type post;
         worker_techspec_approve_state state;
     };
 
-    struct by_permlink;
+    struct by_post;
     struct by_net_rshares;
 
     using worker_proposal_index = multi_index_container<
@@ -124,14 +120,8 @@ namespace golos { namespace chain {
                 tag<by_id>,
                 member<worker_proposal_object, worker_proposal_object_id_type, &worker_proposal_object::id>>,
             ordered_unique<
-                tag<by_permlink>,
-                composite_key<
-                    worker_proposal_object,
-                    member<worker_proposal_object, account_name_type, &worker_proposal_object::author>,
-                    member<worker_proposal_object, shared_string, &worker_proposal_object::permlink>>,
-                composite_key_compare<
-                    std::less<account_name_type>,
-                    chainbase::strcmp_less>>,
+                tag<by_post>,
+                member<worker_proposal_object, comment_id_type, &worker_proposal_object::post>>,
             ordered_unique<
                 tag<by_net_rshares>,
                 composite_key<
@@ -156,14 +146,8 @@ namespace golos { namespace chain {
                 tag<by_id>,
                 member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>,
             ordered_unique<
-                tag<by_permlink>,
-                composite_key<
-                    worker_techspec_object,
-                    member<worker_techspec_object, account_name_type, &worker_techspec_object::author>,
-                    member<worker_techspec_object, shared_string, &worker_techspec_object::permlink>>,
-                composite_key_compare<
-                    std::less<account_name_type>,
-                    chainbase::strcmp_less>>,
+                tag<by_post>,
+                member<worker_techspec_object, comment_id_type, &worker_techspec_object::post>>,
             ordered_non_unique<
                 tag<by_worker_proposal>,
                 composite_key<
@@ -231,12 +215,10 @@ namespace golos { namespace chain {
                 tag<by_techspec_approver>,
                 composite_key<
                     worker_techspec_approve_object,
-                    member<worker_techspec_approve_object, account_name_type, &worker_techspec_approve_object::author>,
-                    member<worker_techspec_approve_object, shared_string, &worker_techspec_approve_object::permlink>,
+                    member<worker_techspec_approve_object, comment_id_type, &worker_techspec_approve_object::post>,
                     member<worker_techspec_approve_object, account_name_type, &worker_techspec_approve_object::approver>>,
                 composite_key_compare<
-                    std::less<account_name_type>,
-                    chainbase::strcmp_less,
+                    std::less<comment_id_type>,
                     std::less<account_name_type>>>>,
         allocator<worker_techspec_approve_object>>;
 
@@ -252,12 +234,10 @@ namespace golos { namespace chain {
                 tag<by_result_approver>,
                 composite_key<
                     worker_result_approve_object,
-                    member<worker_result_approve_object, account_name_type, &worker_result_approve_object::author>,
-                    member<worker_result_approve_object, shared_string, &worker_result_approve_object::permlink>,
+                    member<worker_result_approve_object, comment_id_type, &worker_result_approve_object::post>,
                     member<worker_result_approve_object, account_name_type, &worker_result_approve_object::approver>>,
                 composite_key_compare<
-                    std::less<account_name_type>,
-                    chainbase::strcmp_less,
+                    std::less<comment_id_type>,
                     std::less<account_name_type>>>>,
         allocator<worker_result_approve_object>>;
 

@@ -176,15 +176,11 @@ namespace golos { namespace chain {
             const proposal_object* find_proposal(const account_name_type&, const std::string&) const;
             void        throw_if_exists_proposal(const account_name_type&, const std::string&) const;
 
-            const worker_proposal_object& get_worker_proposal(const account_name_type& author, const std::string& permlink) const;
-            const worker_proposal_object& get_worker_proposal(const account_name_type& author, const shared_string& permlink) const;
-            const worker_proposal_object* find_worker_proposal(const account_name_type& author, const std::string& permlink) const;
-            const worker_proposal_object* find_worker_proposal(const account_name_type& author, const shared_string& permlink) const;
+            const worker_proposal_object& get_worker_proposal(const comment_id_type& post) const;
+            const worker_proposal_object* find_worker_proposal(const comment_id_type& post) const;
 
-            const worker_techspec_object& get_worker_techspec(const account_name_type& author, const std::string& permlink) const;
-            const worker_techspec_object& get_worker_techspec(const account_name_type& author, const shared_string& permlink) const;
-            const worker_techspec_object* find_worker_techspec(const account_name_type& author, const std::string& permlink) const;
-            const worker_techspec_object* find_worker_techspec(const account_name_type& author, const shared_string& permlink) const;
+            const worker_techspec_object& get_worker_techspec(const comment_id_type& post) const;
+            const worker_techspec_object* find_worker_techspec(const comment_id_type& post) const;
             const worker_techspec_object& get_worker_result(const account_name_type& author, const std::string& permlink) const;
             const worker_techspec_object& get_worker_result(const account_name_type& author, const shared_string& permlink) const;
             const worker_techspec_object* find_worker_result(const account_name_type& author, const std::string& permlink) const;

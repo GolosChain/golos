@@ -78,9 +78,16 @@ void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered
             itr = idx.end();
         }
 
+        const comment_object* post = nullptr;
+
         if (query.has_start()) {
-            const auto& post_idx = _db.get_index<DatabaseIndex, by_permlink>();
-            const auto post_itr = post_idx.find(std::make_tuple(*query.start_author, *query.start_permlink));
+            post = _db.find_comment(*query.start_author, *query.start_permlink);
+            if (!post) {
+                return;
+            }
+
+            const auto& post_idx = _db.get_index<DatabaseIndex, by_post>();
+            const auto post_itr = post_idx.find(post->id);
             if (post_itr == post_idx.end()) {
                 return;
             }
@@ -94,8 +101,11 @@ void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered
                 return;
             }
             if (fill_posts) {
-                const auto& comment = _db.get_comment(itr->author, itr->permlink);
-                result.emplace_back(obj, helper->create_comment_api_object(comment));
+                if (!post) {
+                    post = &_db.get_comment(itr->post);
+                }
+                result.emplace_back(obj, helper->create_comment_api_object(*post));
+                post = nullptr;
             } else {
                 result.emplace_back(obj, comment_api_object());
             }

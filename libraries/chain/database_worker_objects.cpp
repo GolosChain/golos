@@ -6,68 +6,24 @@
 
 namespace golos { namespace chain {
 
-    const worker_proposal_object& database::get_worker_proposal(
-        const account_name_type& author,
-        const std::string& permlink
-    ) const { try {
-        return get<worker_proposal_object, by_permlink>(std::make_tuple(author, permlink));
+    const worker_proposal_object& database::get_worker_proposal(const comment_id_type& post) const { try {
+        return get<worker_proposal_object, by_post>(post);
     } catch (const std::out_of_range &e) {
-        GOLOS_THROW_MISSING_OBJECT("worker_proposal_object", fc::mutable_variant_object()("author",author)("permlink",permlink));
-    } FC_CAPTURE_AND_RETHROW((author)(permlink)) }
+        GOLOS_THROW_MISSING_OBJECT("worker_proposal_object", fc::mutable_variant_object()("post",post));
+    } FC_CAPTURE_AND_RETHROW((post)) }
 
-    const worker_proposal_object& database::get_worker_proposal(
-        const account_name_type& author,
-        const shared_string& permlink
-    ) const { try {
-        return get<worker_proposal_object, by_permlink>(std::make_tuple(author, permlink));
-    } catch (const std::out_of_range &e) {
-        GOLOS_THROW_MISSING_OBJECT("worker_proposal_object", fc::mutable_variant_object()("author",author)("permlink",permlink));
-    } FC_CAPTURE_AND_RETHROW((author)(permlink)) }
-
-    const worker_proposal_object* database::find_worker_proposal(
-        const account_name_type& author,
-        const std::string& permlink
-    ) const {
-        return find<worker_proposal_object, by_permlink>(std::make_tuple(author, permlink));
+    const worker_proposal_object* database::find_worker_proposal(const comment_id_type& post) const {
+        return find<worker_proposal_object, by_post>(post);
     }
 
-    const worker_proposal_object* database::find_worker_proposal(
-        const account_name_type& author,
-        const shared_string& permlink
-    ) const {
-        return find<worker_proposal_object, by_permlink>(std::make_tuple(author, permlink));
-    }
-
-    const worker_techspec_object& database::get_worker_techspec(
-        const account_name_type& author,
-        const std::string& permlink
-    ) const { try {
-        return get<worker_techspec_object, by_permlink>(std::make_tuple(author, permlink));
+    const worker_techspec_object& database::get_worker_techspec(const comment_id_type& post) const { try {
+        return get<worker_techspec_object, by_post>(post);
     } catch (const std::out_of_range &e) {
-        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("author",author)("permlink",permlink));
-    } FC_CAPTURE_AND_RETHROW((author)(permlink)) }
+        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("post",post));
+    } FC_CAPTURE_AND_RETHROW((post)) }
 
-    const worker_techspec_object& database::get_worker_techspec(
-        const account_name_type& author,
-        const shared_string& permlink
-    ) const { try {
-        return get<worker_techspec_object, by_permlink>(std::make_tuple(author, permlink));
-    } catch (const std::out_of_range &e) {
-        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("author",author)("permlink",permlink));
-    } FC_CAPTURE_AND_RETHROW((author)(permlink)) }
-
-    const worker_techspec_object* database::find_worker_techspec(
-        const account_name_type& author,
-        const std::string& permlink
-    ) const {
-        return find<worker_techspec_object, by_permlink>(std::make_tuple(author, permlink));
-    }
-
-    const worker_techspec_object* database::find_worker_techspec(
-        const account_name_type& author,
-        const shared_string& permlink
-    ) const {
-        return find<worker_techspec_object, by_permlink>(std::make_tuple(author, permlink));
+    const worker_techspec_object* database::find_worker_techspec(const comment_id_type& post) const {
+        return find<worker_techspec_object, by_post>(post);
     }
 
     const worker_techspec_object& database::get_worker_result(
@@ -129,7 +85,8 @@ namespace golos { namespace chain {
             }
 
             if (remaining_payments_count == 1) {
-                const auto& wpo = get_worker_proposal(wto_itr->worker_proposal_author, wto_itr->worker_proposal_permlink);
+                const auto& wpo_post = get_comment(wto_itr->worker_proposal_author, wto_itr->worker_proposal_permlink);
+                const auto& wpo = get_worker_proposal(wpo_post.id);
                 modify(wpo, [&](worker_proposal_object& wpo) {
                     wpo.state = worker_proposal_state::closed;
                 });
@@ -157,13 +114,14 @@ namespace golos { namespace chain {
             adjust_balance(get_account(wto_itr->author), author_reward);
             adjust_balance(get_account(wto_itr->worker), worker_reward);
 
-            push_virtual_operation(techspec_reward_operation(wto_itr->author, to_string(wto_itr->permlink), author_reward));
-            push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_itr->permlink), worker_reward));
+            const auto& wto_post = get_comment(wto_itr->post);
+            push_virtual_operation(techspec_reward_operation(wto_itr->author, to_string(wto_post.permlink), author_reward));
+            push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_post.permlink), worker_reward));
         }
     }
 
-    void database::update_worker_proposal_rshares(const comment_object& comment, share_type net_rshares_new) {
-        auto* wpo = find_worker_proposal(comment.author, comment.permlink);
+    void database::update_worker_proposal_rshares(const comment_object& post, share_type net_rshares_new) {
+        auto* wpo = find_worker_proposal(post.id);
         if (wpo) {
             modify(*wpo, [&](worker_proposal_object& wpo) {
                 wpo.net_rshares = net_rshares_new;
@@ -171,8 +129,8 @@ namespace golos { namespace chain {
         }
     }
 
-    void database::update_worker_techspec_rshares(const comment_object& comment, share_type net_rshares_new) {
-        auto* wto = find_worker_techspec(comment.author, comment.permlink);
+    void database::update_worker_techspec_rshares(const comment_object& post, share_type net_rshares_new) {
+        auto* wto = find_worker_techspec(post.id);
         if (wto) {
             modify(*wto, [&](worker_techspec_object& wto) {
                 wto.net_rshares = net_rshares_new;
