@@ -210,13 +210,6 @@ namespace golos { namespace chain {
                 return;
             }
 
-            wtao_itr = wtao_idx.find(std::make_tuple(o.author, o.permlink));
-            while (wtao_itr != wtao_idx.end() && wtao_itr->author == o.author && to_string(wtao_itr->permlink) == o.permlink) {
-                const auto& wtao = *wtao_itr;
-                ++wtao_itr;
-                _db.remove(wtao);
-            }
-
             _db.modify(wto, [&](worker_techspec_object& wto) {
                 wto.state = worker_techspec_state::closed;
             });
