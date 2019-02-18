@@ -157,8 +157,6 @@ namespace golos { namespace chain {
         const auto& wto_post = _db.get_comment(o.author, o.permlink);
         const auto& wto = _db.get_worker_techspec(wto_post.id);
 
-        const auto& wpo_post = _db.get_comment(wto.worker_proposal_author, wto.worker_proposal_permlink);
-        const auto& wpo = _db.get_worker_proposal(wpo_post.id);
 
         GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::created,
             logic_exception::techspec_is_already_approved_or_closed,
@@ -227,7 +225,8 @@ namespace golos { namespace chain {
                 return;
             }
 
-             const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_author, wto.worker_proposal_permlink);
+            const auto& wpo_post = _db.get_comment(wto.worker_proposal_author, wto.worker_proposal_permlink);
+            const auto& wpo = _db.get_worker_proposal(wpo_post.id);
             _db.modify(wpo, [&](worker_proposal_object& wpo) {
                 wpo.approved_techspec_author = o.author;
                 from_string(wpo.approved_techspec_permlink, o.permlink);

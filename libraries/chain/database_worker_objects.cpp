@@ -9,7 +9,8 @@ namespace golos { namespace chain {
     const worker_proposal_object& database::get_worker_proposal(const comment_id_type& post) const { try {
         return get<worker_proposal_object, by_post>(post);
     } catch (const std::out_of_range &e) {
-        GOLOS_THROW_MISSING_OBJECT("worker_proposal_object", fc::mutable_variant_object()("post",post));
+        const auto& comment = get_comment(post);
+        GOLOS_THROW_MISSING_OBJECT("worker_proposal_object", fc::mutable_variant_object()("author",comment.author)("permlink",comment.permlink));
     } FC_CAPTURE_AND_RETHROW((post)) }
 
     const worker_proposal_object* database::find_worker_proposal(const comment_id_type& post) const {
@@ -19,7 +20,8 @@ namespace golos { namespace chain {
     const worker_techspec_object& database::get_worker_techspec(const comment_id_type& post) const { try {
         return get<worker_techspec_object, by_post>(post);
     } catch (const std::out_of_range &e) {
-        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("post",post));
+        const auto& comment = get_comment(post);
+        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("author",comment.author)("permlink",comment.permlink));
     } FC_CAPTURE_AND_RETHROW((post)) }
 
     const worker_techspec_object* database::find_worker_techspec(const comment_id_type& post) const {
