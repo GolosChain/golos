@@ -21,15 +21,14 @@ namespace golos { namespace plugins { namespace worker_api {
         worker_proposal_metadata_object() = delete;
 
         template <typename Constructor, typename Allocator>
-        worker_proposal_metadata_object(Constructor&& c, allocator <Allocator> a)
-            : permlink(a) {
+        worker_proposal_metadata_object(Constructor&& c, allocator <Allocator> a) {
             c(*this);
         };
 
         id_type id;
 
         account_name_type author;
-        shared_string permlink;
+        comment_id_type post;
         time_point_sec created;
         time_point_sec modified;
         share_type net_rshares;
@@ -44,14 +43,8 @@ namespace golos { namespace plugins { namespace worker_api {
                 tag<by_id>,
                 member<worker_proposal_metadata_object, worker_proposal_metadata_id_type, &worker_proposal_metadata_object::id>>,
             ordered_unique<
-                tag<by_permlink>,
-                composite_key<
-                    worker_proposal_metadata_object,
-                    member<worker_proposal_metadata_object, account_name_type, &worker_proposal_metadata_object::author>,
-                    member<worker_proposal_metadata_object, shared_string, &worker_proposal_metadata_object::permlink>>,
-                composite_key_compare<
-                    std::less<account_name_type>,
-                    chainbase::strcmp_less>>,
+                tag<by_post>,
+                member<worker_proposal_metadata_object, comment_id_type, &worker_proposal_metadata_object::post>>,
             ordered_unique<
                 tag<by_net_rshares>,
                 composite_key<

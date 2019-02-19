@@ -16,8 +16,6 @@ namespace golos { namespace chain {
             logic_exception::worker_proposal_can_be_created_only_on_post,
             "Worker proposal can be created only on post");
 
-        const auto now = _db.head_block_time();
-
         const auto* wpo = _db.find_worker_proposal(post.id);
 
         if (wpo) {

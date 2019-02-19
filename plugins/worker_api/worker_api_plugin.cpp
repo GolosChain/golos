@@ -25,8 +25,10 @@ struct post_operation_visitor {
     }
 
     result_type operator()(const worker_proposal_operation& o) const {
-        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_permlink>();
-        auto wpmo_itr = wpmo_idx.find(std::make_tuple(o.author, o.permlink));
+        const auto& post = _db.get_comment(o.author, o.permlink);
+
+        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_post>();
+        auto wpmo_itr = wpmo_idx.find(post.id);
 
         const auto now = _db.head_block_time();
 
@@ -40,33 +42,33 @@ struct post_operation_visitor {
 
         // Create case
 
-        const auto& comment = _db.get_comment(o.author, o.permlink);
-
         _db.create<worker_proposal_metadata_object>([&](worker_proposal_metadata_object& wpmo) {
             wpmo.created = now;
-            wpmo.net_rshares = comment.net_rshares;
+            wpmo.net_rshares = post.net_rshares;
         });
     }
 
     result_type operator()(const worker_proposal_delete_operation& o) const {
-        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_permlink>();
-        auto wpmo_itr = wpmo_idx.find(std::make_tuple(o.author, o.permlink));
+        const auto& post = _db.get_comment(o.author, o.permlink);
+
+        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_post>();
+        auto wpmo_itr = wpmo_idx.find(post.id);
 
         _db.remove(*wpmo_itr);
     }
 
     result_type operator()(const vote_operation& o) {
-        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_permlink>();
-        auto wpmo_itr = wpmo_idx.find(std::make_tuple(o.author, o.permlink));
+        const auto& post = _db.get_comment(o.author, o.permlink);
+
+        const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_post>();
+        auto wpmo_itr = wpmo_idx.find(post.id);
 
         if (wpmo_itr == wpmo_idx.end()) {
             return;
         }
 
-        const auto& comment = _db.get_comment(o.author, o.permlink);
-
         _db.modify(*wpmo_itr, [&](worker_proposal_metadata_object& wpmo) {
-            wpmo.net_rshares = comment.net_rshares;
+            wpmo.net_rshares = post.net_rshares;
         });
     }
 };
@@ -187,7 +189,7 @@ void worker_api_plugin::worker_api_plugin_impl::select_postbased_results_ordered
             }
             result.emplace_back(obj, ca);
             auto res_obj = result.back();
-            if (!fill_worker_fields(_db, res_obj, query)) {
+            if (!fill_worker_fields(_db, obj, res_obj, query)) {
                 result.pop_back();
             }
         };
@@ -222,8 +224,8 @@ DEFINE_API(worker_api_plugin, get_worker_proposals) {
         return true;
     };
 
-    auto wpo_fill_worker_fields = [&](const golos::chain::database& _db, worker_proposal_api_object& wpo_api, const worker_proposal_query& query) -> bool {
-        auto wpo = _db.get_worker_proposal(wpo_api.author, wpo_api.permlink);
+    auto wpo_fill_worker_fields = [&](const golos::chain::database& _db, const worker_proposal_metadata_object& wpmo, worker_proposal_api_object& wpo_api, const worker_proposal_query& query) -> bool {
+        auto wpo = _db.get_worker_proposal(wpmo.post);
         if (!query.is_good_state(wpo.state)) {
             return false;
         }
@@ -264,7 +266,7 @@ DEFINE_API(worker_api_plugin, get_worker_techspecs) {
         return true;
     };
 
-    auto wto_fill_worker_fields = [&](const golos::chain::database& _db, worker_techspec_api_object& wto_api, const worker_techspec_query& query) -> bool {
+    auto wto_fill_worker_fields = [&](const golos::chain::database& _db, const worker_techspec_object& wto, worker_techspec_api_object& wto_api, const worker_techspec_query& query) -> bool {
         return true;
     };
 
