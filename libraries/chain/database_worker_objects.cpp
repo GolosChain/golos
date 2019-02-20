@@ -163,8 +163,8 @@ namespace golos { namespace chain {
         }
 
         const auto& wtao_idx = get_index<worker_techspec_approve_index, by_techspec_approver>();
-        auto wtao_itr = wtao_idx.find(std::make_tuple(wto.author, wto.permlink));
-        while (wtao_itr != wtao_idx.end() && wtao_itr->author == wto.author && wtao_itr->permlink == wto.permlink) {
+        auto wtao_itr = wtao_idx.find(wto.post);
+        while (wtao_itr != wtao_idx.end() && wtao_itr->post == wto.post) {
             const auto& wtao = *wtao_itr;
             ++wtao_itr;
             remove(wtao);

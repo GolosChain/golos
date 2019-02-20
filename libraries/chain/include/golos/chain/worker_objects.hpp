@@ -39,12 +39,6 @@ namespace golos { namespace chain {
         closed
     };
 
-    enum class worker_techspec_state {
-        created,
-        approved,
-        closed
-    };
-
     class worker_techspec_object : public object<worker_techspec_object_type, worker_techspec_object> {
     public:
         worker_techspec_object() = delete;
