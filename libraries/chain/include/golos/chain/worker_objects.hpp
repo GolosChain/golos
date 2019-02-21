@@ -57,20 +57,13 @@ namespace golos { namespace chain {
         shared_string worker_proposal_permlink;
         worker_techspec_state state;
         time_point_sec created;
-        time_point_sec modified;
-        share_type net_rshares;
         asset specification_cost;
         asset development_cost;
-        uint16_t approves = 0;
-        uint16_t disapproves = 0;
         account_name_type worker;
-        time_point_sec work_beginning_time;
         shared_string worker_result_permlink;
         time_point_sec completion_date;
         uint16_t payments_count;
         uint32_t payments_interval;
-        asset month_consumption;
-        time_point_sec payment_beginning_time;
         time_point_sec next_cashout_time = time_point_sec::maximum();
         uint16_t finished_payments_count = 0;
     };
@@ -123,10 +116,7 @@ namespace golos { namespace chain {
     struct by_worker_proposal;
     struct by_worker_result;
     struct by_next_cashout_time;
-    struct by_net_rshares;
     struct by_created;
-    struct by_approves;
-    struct by_disapproves;
 
     using worker_techspec_index = multi_index_container<
         worker_techspec_object,
@@ -168,34 +158,7 @@ namespace golos { namespace chain {
                 composite_key<
                     worker_techspec_object,
                     member<worker_techspec_object, time_point_sec, &worker_techspec_object::created>,
-                    member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>>,
-            ordered_unique<
-                tag<by_net_rshares>,
-                composite_key<
-                    worker_techspec_object,
-                    member<worker_techspec_object, share_type, &worker_techspec_object::net_rshares>,
-                    member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>,
-                composite_key_compare<
-                    std::greater<share_type>,
-                    std::less<worker_techspec_object_id_type>>>,
-            ordered_unique<
-                tag<by_approves>,
-                composite_key<
-                    worker_techspec_object,
-                    member<worker_techspec_object, uint16_t, &worker_techspec_object::approves>,
-                    member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>,
-                composite_key_compare<
-                    std::greater<uint16_t>,
-                    std::less<worker_techspec_object_id_type>>>,
-            ordered_unique<
-                tag<by_disapproves>,
-                composite_key<
-                    worker_techspec_object,
-                    member<worker_techspec_object, uint16_t, &worker_techspec_object::disapproves>,
-                    member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>,
-                composite_key_compare<
-                    std::greater<uint16_t>,
-                    std::less<worker_techspec_object_id_type>>>>,
+                    member<worker_techspec_object, worker_techspec_object_id_type, &worker_techspec_object::id>>>>,
         allocator<worker_techspec_object>>;
 
     struct by_techspec_approver;

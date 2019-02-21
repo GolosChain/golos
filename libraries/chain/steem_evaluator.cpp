@@ -1539,7 +1539,6 @@ namespace golos { namespace chain {
                     GOLOS_CHECK_LOGIC(abs_rshares > 0, logic_exception::cannot_vote_with_zero_rshares,
                             "Cannot vote with 0 rshares.");
 
-                    share_type net_rshares_new;
                     _db.modify(comment, [&](comment_object &c) {
                         c.net_rshares += rshares;
                         c.abs_rshares += abs_rshares;
@@ -1555,10 +1554,7 @@ namespace golos { namespace chain {
                         }
                         if (!_db.has_hardfork(STEEMIT_HARDFORK_0_6__114) && c.net_rshares == -c.abs_rshares)
                             GOLOS_ASSERT(c.net_votes < 0, golos::internal_error, "Comment has negative network votes?");
-
-                        net_rshares_new = c.net_rshares;
                     });
-                    _db.update_worker_techspec_rshares(comment, net_rshares_new);
 
                     _db.modify(root, [&](comment_object &c) {
                         c.children_abs_rshares += abs_rshares;
@@ -1675,7 +1671,6 @@ namespace golos { namespace chain {
                         }
                     }
 
-                    share_type net_rshares_new;
                     _db.modify(comment, [&](comment_object &c) {
                         c.net_rshares -= itr->rshares;
                         c.net_rshares += rshares;
@@ -1695,10 +1690,7 @@ namespace golos { namespace chain {
                         } else if (rshares < 0 && itr->rshares > 0) {
                             c.net_votes -= 2;
                         }
-
-                        net_rshares_new = c.net_rshares;
                     });
-                    _db.update_worker_techspec_rshares(comment, net_rshares_new);
 
                     _db.modify(root, [&](comment_object &c) {
                         c.children_abs_rshares += abs_rshares;

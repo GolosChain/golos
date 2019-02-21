@@ -94,7 +94,6 @@ namespace golos { namespace chain {
                 "Cannot change cost symbol");
 
             _db.modify(*wto_itr, [&](worker_techspec_object& wto) {
-                wto.modified = now;
                 wto.specification_cost = o.specification_cost;
                 wto.development_cost = o.development_cost;
                 wto.payments_count = o.payments_count;
@@ -111,7 +110,6 @@ namespace golos { namespace chain {
             from_string(wto.worker_proposal_permlink, o.worker_proposal_permlink);
             wto.state = worker_techspec_state::created;
             wto.created = now;
-            wto.net_rshares = post.net_rshares;
             wto.specification_cost = o.specification_cost;
             wto.development_cost = o.development_cost;
             wto.payments_count = o.payments_count;
@@ -167,8 +165,6 @@ namespace golos { namespace chain {
 
         if (o.state == worker_techspec_approve_state::abstain) {
             if (wtao_itr != wtao_idx.end()) {
-                _db.update_worker_techspec_approves(wto, wtao_itr->state, worker_techspec_approve_state::abstain);
-
                 _db.remove(*wtao_itr);
             }
 
@@ -176,14 +172,10 @@ namespace golos { namespace chain {
         }
 
         if (wtao_itr != wtao_idx.end()) {
-            _db.update_worker_techspec_approves(wto, wtao_itr->state, o.state);
-
             _db.modify(*wtao_itr, [&](worker_techspec_approve_object& wtao) {
                 wtao.state = o.state;
             });
         } else {
-            _db.update_worker_techspec_approves(wto, worker_techspec_approve_state::abstain, o.state);
-
             _db.create<worker_techspec_approve_object>([&](worker_techspec_approve_object& wtao) {
                 wtao.approver = o.approver;
                 wtao.post = wto.post;
@@ -378,11 +370,7 @@ namespace golos { namespace chain {
             auto month_sec = fc::days(30).to_seconds();
             auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
 
-            uint128_t cost(wto.development_cost.amount.value);
-            cost += wto.specification_cost.amount.value;
-            cost *= std::min(month_sec, payments_period);
-            cost /= payments_period;
-            auto consumption = asset(cost.to_uint64(), STEEM_SYMBOL);
+            auto consumption = _db.calculate_worker_techspec_month_consumption(wto);
 
             uint128_t revenue_funds(gpo.worker_revenue_per_month.amount.value);
             revenue_funds = revenue_funds * payments_period / month_sec;
@@ -402,9 +390,7 @@ namespace golos { namespace chain {
             }
 
             _db.modify(wto, [&](worker_techspec_object& wto) {
-                wto.month_consumption = consumption;
                 wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;
-                wto.payment_beginning_time = wto.next_cashout_time;
                 wto.state = worker_techspec_state::payment;
             });
 
@@ -433,7 +419,6 @@ namespace golos { namespace chain {
 
             _db.modify(wto, [&](worker_techspec_object& wto) {
                 wto.worker = account_name_type();
-                wto.work_beginning_time = time_point_sec::min();
                 wto.state = worker_techspec_state::approved;
             });
 
@@ -452,7 +437,6 @@ namespace golos { namespace chain {
 
         _db.modify(wto, [&](worker_techspec_object& wto) {
             wto.worker = o.worker;
-            wto.work_beginning_time = _db.head_block_time();
             wto.state = worker_techspec_state::work;
         });
     }

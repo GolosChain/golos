@@ -60,6 +60,16 @@ namespace golos { namespace chain {
         return find<worker_techspec_object, by_worker_result>(std::make_tuple(author, permlink));
     }
 
+    asset database::calculate_worker_techspec_month_consumption(const worker_techspec_object& wto) {
+        auto month_sec = fc::days(30).to_seconds();
+        auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
+        uint128_t cost(wto.development_cost.amount.value);
+        cost += wto.specification_cost.amount.value;
+        cost *= std::min(month_sec, payments_period);
+        cost /= payments_period;
+        return asset(cost.to_uint64(), STEEM_SYMBOL);
+    }
+
     void database::process_worker_cashout() {
         if (!has_hardfork(STEEMIT_HARDFORK_0_21__1013)) {
             return;
@@ -88,13 +98,12 @@ namespace golos { namespace chain {
 
             if (remaining_payments_count == 1) {
                 modify(gpo, [&](dynamic_global_property_object& gpo) {
-                    gpo.worker_consumption_per_month -= wto_itr->month_consumption;
+                    gpo.worker_consumption_per_month -= calculate_worker_techspec_month_consumption(*wto_itr);
                 });
 
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
                     wto.next_cashout_time = time_point_sec::maximum();
-                    wto.month_consumption = asset(0, STEEM_SYMBOL);
                     wto.state = worker_techspec_state::payment_complete;
                 });
             } else {
@@ -115,37 +124,6 @@ namespace golos { namespace chain {
             push_virtual_operation(techspec_reward_operation(wto_itr->author, to_string(wto_post.permlink), author_reward));
             push_virtual_operation(worker_reward_operation(wto_itr->worker, wto_itr->author, to_string(wto_post.permlink), worker_reward));
         }
-    }
-
-    void database::update_worker_techspec_rshares(const comment_object& post, share_type net_rshares_new) {
-        auto* wto = find_worker_techspec(post.id);
-        if (wto) {
-            modify(*wto, [&](worker_techspec_object& wto) {
-                wto.net_rshares = net_rshares_new;
-            });
-        }
-    }
-
-    void database::update_worker_techspec_approves(const worker_techspec_object& wto,
-            const worker_techspec_approve_state& old_state,
-            const worker_techspec_approve_state& new_state) {
-        if (old_state == new_state) {
-            return;
-        }
-        modify(wto, [&](worker_techspec_object& wto) {
-            if (old_state == worker_techspec_approve_state::approve) {
-                wto.approves--;
-            }
-            if (old_state == worker_techspec_approve_state::disapprove) {
-                wto.disapproves--;
-            }
-            if (new_state == worker_techspec_approve_state::approve) {
-                wto.approves++;
-            }
-            if (new_state == worker_techspec_approve_state::disapprove) {
-                wto.disapproves++;
-            }
-        });
     }
 
     void database::set_clear_old_worker_techspec_approves(bool clear_old_worker_techspec_approves) {
