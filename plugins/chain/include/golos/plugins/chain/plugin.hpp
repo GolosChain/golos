@@ -93,5 +93,7 @@ namespace golos { namespace plugins { namespace chain {
 
                 friend struct golos::chain::database_fixture;  // need to set skip_startup field
                 bool skip_startup = false;
+
+                void serialize_state(const boost::filesystem::path& output);
             };
 } } } // golos::plugins::chain

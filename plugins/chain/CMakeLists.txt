@@ -5,6 +5,7 @@ list(APPEND CURRENT_TARGET_HEADERS
 
 list(APPEND CURRENT_TARGET_SOURCES
      plugin.cpp
+     serialize_state.cpp
      )
 
 if(BUILD_SHARED_LIBRARIES)

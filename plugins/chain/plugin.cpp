@@ -28,6 +28,10 @@ namespace golos { namespace plugins { namespace chain {
         bool readonly = false;
         bool check_locks = false;
         bool validate_invariants = false;
+
+        bool serialize_state = false;
+        bfs::path serialize_state_path;
+
         uint32_t flush_interval = 0;
         flat_map<uint32_t, block_id_type> loaded_checkpoints;
 
@@ -277,6 +281,10 @@ namespace golos { namespace plugins { namespace chain {
             ) (
                 "validate-database-invariants", bpo::bool_switch()->default_value(false),
                 "Validate all supply invariants check out"
+            ) (
+                "serialize-state", bpo::value<std::string>(),
+                "The location of the file to serialize state to (abs path or relative to application data dir). "
+                "If set then app will exit after serialization."
             );
     }
 
@@ -331,6 +339,18 @@ namespace golos { namespace plugins { namespace chain {
         my->resync = options.at("resync-blockchain").as<bool>();
         my->check_locks = options.at("check-locks").as<bool>();
         my->validate_invariants = options.at("validate-database-invariants").as<bool>();
+
+        bool serialize = options.count("serialize-state") > 0;
+        if (serialize) {
+            auto s = options.at("serialize-state").as<std::string>();
+            serialize = s.size() > 0;
+            if (serialize) {
+                auto p = bfs::path(s);
+                my->serialize_state_path = p.is_relative() ? appbase::app().data_dir() / p : p;
+            }
+        }
+        my->serialize_state = serialize;
+
         if (options.count("flush-state-interval")) {
             my->flush_interval = options.at("flush-state-interval").as<uint32_t>();
         } else {
@@ -413,7 +433,11 @@ namespace golos { namespace plugins { namespace chain {
             auto head_block_log = my->db.get_block_log().head();
             my->replay |= head_block_log && my->db.revision() != head_block_log->block_num();
 
-            if (my->replay) {
+            if (my->serialize_state) {
+                serialize_state(my->serialize_state_path);
+                std::exit(0); // TODO Migrate to appbase::app().quit()
+                return;
+            } else if (my->replay) {
                 my->replay_db(data_dir, my->force_replay);
             }
         } catch (const golos::chain::database_revision_exception&) {

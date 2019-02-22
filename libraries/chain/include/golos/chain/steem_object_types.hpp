@@ -102,7 +102,6 @@ namespace golos { namespace chain {
         class vesting_delegation_object;
         class vesting_delegation_expiration_object;
         class account_metadata_object;
-        class proposal_object;
 
         typedef object_id<dynamic_global_property_object> dynamic_global_property_id_type;
         typedef object_id<account_object> account_id_type;
