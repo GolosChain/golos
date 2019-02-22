@@ -201,9 +201,7 @@ struct post_operation_visitor {
         const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
         auto wtmo_itr = wtmo_idx.find(wto.post);
 
-        const auto& wpo_post = _db.get_comment(wto.worker_proposal_author, wto.worker_proposal_permlink);
-        const auto& wpo = _db.get_worker_proposal(wpo_post.id);
-        if (wpo.state != worker_proposal_state::payment) {
+        if (wto.state != worker_techspec_state::payment) {
             return;
         }
 
