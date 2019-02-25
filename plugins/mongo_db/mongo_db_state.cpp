@@ -1536,6 +1536,10 @@ namespace mongo_db {
 
     }
 
+    auto state_writer::operator()(const worker_result_premade_operation& op) -> result_type {
+
+    }
+
     auto state_writer::operator()(const worker_result_delete_operation& op) -> result_type {
 
     }

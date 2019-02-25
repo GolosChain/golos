@@ -640,6 +640,12 @@ namespace mongo_db {
         return body;
     }
 
+    auto operation_writer::operator()(const worker_result_premade_operation& op) -> result_type {
+        result_type body;
+
+        return body;
+    }
+
     auto operation_writer::operator()(const worker_result_delete_operation& op) -> result_type {
         result_type body;
 

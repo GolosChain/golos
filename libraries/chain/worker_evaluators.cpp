@@ -83,6 +83,10 @@ namespace golos { namespace chain {
             logic_exception::this_worker_proposal_already_has_approved_techspec,
             "This worker proposal already has approved techspec");
 
+        GOLOS_CHECK_LOGIC(wpo->type != worker_proposal_type::premade_work,
+            logic_exception::cannot_create_techspec_for_premade_worker_proposal,
+            "Cannot create techspec for premade worker proposal");
+
         const auto* wto = _db.find_worker_techspec(post.id);
 
         if (wto) {
@@ -235,6 +239,22 @@ namespace golos { namespace chain {
         }
     }
 
+    void worker_result_check_post(const database& _db, const comment_object& post) {
+        GOLOS_CHECK_LOGIC(post.parent_author == STEEMIT_ROOT_POST_PARENT,
+            logic_exception::worker_result_can_be_created_only_on_post,
+            "Worker result can be created only on post");
+
+        const auto* wto_result = _db.find_worker_result(post.id);
+        GOLOS_CHECK_LOGIC(!wto_result,
+            logic_exception::this_post_already_used_as_worker_result,
+            "This post already used as worker result");
+
+        const auto* wto = _db.find_worker_techspec(post.id);
+        GOLOS_CHECK_LOGIC(!wto,
+            logic_exception::this_post_already_used_as_worker_techspec,
+            "This post already used as worker techspec");
+    }
+
     void worker_result_evaluator::do_apply(const worker_result_operation& o) {
         ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_result_operation");
 
@@ -246,31 +266,68 @@ namespace golos { namespace chain {
 
         const auto& post = _db.get_comment(o.author, o.permlink);
 
-        GOLOS_CHECK_LOGIC(post.parent_author == STEEMIT_ROOT_POST_PARENT,
-            logic_exception::worker_result_can_be_created_only_on_post,
-            "Worker result can be created only on post");
+        worker_result_check_post(_db, post);
 
         const auto& wto_post = _db.get_comment(o.author, o.worker_techspec_permlink);
         const auto& wto = _db.get_worker_techspec(wto_post.id);
 
-        const auto* wto_result = _db.find_worker_result(post.id);
-        GOLOS_CHECK_LOGIC(!wto_result,
-            logic_exception::this_post_already_used_as_worker_result,
-            "This post already used as worker result");
-
         const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
 
-        if (wpo.type == worker_proposal_type::premade_work) {
-            GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::approved,
-                logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
-                "Worker result can be created only for techspec in work");
-        } else {
-            GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::work,
-                logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
-                "Worker result can be created only for techspec in work");
-        }
+        GOLOS_CHECK_LOGIC(wpo.type != worker_proposal_type::premade_work,
+            logic_exception::only_premade_worker_result_can_be_created_for_premade_worker_proposal,
+            "Only premade worker result can be created for premade worker proposal");
+
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::work,
+            logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
+            "Worker result can be created only for techspec in work");
 
         _db.modify(wto, [&](worker_techspec_object& wto) {
+            wto.worker_result_post = post.id;
+
+            if (o.completion_date != time_point_sec::min()) {
+                wto.completion_date = o.completion_date;
+            } else {
+                wto.completion_date = now;
+            }
+
+            wto.state = worker_techspec_state::complete;
+        });
+    }
+
+    void worker_result_premade_evaluator::do_apply(const worker_result_premade_operation& o) {
+        ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_result_premade_operation");
+
+        const auto now = _db.head_block_time();
+
+        GOLOS_CHECK_LOGIC(o.completion_date <= now,
+            logic_exception::work_completion_date_cannot_be_in_future,
+            "Work completion date cannot be in future");
+
+        const auto& post = _db.get_comment(o.author, o.permlink);
+
+        worker_result_check_post(_db, post);
+
+        const auto& wpo_post = _db.get_comment(o.worker_proposal_author, o.worker_proposal_permlink);
+        const auto& wpo = _db.get_worker_proposal(wpo_post.id);
+
+        GOLOS_CHECK_LOGIC(wpo.type == worker_proposal_type::premade_work,
+            logic_exception::premade_result_can_be_created_only_for_premade_work_proposal,
+            "Premade result can be created only for premade work proposal");
+
+        GOLOS_CHECK_LOGIC(wpo.state == worker_proposal_state::created,
+            logic_exception::this_worker_proposal_already_has_approved_techspec,
+            "This worker proposal already has approved techspec");
+
+        _db.create<worker_techspec_object>([&](worker_techspec_object& wto) {
+            wto.post = post.id;
+            wto.worker_proposal_post = wpo_post.id;
+            wto.created = now;
+            wto.worker = o.author;
+            wto.specification_cost = o.specification_cost;
+            wto.development_cost = o.development_cost;
+            wto.payments_count = o.payments_count;
+            wto.payments_interval = o.payments_interval;
+
             wto.worker_result_post = post.id;
 
             if (o.completion_date != time_point_sec::min()) {
@@ -310,6 +367,14 @@ namespace golos { namespace chain {
 
         const auto& worker_result_post = _db.get_comment(o.author, o.permlink);
         const auto& wto = _db.get_worker_result(worker_result_post.id);
+
+        const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
+
+        if (wpo.type == worker_proposal_type::premade_work) {
+            GOLOS_CHECK_LOGIC(wpo.state == worker_proposal_state::created,
+                logic_exception::this_worker_proposal_already_has_approved_result,
+                "This worker proposal already has approved result");
+        }
 
         GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::complete,
             logic_exception::worker_techspec_should_be_complete_to_approve_result,
@@ -351,22 +416,12 @@ namespace golos { namespace chain {
                 return;
             }
 
-            const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
-
-            if (wpo.type == worker_proposal_type::premade_work) {
-                _db.modify(wto, [&](worker_techspec_object& wto) {
-                    wto.state = worker_techspec_state::created;
-                });
-
-                _db.modify(wpo, [&](worker_proposal_object& wpo) {
-                    wpo.state = worker_proposal_state::created;
-                });
-
-                return;
-            }
-
             _db.modify(wto, [&](worker_techspec_object& wto) {
-                wto.state = worker_techspec_state::work;
+                if (wpo.type == worker_proposal_type::premade_work) {
+                    wto.state = worker_techspec_state::closed;
+                } else {
+                    wto.state = worker_techspec_state::work;
+                }
             });
         } else if (o.state == worker_techspec_approve_state::approve) {
             if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
@@ -377,6 +432,12 @@ namespace golos { namespace chain {
                 wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;
                 wto.state = worker_techspec_state::payment;
             });
+
+            if (wpo.type == worker_proposal_type::premade_work) {
+                _db.modify(wpo, [&](worker_proposal_object& wpo) {
+                    wpo.state = worker_proposal_state::techspec;
+                });
+            }
         }
     }
 

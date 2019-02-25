@@ -3098,6 +3098,7 @@ namespace golos { namespace chain {
             _my->_evaluator_registry.register_evaluator<worker_techspec_delete_evaluator>();
             _my->_evaluator_registry.register_evaluator<worker_techspec_approve_evaluator>();
             _my->_evaluator_registry.register_evaluator<worker_result_evaluator>();
+            _my->_evaluator_registry.register_evaluator<worker_result_premade_evaluator>();
             _my->_evaluator_registry.register_evaluator<worker_result_delete_evaluator>();
             _my->_evaluator_registry.register_evaluator<worker_result_approve_evaluator>();
             _my->_evaluator_registry.register_evaluator<worker_assign_evaluator>();

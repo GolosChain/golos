@@ -123,6 +123,26 @@ namespace golos { namespace protocol {
         }
     };
 
+    struct worker_result_premade_operation : public base_operation {
+        account_name_type author;
+        std::string permlink;
+        account_name_type worker_proposal_author;
+        std::string worker_proposal_permlink;
+        asset specification_cost;
+        asset development_cost;
+        uint16_t payments_count;
+        uint32_t payments_interval;
+        time_point_sec completion_date = time_point_sec::min();
+
+        extensions_type extensions;
+
+        void validate() const;
+
+        void get_required_posting_authorities(flat_set<account_name_type>& a) const {
+            a.insert(author);
+        }
+    };
+
     struct worker_result_delete_operation : public base_operation {
         account_name_type author;
         std::string permlink;
@@ -198,6 +218,11 @@ FC_REFLECT(
 FC_REFLECT(
     (golos::protocol::worker_result_operation),
     (author)(permlink)(worker_techspec_permlink)(completion_date)(extensions))
+
+FC_REFLECT(
+    (golos::protocol::worker_result_premade_operation),
+    (author)(permlink)(worker_proposal_author)(worker_proposal_permlink)(specification_cost)(development_cost)
+    (payments_count)(payments_interval)(completion_date)(extensions))
 
 FC_REFLECT(
     (golos::protocol::worker_result_delete_operation),

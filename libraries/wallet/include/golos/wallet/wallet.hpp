@@ -1489,6 +1489,27 @@ namespace golos { namespace wallet {
                 );
 
             /**
+             * Create worker premade result for specified premade_work proposal using specified post
+             *
+             * @param author author of the post
+             * @param permlink permlink of the post
+             * @param worker_proposal_author author of the worker proposal
+             * @param worker_proposal_permlink permlink of the worker proposal
+             * @param specification_cost cost of specification
+             * @param development_cost cost of work
+             * @param payments_count count of payments for work and techspec
+             * @param payments_interval interval between payments in seconds
+             * @param completion_date date when worker premade result is published
+             * @param broadcast true if you wish to broadcast the transaction
+             */
+            annotated_signed_transaction premade_worker_result(
+                const std::string& author, const std::string& permlink,
+                const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
+                const asset& specification_cost, const asset& development_cost,
+                uint16_t payments_count, uint32_t payments_interval, time_point_sec completion_date, bool broadcast
+                );
+
+            /**
              * Delete worker result for specified worker techspec
              *
              * @param author author of the worker techspec
@@ -1671,6 +1692,7 @@ FC_API( golos::wallet::wallet_api,
                 (approve_worker_techspec)
                 (assign_worker)
                 (worker_result)
+                (premade_worker_result)
                 (delete_worker_result)
                 (approve_worker_result)
                 (approve_worker_payment)

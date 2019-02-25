@@ -367,6 +367,11 @@ namespace golos {
             approver_of_payment_should_be_in_top19_of_witnesses,
             worker_techspec_should_be_in_payment_state,
             you_already_have_voted_for_this_object_with_this_state,
+            cannot_create_techspec_for_premade_worker_proposal,
+            only_premade_worker_result_can_be_created_for_premade_worker_proposal,
+            this_post_already_used_as_worker_techspec,
+            premade_result_can_be_created_only_for_premade_work_proposal,
+            this_worker_proposal_already_has_approved_result,
 
             // custom operations
             inner_authorities_does_not_match_outer,
@@ -667,6 +672,11 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (approver_of_payment_should_be_in_top19_of_witnesses)
         (worker_techspec_should_be_in_payment_state)
         (you_already_have_voted_for_this_object_with_this_state)
+        (cannot_create_techspec_for_premade_worker_proposal)
+        (only_premade_worker_result_can_be_created_for_premade_worker_proposal)
+        (this_post_already_used_as_worker_techspec)
+        (premade_result_can_be_created_only_for_premade_work_proposal)
+        (this_worker_proposal_already_has_approved_result)
 
         // custom operations
         (inner_authorities_does_not_match_outer)
