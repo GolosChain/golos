@@ -7,6 +7,16 @@
 
 namespace golos { namespace chain {
 
+#define WORKER_CHECK_NO_VOTE_REPEAT(OLD_STATE, NEW_STATE) \
+    GOLOS_CHECK_LOGIC(OLD_STATE != NEW_STATE, \
+        logic_exception::you_already_have_voted_for_this_object_with_this_state, \
+        "You already have voted for this object with this state")
+
+#define WORKER_CHECK_OBJECT_VOTED(expr) \
+    GOLOS_CHECK_LOGIC(expr, \
+        logic_exception::you_have_not_yet_voted_for_this_object, \
+        "You have not yet voted for this object")
+
     int32_t count_worker_approves(const auto& _db, auto& approve_idx, const comment_id_type& post, auto state) {
         auto approvers = 0;
         auto approve_itr = approve_idx.lower_bound(post);
@@ -180,14 +190,15 @@ namespace golos { namespace chain {
         auto wtao_itr = wtao_idx.find(std::make_tuple(wto.post, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            if (wtao_itr != wtao_idx.end()) {
-                _db.remove(*wtao_itr);
-            }
+            WORKER_CHECK_OBJECT_VOTED(wtao_itr != wtao_idx.end());
 
+            _db.remove(*wtao_itr);
             return;
         }
 
         if (wtao_itr != wtao_idx.end()) {
+            WORKER_CHECK_NO_VOTE_REPEAT(wtao_itr->state, o.state);
+
             _db.modify(*wtao_itr, [&](worker_techspec_approve_object& wtao) {
                 wtao.state = o.state;
             });
@@ -320,14 +331,15 @@ namespace golos { namespace chain {
         auto wrao_itr = wrao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            if (wrao_itr != wrao_idx.end()) {
-                _db.remove(*wrao_itr);
-            }
+            WORKER_CHECK_OBJECT_VOTED(wrao_itr != wrao_idx.end());
 
+            _db.remove(*wrao_itr);
             return;
         }
 
         if (wrao_itr != wrao_idx.end()) {
+            WORKER_CHECK_NO_VOTE_REPEAT(wrao_itr->state, o.state);
+
             _db.modify(*wrao_itr, [&](worker_result_approve_object& wrao) {
                 wrao.state = o.state;
             });
@@ -349,6 +361,7 @@ namespace golos { namespace chain {
             }
 
             const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
+
             if (wpo.type == worker_proposal_type::premade_work) {
                 _db.modify(wto, [&](worker_techspec_object& wto) {
                     wto.state = worker_techspec_state::created;
@@ -457,14 +470,14 @@ namespace golos { namespace chain {
         auto wpao_itr = wpao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
 
         if (o.state != worker_techspec_approve_state::disapprove) {
-            if (wpao_itr != wpao_idx.end()) {
-                _db.remove(*wpao_itr);
-            }
+            WORKER_CHECK_OBJECT_VOTED(wpao_itr != wpao_idx.end());
 
+            _db.remove(*wpao_itr);
             return;
         }
 
         if (wpao_itr != wpao_idx.end()) {
+            WORKER_CHECK_NO_VOTE_REPEAT(wpao_itr->state, o.state);
             return;
         }
 

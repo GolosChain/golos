@@ -49,9 +49,6 @@ struct post_operation_visitor {
 
     void update_worker_techspec_approves(const worker_techspec_metadata_object& wtmo,
             worker_techspec_approve_state old_state, worker_techspec_approve_state new_state) const {
-        if (old_state == new_state) {
-            return;
-        }
         _db.modify(wtmo, [&](worker_techspec_metadata_object& wtmo) {
             if (old_state == worker_techspec_approve_state::approve) {
                 wtmo.approves--;
@@ -157,7 +154,6 @@ struct post_operation_visitor {
             _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
                 wtmo.net_rshares = post.net_rshares;
             });
-            return;
         }
     }
 
