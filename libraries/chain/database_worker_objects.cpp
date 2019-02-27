@@ -39,6 +39,34 @@ namespace golos { namespace chain {
         return find<worker_techspec_object, by_worker_result>(post);
     }
 
+    template<typename ApproveMultiIndex, typename ApproveIndex>
+    flat_map<worker_techspec_approve_state, int32_t> count_worker_approves(const database& _db, const comment_id_type& post) {
+        flat_map<worker_techspec_approve_state, int32_t> result;
+
+        const auto& approve_idx = _db.get_index<ApproveMultiIndex, ApproveIndex>();
+        auto approve_itr = approve_idx.lower_bound(post);
+        for (; approve_itr != approve_idx.end() && approve_itr->post == post; ++approve_itr) {
+            auto witness = _db.find_witness(approve_itr->approver);
+            if (witness && witness->schedule == witness_object::top19) {
+                result[approve_itr->state]++;
+            }
+        }
+
+        return result;
+    }
+
+    flat_map<worker_techspec_approve_state, int32_t> database::count_worker_techspec_approves(const comment_id_type& post) {
+        return count_worker_approves<worker_techspec_approve_index, by_techspec_approver>(*this, post);
+    }
+
+    flat_map<worker_techspec_approve_state, int32_t> database::count_worker_result_approves(const comment_id_type& post) {
+        return count_worker_approves<worker_result_approve_index, by_result_approver>(*this, post);
+    }
+
+    flat_map<worker_techspec_approve_state, int32_t> database::count_worker_payment_approves(const comment_id_type& worker_result_post) {
+        return count_worker_approves<worker_payment_approve_index, by_result_approver>(*this, worker_result_post);
+    }
+
     asset database::calculate_worker_techspec_month_consumption(const worker_techspec_object& wto) {
         auto month_sec = fc::days(30).to_seconds();
         auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;

@@ -39,8 +39,6 @@ namespace golos { namespace plugins { namespace worker_api {
             (get_worker_proposals)
             (get_worker_techspecs)
         )
-
-        worker_techspec_approve_state old_approve_state;
     private:
         class worker_api_plugin_impl;
 

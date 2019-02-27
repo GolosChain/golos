@@ -12,57 +12,11 @@ namespace golos { namespace plugins { namespace worker_api {
 namespace bpo = boost::program_options;
 using golos::api::discussion_helper;
 
-struct pre_operation_visitor {
-    golos::chain::database& _db;
-    worker_api_plugin& _plugin;
-
-    pre_operation_visitor(golos::chain::database& db, worker_api_plugin& plugin) : _db(db), _plugin(plugin) {
-    }
-
-    typedef void result_type;
-
-    template<typename T>
-    result_type operator()(const T&) const {
-    }
-
-    result_type operator()(const worker_techspec_approve_operation& o) const {
-        const auto& wto_post = _db.get_comment(o.author, o.permlink);
-
-        const auto& wtao_idx = _db.get_index<worker_techspec_approve_index, by_techspec_approver>();
-        auto wtao_itr = wtao_idx.find(std::make_tuple(wto_post.id, o.approver));
-
-        if (wtao_itr != wtao_idx.end()) {
-            _plugin.old_approve_state = wtao_itr->state;
-            return;
-        }
-
-        _plugin.old_approve_state = worker_techspec_approve_state::abstain;
-    }
-};
-
 struct post_operation_visitor {
     golos::chain::database& _db;
     worker_api_plugin& _plugin;
 
     post_operation_visitor(golos::chain::database& db, worker_api_plugin& plugin) : _db(db), _plugin(plugin) {
-    }
-
-    void update_worker_techspec_approves(const worker_techspec_metadata_object& wtmo,
-            worker_techspec_approve_state old_state, worker_techspec_approve_state new_state) const {
-        _db.modify(wtmo, [&](worker_techspec_metadata_object& wtmo) {
-            if (old_state == worker_techspec_approve_state::approve) {
-                wtmo.approves--;
-            }
-            if (old_state == worker_techspec_approve_state::disapprove) {
-                wtmo.disapproves--;
-            }
-            if (new_state == worker_techspec_approve_state::approve) {
-                wtmo.approves++;
-            }
-            if (new_state == worker_techspec_approve_state::disapprove) {
-                wtmo.disapproves++;
-            }
-        });
     }
 
     typedef void result_type;
@@ -163,15 +117,12 @@ struct post_operation_visitor {
         const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
         auto wtmo_itr = wtmo_idx.find(wto_post.id);
 
-        const auto& wtao_idx = _db.get_index<worker_techspec_approve_index, by_techspec_approver>();
-        auto wtao_itr = wtao_idx.find(std::make_tuple(wto_post.id, o.approver));
+        auto approves = _db.count_worker_techspec_approves(wto_post.id);
 
-        if (wtao_itr != wtao_idx.end()) {
-            update_worker_techspec_approves(*wtmo_itr, _plugin.old_approve_state, wtao_itr->state);
-            return;
-        }
-
-        update_worker_techspec_approves(*wtmo_itr, _plugin.old_approve_state, worker_techspec_approve_state::abstain);
+        _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
+            wtmo.approves = approves[worker_techspec_approve_state::approve];
+            wtmo.disapproves = approves[worker_techspec_approve_state::disapprove];
+        });
     }
 
     result_type operator()(const worker_assign_operation& o) const {
@@ -193,14 +144,19 @@ struct post_operation_visitor {
     result_type operator()(const worker_result_approve_operation& o) const {
         const auto& worker_result_post = _db.get_comment(o.author, o.permlink);
         const auto& wto = _db.get_worker_result(worker_result_post.id);
+
+        auto approves = _db.count_worker_result_approves(worker_result_post.id);
+
         const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
         auto wtmo_itr = wtmo_idx.find(wto.post);
-
-        if (wto.state != worker_techspec_state::payment) {
-            return;
-        }
-
         _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
+            wtmo.worker_result_approves = approves[worker_techspec_approve_state::approve];
+            wtmo.worker_result_disapproves = approves[worker_techspec_approve_state::disapprove];
+
+            if (wto.state != worker_techspec_state::payment) {
+                return;
+            }
+
             wtmo.payment_beginning_time = wto.next_cashout_time;
             wtmo.month_consumption = _db.calculate_worker_techspec_month_consumption(wto);
         });
@@ -227,13 +183,18 @@ struct post_operation_visitor {
 
         const auto& wto = _db.get_worker_result(post.id);
 
-        if (wto.next_cashout_time != time_point_sec::maximum()) {
-            return;
-        }
+        auto approves = _db.count_worker_result_approves(post.id);
 
         const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
         auto wtmo_itr = wtmo_idx.find(wto.post);
         _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
+            wtmo.worker_payment_approves = approves[worker_techspec_approve_state::approve];
+            wtmo.worker_payment_disapproves = approves[worker_techspec_approve_state::disapprove];
+
+            if (wto.next_cashout_time != time_point_sec::maximum()) {
+                return;
+            }
+
             wtmo.month_consumption = asset(0, STEEM_SYMBOL);
         });
     }
@@ -249,16 +210,6 @@ public:
             nullptr,
             golos::plugins::social_network::fill_comment_info
         );
-    }
-
-    void pre_operation(const operation_notification& note, worker_api_plugin& self) {
-        try {
-            note.op.visit(pre_operation_visitor(_db, self));
-        } catch (const fc::assert_exception&) {
-            if (_db.is_producing()) {
-                throw;
-            }
-        }
     }
 
     void post_operation(const operation_notification& note, worker_api_plugin& self) {
@@ -300,10 +251,6 @@ void worker_api_plugin::plugin_initialize(const boost::program_options::variable
     ilog("Intializing account notes plugin");
 
     my = std::make_unique<worker_api_plugin::worker_api_plugin_impl>(*this);
-
-    my->_db.pre_apply_operation.connect([&](const operation_notification& note) {
-        my->pre_operation(note, *this);
-    });
 
     my->_db.post_apply_operation.connect([&](const operation_notification& note) {
         my->post_operation(note, *this);
@@ -478,6 +425,14 @@ DEFINE_API(worker_api_plugin, get_worker_techspecs) {
         my->select_postbased_results_ordered<worker_techspec_metadata_index, by_approves, false>(query, result, wto_fill_worker_fields, fill_posts);
     } else if (sort == worker_techspec_sort::by_disapproves) {
         my->select_postbased_results_ordered<worker_techspec_metadata_index, by_disapproves, false>(query, result, wto_fill_worker_fields, fill_posts);
+    } else if (sort == worker_techspec_sort::by_worker_result_approves) {
+        my->select_postbased_results_ordered<worker_techspec_metadata_index, by_worker_result_approves, false>(query, result, wto_fill_worker_fields, fill_posts);
+    } else if (sort == worker_techspec_sort::by_worker_result_disapproves) {
+        my->select_postbased_results_ordered<worker_techspec_metadata_index, by_worker_result_disapproves, false>(query, result, wto_fill_worker_fields, fill_posts);
+    } else if (sort == worker_techspec_sort::by_worker_payment_approves) {
+        my->select_postbased_results_ordered<worker_techspec_metadata_index, by_worker_payment_approves, false>(query, result, wto_fill_worker_fields, fill_posts);
+    } else if (sort == worker_techspec_sort::by_worker_payment_disapproves) {
+        my->select_postbased_results_ordered<worker_techspec_metadata_index, by_worker_payment_disapproves, false>(query, result, wto_fill_worker_fields, fill_posts);
     }
 
     return result;

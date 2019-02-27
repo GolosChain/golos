@@ -449,6 +449,10 @@ namespace golos { namespace chain {
 
             void process_comment_cashout();
 
+            flat_map<worker_techspec_approve_state, int32_t> count_worker_techspec_approves(const comment_id_type& post);
+            flat_map<worker_techspec_approve_state, int32_t> count_worker_result_approves(const comment_id_type& post);
+            flat_map<worker_techspec_approve_state, int32_t> count_worker_payment_approves(const comment_id_type& worker_result_post);
+
             asset calculate_worker_techspec_month_consumption(const worker_techspec_object& wto);
 
             void process_worker_cashout();

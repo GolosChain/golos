@@ -12,18 +12,6 @@ namespace golos { namespace chain {
         logic_exception::you_already_have_voted_for_this_object_with_this_state, \
         "You already have voted for this object with this state")
 
-    int32_t count_worker_approves(const auto& _db, auto& approve_idx, const comment_id_type& post, auto state) {
-        auto approvers = 0;
-        auto approve_itr = approve_idx.lower_bound(post);
-        for (; approve_itr != approve_idx.end() && approve_itr->post == post; ++approve_itr) {
-            auto witness = _db.find_witness(approve_itr->approver);
-            if (witness && witness->schedule == witness_object::top19 && approve_itr->state == state) {
-                approvers++;
-            }
-        }
-        return approvers;
-    }
-
     void worker_proposal_evaluator::do_apply(const worker_proposal_operation& o) {
         ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_proposal_operation");
 
@@ -205,10 +193,10 @@ namespace golos { namespace chain {
             });
         }
 
-        if (o.state == worker_techspec_approve_state::disapprove) {
-            auto disapprovers = count_worker_approves(_db, wtao_idx, wto.post, worker_techspec_approve_state::disapprove);
+        auto approves = _db.count_worker_techspec_approves(wto.post);
 
-            if (disapprovers < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
+        if (o.state == worker_techspec_approve_state::disapprove) {
+            if (approves[o.state] < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
                 return;
             }
 
@@ -218,9 +206,7 @@ namespace golos { namespace chain {
                 wto.state = worker_techspec_state::closed;
             });
         } else if (o.state == worker_techspec_approve_state::approve) {
-            auto approvers = count_worker_approves(_db, wtao_idx, wto.post, worker_techspec_approve_state::approve);
-
-            if (approvers < STEEMIT_MAJOR_VOTED_WITNESSES) {
+            if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
                 return;
             }
 
@@ -346,12 +332,10 @@ namespace golos { namespace chain {
             });
         }
 
-        const auto& gpo = _db.get_dynamic_global_properties();
+        auto approves = _db.count_worker_result_approves(worker_result_post.id);
 
         if (o.state == worker_techspec_approve_state::disapprove) {
-            auto disapprovers = count_worker_approves(_db, wrao_idx, worker_result_post.id, worker_techspec_approve_state::disapprove);
-
-            if (disapprovers < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
+            if (approves[o.state] < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
                 return;
             }
 
@@ -378,6 +362,8 @@ namespace golos { namespace chain {
 
             auto consumption = _db.calculate_worker_techspec_month_consumption(wto);
 
+            const auto& gpo = _db.get_dynamic_global_properties();
+
             uint128_t revenue_funds(gpo.worker_revenue_per_month.amount.value);
             revenue_funds = revenue_funds * payments_period / month_sec;
             revenue_funds += gpo.total_worker_fund_steem.amount.value;
@@ -389,9 +375,7 @@ namespace golos { namespace chain {
                 logic_exception::insufficient_funds_to_approve_worker_result,
                 "Insufficient funds to approve worker result");
 
-            auto approvers = count_worker_approves(_db, wrao_idx, worker_result_post.id, worker_techspec_approve_state::approve);
-
-            if (approvers < STEEMIT_MAJOR_VOTED_WITNESSES) {
+            if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
                 return;
             }
 
@@ -485,9 +469,9 @@ namespace golos { namespace chain {
             });
         }
 
-        auto disapprovers = count_worker_approves(_db, wpao_idx, worker_result_post.id, worker_techspec_approve_state::disapprove);
+        auto approves = _db.count_worker_result_approves(worker_result_post.id);
 
-        if (disapprovers < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
+        if (approves[worker_techspec_approve_state::disapprove] < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
             return;
         }
 
