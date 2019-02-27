@@ -196,9 +196,31 @@ namespace golos { namespace chain {
                 wto.state = worker_techspec_state::closed;
             });
         } else if (o.state == worker_techspec_approve_state::approve) {
+            auto month_sec = fc::days(30).to_seconds();
+            auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
+
+            auto consumption = _db.calculate_worker_techspec_month_consumption(wto);
+
+            const auto& gpo = _db.get_dynamic_global_properties();
+
+            uint128_t revenue_funds(gpo.worker_revenue_per_month.amount.value);
+            revenue_funds = revenue_funds * payments_period / month_sec;
+            revenue_funds += gpo.total_worker_fund_steem.amount.value;
+
+            auto consumption_funds = uint128_t(gpo.worker_consumption_per_month.amount.value) + consumption.amount.value;
+            consumption_funds = consumption_funds * payments_period / month_sec;
+
+            GOLOS_CHECK_LOGIC(revenue_funds >= consumption_funds,
+                logic_exception::insufficient_funds_to_approve_worker_result,
+                "Insufficient funds to approve worker result");
+
             if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
                 return;
             }
+
+            _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
+                gpo.worker_consumption_per_month += consumption;
+            });
 
             _db.modify(wpo, [&](worker_proposal_object& wpo) {
                 wpo.approved_techspec_post = wto_post.id;
@@ -347,24 +369,6 @@ namespace golos { namespace chain {
                 wto.state = worker_techspec_state::work;
             });
         } else if (o.state == worker_techspec_approve_state::approve) {
-            auto month_sec = fc::days(30).to_seconds();
-            auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
-
-            auto consumption = _db.calculate_worker_techspec_month_consumption(wto);
-
-            const auto& gpo = _db.get_dynamic_global_properties();
-
-            uint128_t revenue_funds(gpo.worker_revenue_per_month.amount.value);
-            revenue_funds = revenue_funds * payments_period / month_sec;
-            revenue_funds += gpo.total_worker_fund_steem.amount.value;
-
-            auto consumption_funds = uint128_t(gpo.worker_consumption_per_month.amount.value) + consumption.amount.value;
-            consumption_funds = consumption_funds * payments_period / month_sec;
-
-            GOLOS_CHECK_LOGIC(revenue_funds >= consumption_funds,
-                logic_exception::insufficient_funds_to_approve_worker_result,
-                "Insufficient funds to approve worker result");
-
             if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
                 return;
             }
@@ -372,10 +376,6 @@ namespace golos { namespace chain {
             _db.modify(wto, [&](worker_techspec_object& wto) {
                 wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;
                 wto.state = worker_techspec_state::payment;
-            });
-
-            _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
-                gpo.worker_consumption_per_month += consumption;
             });
         }
     }
