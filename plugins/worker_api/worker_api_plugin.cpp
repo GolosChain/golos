@@ -139,7 +139,7 @@ struct post_operation_visitor {
         _db.remove(*wtmo_itr);
     }
 
-    result_type operator()(const vote_operation& o) {
+    result_type operator()(const vote_operation& o) const {
         const auto& post = _db.get_comment(o.author, o.permlink);
 
         const auto& wpmo_idx = _db.get_index<worker_proposal_metadata_index, by_post>();
