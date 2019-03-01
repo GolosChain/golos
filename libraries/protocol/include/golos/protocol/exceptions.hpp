@@ -367,7 +367,6 @@ namespace golos {
             approver_of_payment_should_be_in_top19_of_witnesses,
             worker_techspec_should_be_in_payment_state,
             you_already_have_voted_for_this_object_with_this_state,
-            you_have_not_yet_voted_for_this_object,
 
             // custom operations
             inner_authorities_does_not_match_outer,
@@ -668,7 +667,6 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (approver_of_payment_should_be_in_top19_of_witnesses)
         (worker_techspec_should_be_in_payment_state)
         (you_already_have_voted_for_this_object_with_this_state)
-        (you_have_not_yet_voted_for_this_object)
 
         // custom operations
         (inner_authorities_does_not_match_outer)

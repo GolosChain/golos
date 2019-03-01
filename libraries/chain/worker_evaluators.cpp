@@ -12,11 +12,6 @@ namespace golos { namespace chain {
         logic_exception::you_already_have_voted_for_this_object_with_this_state, \
         "You already have voted for this object with this state")
 
-#define WORKER_CHECK_OBJECT_VOTED(expr) \
-    GOLOS_CHECK_LOGIC(expr, \
-        logic_exception::you_have_not_yet_voted_for_this_object, \
-        "You have not yet voted for this object")
-
     int32_t count_worker_approves(const auto& _db, auto& approve_idx, const comment_id_type& post, auto state) {
         auto approvers = 0;
         auto approve_itr = approve_idx.lower_bound(post);
@@ -190,7 +185,9 @@ namespace golos { namespace chain {
         auto wtao_itr = wtao_idx.find(std::make_tuple(wto.post, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            WORKER_CHECK_OBJECT_VOTED(wtao_itr != wtao_idx.end());
+            if (wtao_itr == wtao_idx.end()) {
+                WORKER_CHECK_NO_VOTE_REPEAT(worker_techspec_approve_state::abstain, worker_techspec_approve_state::abstain);
+            }
 
             _db.remove(*wtao_itr);
             return;
@@ -331,7 +328,9 @@ namespace golos { namespace chain {
         auto wrao_itr = wrao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            WORKER_CHECK_OBJECT_VOTED(wrao_itr != wrao_idx.end());
+            if (wrao_itr == wrao_idx.end()) {
+                WORKER_CHECK_NO_VOTE_REPEAT(worker_techspec_approve_state::abstain, worker_techspec_approve_state::abstain);
+            }
 
             _db.remove(*wrao_itr);
             return;
@@ -470,7 +469,9 @@ namespace golos { namespace chain {
         auto wpao_itr = wpao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            WORKER_CHECK_OBJECT_VOTED(wpao_itr != wpao_idx.end());
+            if (wpao_itr == wpao_idx.end()) {
+                WORKER_CHECK_NO_VOTE_REPEAT(worker_techspec_approve_state::abstain, worker_techspec_approve_state::abstain);
+            }
 
             _db.remove(*wpao_itr);
             return;
