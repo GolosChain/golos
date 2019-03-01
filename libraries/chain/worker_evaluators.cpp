@@ -469,7 +469,7 @@ namespace golos { namespace chain {
         const auto& wpao_idx = _db.get_index<worker_payment_approve_index, by_result_approver>();
         auto wpao_itr = wpao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
 
-        if (o.state != worker_techspec_approve_state::disapprove) {
+        if (o.state == worker_techspec_approve_state::abstain) {
             WORKER_CHECK_OBJECT_VOTED(wpao_itr != wpao_idx.end());
 
             _db.remove(*wpao_itr);
@@ -478,14 +478,17 @@ namespace golos { namespace chain {
 
         if (wpao_itr != wpao_idx.end()) {
             WORKER_CHECK_NO_VOTE_REPEAT(wpao_itr->state, o.state);
-            return;
-        }
 
-        _db.create<worker_payment_approve_object>([&](worker_payment_approve_object& wpao) {
-            wpao.approver = o.approver;
-            wpao.post = worker_result_post.id;
-            wpao.state = o.state;
-        });
+            _db.modify(*wpao_itr, [&](worker_payment_approve_object& wpao) {
+                wpao.state = o.state;
+            });
+        } else {
+            _db.create<worker_payment_approve_object>([&](worker_payment_approve_object& wpao) {
+                wpao.approver = o.approver;
+                wpao.post = worker_result_post.id;
+                wpao.state = o.state;
+            });
+        }
 
         auto disapprovers = count_worker_approves(_db, wpao_idx, worker_result_post.id, worker_techspec_approve_state::disapprove);
 
