@@ -12,6 +12,20 @@ using namespace golos::chain;
 
 BOOST_FIXTURE_TEST_SUITE(worker_tests, clean_database_fixture)
 
+BOOST_AUTO_TEST_CASE(worker_authorities) {
+    BOOST_TEST_MESSAGE("Testing: worker_authorities");
+
+    worker_proposal_operation proposal_op;
+    proposal_op.author = "alice";
+    proposal_op.permlink = "test";
+    CHECK_OP_AUTHS(proposal_op, account_name_set(), account_name_set(), account_name_set({"alice"}));
+
+    worker_proposal_delete_operation proposal_del_op;
+    proposal_del_op.author = "alice";
+    proposal_del_op.permlink = "test";
+    CHECK_OP_AUTHS(proposal_del_op, account_name_set(), account_name_set(), account_name_set({"alice"}));
+}
+
 BOOST_AUTO_TEST_CASE(worker_proposal_validate) {
     BOOST_TEST_MESSAGE("Testing: worker_proposal_validate");
 
@@ -28,15 +42,6 @@ BOOST_AUTO_TEST_CASE(worker_proposal_validate) {
     op.type = worker_proposal_type::_size;
     GOLOS_CHECK_ERROR_PROPS(op.validate(),
         CHECK_ERROR(invalid_parameter, "type"));
-}
-
-BOOST_AUTO_TEST_CASE(worker_proposal_authorities) {
-    BOOST_TEST_MESSAGE("Testing: worker_proposal_authorities");
-
-    worker_proposal_operation op;
-    op.author = "alice";
-    op.permlink = "test";
-    CHECK_OP_AUTHS(op, account_name_set(), account_name_set(), account_name_set({"alice"}));
 }
 
 BOOST_AUTO_TEST_CASE(worker_proposal_apply_create) {
@@ -136,15 +141,6 @@ BOOST_AUTO_TEST_CASE(worker_proposal_apply_modify) {
     const auto* wpo_mod = db->find_worker_proposal(wpo_post.id);
     BOOST_CHECK(wpo_mod);
     BOOST_CHECK(wpo_mod->type == worker_proposal_type::premade_work);
-}
-
-BOOST_AUTO_TEST_CASE(worker_proposal_delete_authorities) {
-    BOOST_TEST_MESSAGE("Testing: worker_proposal_delete_authorities");
-
-    worker_proposal_delete_operation op;
-    op.author = "alice";
-    op.permlink = "test";
-    CHECK_OP_AUTHS(op, account_name_set(), account_name_set(), account_name_set({"alice"}));
 }
 
 BOOST_AUTO_TEST_CASE(worker_proposal_delete_apply) {
