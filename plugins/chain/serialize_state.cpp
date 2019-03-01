@@ -76,6 +76,44 @@ void pack(S& s, const golos::protocol::beneficiary_route_type& b) {
     fc::raw::pack(s, b.weight);
 }
 
+// store only consensus data for archived comments
+template<typename S>
+void pack(S& s, const golos::chain::comment_object& c) {
+    fc::raw::pack(s, c.id);
+    fc::raw::pack(s, c.parent_author);
+    fc::raw::pack(s, c.parent_permlink);
+    fc::raw::pack(s, c.author);
+    fc::raw::pack(s, c.permlink);
+    fc::raw::pack(s, c.mode);
+    if (c.mode != golos::chain::comment_mode::archived) {
+        fc::raw::pack(s, c.created);
+        fc::raw::pack(s, c.last_payout);
+        fc::raw::pack(s, c.depth);
+        fc::raw::pack(s, c.children);
+        fc::raw::pack(s, c.children_rshares2);
+        fc::raw::pack(s, c.net_rshares);
+        fc::raw::pack(s, c.abs_rshares);
+        fc::raw::pack(s, c.vote_rshares);
+        fc::raw::pack(s, c.children_abs_rshares);
+        fc::raw::pack(s, c.cashout_time);
+        fc::raw::pack(s, c.max_cashout_time);
+        fc::raw::pack(s, c.reward_weight);
+        fc::raw::pack(s, c.net_votes);
+        fc::raw::pack(s, c.total_votes);
+        fc::raw::pack(s, c.root_comment);
+        fc::raw::pack(s, c.curation_reward_curve);
+        fc::raw::pack(s, c.auction_window_reward_destination);
+        fc::raw::pack(s, c.auction_window_size);
+        fc::raw::pack(s, c.max_accepted_payout);
+        fc::raw::pack(s, c.percent_steem_dollars);
+        fc::raw::pack(s, c.allow_replies);
+        fc::raw::pack(s, c.allow_votes);
+        fc::raw::pack(s, c.allow_curation_rewards);
+        fc::raw::pack(s, c.curation_rewards_percent);
+        fc::raw::pack(s, c.beneficiaries);
+    }
+}
+
 }} // fc::raw
 
 namespace fc {
@@ -259,7 +297,7 @@ void plugin::serialize_state(const bfs::path& output) {
         store_map_table('M', custom_pack::_stats[custom_pack::meta]);
 
         wlog("Map SHA256 hash: ${h}", ("h", om.hash().str()));
-        out.close();
+        om.close();
 
     } catch (const boost::exception& e) {
         std::cerr << boost::diagnostic_information(e) << "\n";
@@ -274,15 +312,18 @@ void plugin::serialize_state(const bfs::path& output) {
 
 }}} // golos::plugins::chain
 
-// missing reflections
+// remove reflect of comment_object and serialize it manually
+/*
 FC_REFLECT((golos::chain::comment_object),
-    (id)(parent_author)(parent_permlink)(author)(permlink)(created)(last_payout)(depth)(children)
+    (id)(parent_author)(parent_permlink)(author)(permlink)(mode)    // consensus part
+    (created)(last_payout)(depth)(children)
     (children_rshares2)(net_rshares)(abs_rshares)(vote_rshares)(children_abs_rshares)(cashout_time)(max_cashout_time)
-    (reward_weight)(net_votes)(total_votes)(root_comment)(mode)
+    (reward_weight)(net_votes)(total_votes)(root_comment)
     (curation_reward_curve)(auction_window_reward_destination)(auction_window_size)(max_accepted_payout)
     (percent_steem_dollars)(allow_replies)(allow_votes)(allow_curation_rewards)(curation_rewards_percent)
-    (beneficiaries));
+    (beneficiaries));*/
 
+// missing reflections
 FC_REFLECT((golos::chain::delegator_vote_interest_rate), (account)(interest_rate)(payout_strategy));
 
 FC_REFLECT((golos::chain::comment_vote_object),
