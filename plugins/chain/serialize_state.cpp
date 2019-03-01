@@ -1,3 +1,4 @@
+#include "serialize_state.hpp"
 #include <golos/plugins/chain/plugin.hpp>
 
 #include <golos/chain/steem_object_types.hpp>
@@ -12,6 +13,70 @@
 #include <boost/filesystem/fstream.hpp>
 #include <fc/crypto/sha256.hpp>
 
+#define ID_T unsigned_int
+// #define ID_T uint32_t
+
+namespace golos { namespace custom_pack {
+
+enum str_type {
+    permlink,
+    meta,
+    other,
+    _size
+};
+struct str_info {
+    std::vector<std::string> items;
+    std::map<std::string,uint32_t> ids;     // to get id fast
+};
+
+static str_type _current_str_type = other;
+static str_info _stats[str_type::_size];
+static str_info _accs_stats;
+
+uint32_t put_item(str_info& info, const std::string& s) {
+    uint32_t id = info.items.size();
+    if (info.ids.count(s)) {
+        id = info.ids[s];
+    } else {
+        info.ids[s] = id;
+        info.items.push_back(s);
+    }
+    return id;
+}
+uint32_t put_str(const std::string& s) {
+    return put_item(_stats[_current_str_type], s);
+}
+uint32_t put_acc(const std::string& a) {
+    return put_item(_accs_stats, a);
+}
+
+}}
+
+namespace fc { namespace raw {
+
+template<typename S>
+void pack(S& s, const golos::chain::account_name_type& a) {
+    auto id = golos::custom_pack::put_acc(std::string(a));
+    fc::raw::pack(s, ID_T(id)); // variable-length
+}
+template<typename S>
+void pack(S& s, const golos::chain::shared_authority& a) {
+    fc::raw::pack(s, a.weight_threshold);
+    // account_auths is not properly serialized (string instead of account_name_type), so pack it manually
+    fc::raw::pack(s, unsigned_int((uint32_t)a.account_auths.size()));
+    for (const auto& acc : a.account_auths) {
+        fc::raw::pack(s, golos::chain::account_name_type(acc.first));
+        fc::raw::pack(s, acc.second);
+    }
+    fc::raw::pack(s, a.key_auths);
+}
+template<typename S>
+void pack(S& s, const golos::protocol::beneficiary_route_type& b) {
+    fc::raw::pack(s, golos::chain::account_name_type(b.account));
+    fc::raw::pack(s, b.weight);
+}
+
+}} // fc::raw
 
 namespace fc {
 
@@ -22,8 +87,13 @@ inline datastream<S>& operator<<(datastream<S>& s, const chainbase::object_id<T>
 }
 template<typename S>
 inline datastream<S>& operator<<(datastream<S>& s, const chainbase::shared_string& x) {
-    std::string t(x.data(), x.size());
-    fc::raw::pack(s, t);
+    const auto t = golos::chain::to_string(x);
+    if (golos::custom_pack::_current_str_type == golos::custom_pack::other) {
+        fc::raw::pack(s, t);
+    } else {
+        auto id = golos::custom_pack::put_str(t);
+        fc::raw::pack(s, ID_T(id));
+    }
     return s;
 }
 
@@ -60,10 +130,9 @@ private:
     fc::sha256::encoder _e;
 };
 
-
 struct state_header {
     char magic[12] = "Golos\astatE";
-    uint32_t tables_count;
+    uint32_t version;
 };
 struct table_header {
     uint32_t type_id;
@@ -97,7 +166,7 @@ void serialize_table(const database& db, ofstream_sha256& out) {
         n++;
     }
     auto end = fc::time_point::now();
-    ilog("  done, ${n} record(s) ${min}-${max} bytes each (${s.1} avg, ${l} total) saved in ${t} sec",
+    ilog("  done, ${n} record(s) ${min}-${max} bytes each (${s} avg, ${l} total) saved in ${t} sec",
         ("n", n)("min", min)("max", max)("l", l)("s", double(l)/n)
         ("t", double((end - start).count()) / 1000000.0));
 }
@@ -112,7 +181,7 @@ void plugin::serialize_state(const bfs::path& output) {
         wlog("Serializing state to ${dst}", ("dst",output.string()));
         auto& db_ = db();
         auto hdr = state_header{};
-        hdr.tables_count = db_.index_list_size();
+        hdr.version = 1;//db_.index_list_size();
         out.write(hdr);
 
         for (auto i = db_.index_list_begin(), e = db_.index_list_end(); e != i; ++i) {
@@ -123,16 +192,18 @@ void plugin::serialize_state(const bfs::path& output) {
         ilog("---------------------------------------------------------------------------");
 
 #define STORE(T) serialize_table<T>(db_, out);
-        STORE(dynamic_global_property_index);
         STORE(account_index);
         STORE(account_authority_index);
         STORE(account_bandwidth_index);
+        STORE(dynamic_global_property_index);
         STORE(witness_index);
-        STORE(transaction_index);
+        //STORE(transaction_index);
         STORE(block_summary_index);
         STORE(witness_schedule_index);
+        custom_pack::_current_str_type = custom_pack::permlink;
         STORE(comment_index);
         STORE(comment_vote_index);
+        custom_pack::_current_str_type = custom_pack::other;
         STORE(witness_vote_index);
         STORE(limit_order_index);
         // STORE(feed_history_index);
@@ -148,7 +219,9 @@ void plugin::serialize_state(const bfs::path& output) {
         STORE(decline_voting_rights_request_index);
         STORE(vesting_delegation_index);
         STORE(vesting_delegation_expiration_index);
+        // custom_pack::_current_str_type = custom_pack::meta;
         STORE(account_metadata_index);
+        // custom_pack::_current_str_type = custom_pack::other;
         // STORE(proposal_index);
         // STORE(required_approval_index);
 
@@ -165,7 +238,27 @@ void plugin::serialize_state(const bfs::path& output) {
 
         auto end = fc::time_point::now();
         wlog("Done in ${t} sec.", ("t", double((end - start).count()) / 1000000.0));
-        wlog("SHA256 hash: ${h}", ("h", out.hash().str()));
+        wlog("Data SHA256 hash: ${h}", ("h", out.hash().str()));
+        out.close();
+
+        auto map_file = output;
+        map_file += ".map";
+        ofstream_sha256 om(map_file);
+        auto store_map_table = [&](char type, const custom_pack::str_info& info) {
+            uint32_t l = info.ids.size();
+            om.write(type);
+            om.write(l);
+            for (const auto& i: info.items) {
+                om.write(i.c_str(), i.size());
+                om.write('\0');
+            }
+        };
+
+        store_map_table('A', custom_pack::_accs_stats);
+        store_map_table('P', custom_pack::_stats[custom_pack::permlink]);
+        store_map_table('M', custom_pack::_stats[custom_pack::meta]);
+
+        wlog("Map SHA256 hash: ${h}", ("h", om.hash().str()));
         out.close();
 
     } catch (const boost::exception& e) {
