@@ -7,8 +7,8 @@
 
 namespace golos { namespace chain {
 
-#define WORKER_CHECK_NO_VOTE_REPEAT(OLD_STATE, NEW_STATE) \
-    GOLOS_CHECK_LOGIC(OLD_STATE != NEW_STATE, \
+#define WORKER_CHECK_NO_VOTE_REPEAT(STATE1, STATE2) \
+    GOLOS_CHECK_LOGIC(STATE1 != STATE2, \
         logic_exception::you_already_have_voted_for_this_object_with_this_state, \
         "You already have voted for this object with this state")
 
@@ -185,9 +185,7 @@ namespace golos { namespace chain {
         auto wtao_itr = wtao_idx.find(std::make_tuple(wto.post, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            if (wtao_itr == wtao_idx.end()) {
-                WORKER_CHECK_NO_VOTE_REPEAT(worker_techspec_approve_state::abstain, worker_techspec_approve_state::abstain);
-            }
+            WORKER_CHECK_NO_VOTE_REPEAT(wtao_itr, wtao_idx.end());
 
             _db.remove(*wtao_itr);
             return;
@@ -328,9 +326,7 @@ namespace golos { namespace chain {
         auto wrao_itr = wrao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            if (wrao_itr == wrao_idx.end()) {
-                WORKER_CHECK_NO_VOTE_REPEAT(worker_techspec_approve_state::abstain, worker_techspec_approve_state::abstain);
-            }
+            WORKER_CHECK_NO_VOTE_REPEAT(wrao_itr, wrao_idx.end());
 
             _db.remove(*wrao_itr);
             return;
@@ -469,9 +465,7 @@ namespace golos { namespace chain {
         auto wpao_itr = wpao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
 
         if (o.state == worker_techspec_approve_state::abstain) {
-            if (wpao_itr == wpao_idx.end()) {
-                WORKER_CHECK_NO_VOTE_REPEAT(worker_techspec_approve_state::abstain, worker_techspec_approve_state::abstain);
-            }
+            WORKER_CHECK_NO_VOTE_REPEAT(wpao_itr, wpao_idx.end());
 
             _db.remove(*wpao_itr);
             return;
