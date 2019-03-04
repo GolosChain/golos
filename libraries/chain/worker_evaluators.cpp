@@ -95,31 +95,21 @@ namespace golos { namespace chain {
             logic_exception::this_worker_proposal_already_has_approved_techspec,
             "This worker proposal already has approved techspec");
 
-        const comment_object* wto_post = nullptr;
-        const auto& wto_idx = _db.get_index<worker_techspec_index, by_worker_proposal>();
-        auto wto_itr = wto_idx.lower_bound(wpo->post);
-        for (; wto_itr != wto_idx.end() && wto_itr->worker_proposal_post == wpo->post; wto_itr++) {
-            wto_post = &_db.get_comment(wto_itr->post);
-            if (wto_post->author == o.author) {
-                break;
-            }
-            wto_post = nullptr;
-        }
-        if (wto_post) {
-            GOLOS_CHECK_LOGIC(o.permlink == to_string(wto_post->permlink),
-                logic_exception::there_already_is_your_techspec_with_another_permlink,
-                "There already is your techspec with another permlink");
+        const auto* wto = _db.find_worker_techspec(post.id);
 
-            GOLOS_CHECK_LOGIC(o.specification_cost.symbol == wto_itr->specification_cost.symbol,
+        if (wto) {
+            GOLOS_CHECK_LOGIC(wto->worker_proposal_post == wpo_post.id,
+                logic_exception::this_worker_techspec_is_already_used_for_another_worker_proposal,
+                "This worker techspec is already used for another worker proposal");
+
+            GOLOS_CHECK_LOGIC(o.specification_cost.symbol == wto->specification_cost.symbol,
                 logic_exception::cannot_change_cost_symbol,
                 "Cannot change cost symbol");
-            GOLOS_CHECK_LOGIC(o.development_cost.symbol == wto_itr->development_cost.symbol,
+            GOLOS_CHECK_LOGIC(o.development_cost.symbol == wto->development_cost.symbol,
                 logic_exception::cannot_change_cost_symbol,
                 "Cannot change cost symbol");
 
-            _db.modify(*wto_itr, [&](worker_techspec_object& wto) {
-                wto.specification_cost = o.specification_cost;
-                wto.development_cost = o.development_cost;
+            _db.modify(*wto, [&](worker_techspec_object& wto) {
                 wto.payments_count = o.payments_count;
                 wto.payments_interval = o.payments_interval;
             });
