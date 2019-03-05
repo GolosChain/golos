@@ -102,6 +102,8 @@ namespace golos { namespace chain {
                 "Cannot change cost symbol");
 
             _db.modify(*wto, [&](worker_techspec_object& wto) {
+                wto.specification_cost = o.specification_cost;
+                wto.development_cost = o.development_cost;
                 wto.payments_count = o.payments_count;
                 wto.payments_interval = o.payments_interval;
             });
@@ -131,7 +133,11 @@ namespace golos { namespace chain {
             logic_exception::cannot_delete_paying_worker_techspec,
             "Cannot delete paying worker techspec");
 
-        if (wto.state == worker_techspec_state::approved) {
+        if (wto.state != worker_techspec_state::created) {
+            _db.modify(_db.get_dynamic_global_properties(), [&](dynamic_global_property_object& gpo) {
+                gpo.worker_consumption_per_month -= _db.calculate_worker_techspec_month_consumption(wto);
+            });
+
             const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
             _db.modify(wpo, [&](worker_proposal_object& wpo) {
                 wpo.state = worker_proposal_state::created;
@@ -444,8 +450,6 @@ namespace golos { namespace chain {
     void worker_assign_evaluator::do_apply(const worker_assign_operation& o) {
         ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_assign_operation");
 
-        _db.get_account(o.worker);
-
         const auto& wto_post = _db.get_comment(o.worker_techspec_author, o.worker_techspec_permlink);
         const auto& wto = _db.get_worker_techspec(wto_post.id);
 
@@ -474,6 +478,8 @@ namespace golos { namespace chain {
         GOLOS_CHECK_LOGIC(wpo.type == worker_proposal_type::task,
             logic_exception::worker_cannot_be_assigned_to_premade_proposal,
             "Worker cannot be assigned to premade proposal");
+
+        _db.get_account(o.worker);
 
         _db.modify(wto, [&](worker_techspec_object& wto) {
             wto.worker = o.worker;

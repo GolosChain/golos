@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include "database_fixture.hpp"
+#include "worker_fixture.hpp"
 #include "helpers.hpp"
 
 #include <golos/protocol/worker_operations.hpp>
@@ -10,7 +10,7 @@ using namespace golos;
 using namespace golos::protocol;
 using namespace golos::chain;
 
-BOOST_FIXTURE_TEST_SUITE(worker_tests, clean_database_fixture)
+BOOST_FIXTURE_TEST_SUITE(worker_proposal_tests, worker_fixture)
 
 BOOST_AUTO_TEST_CASE(worker_authorities) {
     BOOST_TEST_MESSAGE("Testing: worker_authorities");
@@ -39,9 +39,7 @@ BOOST_AUTO_TEST_CASE(worker_proposal_validate) {
 
     BOOST_TEST_MESSAGE("-- Invalid type case");
 
-    op.type = worker_proposal_type::_size;
-    GOLOS_CHECK_ERROR_PROPS(op.validate(),
-        CHECK_ERROR(invalid_parameter, "type"));
+    CHECK_PARAM_INVALID(op, type, worker_proposal_type::_size);
 }
 
 BOOST_AUTO_TEST_CASE(worker_proposal_apply_create) {
@@ -58,33 +56,20 @@ BOOST_AUTO_TEST_CASE(worker_proposal_apply_create) {
     op.author = "alice";
     op.permlink = "fake";
     op.type = worker_proposal_type::task;
-    GOLOS_CHECK_ERROR_PROPS(push_tx_with_ops(tx, alice_private_key, op),
-        CHECK_ERROR(tx_invalid_operation, 0,
-            CHECK_ERROR(missing_object, "comment", make_comment_id("alice", "fake"))));
+    GOLOS_CHECK_ERROR_MISSING(comment, make_comment_id("alice", "fake"), alice_private_key, op);
     generate_block();
 
     BOOST_TEST_MESSAGE("-- Create worker proposal on comment instead of post case");
 
-    comment_operation cop;
-    cop.title = "test";
-    cop.body = "test";
-    cop.author = "alice";
-    cop.permlink = "i-am-post";
-    cop.parent_author = "";
-    cop.parent_permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, cop));
-    cop.author = "bob";
-    cop.permlink = "i-am-comment";
-    cop.parent_author = "alice";
-    cop.parent_permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, cop));
+    comment_create("alice", alice_private_key, "i-am-post", "", "i-am-post");
+
+    comment_create("bob", bob_private_key, "i-am-comment", "alice", "i-am-post");
+
     validate_database();
 
     op.author = "bob";
     op.permlink = "i-am-comment";
-    GOLOS_CHECK_ERROR_PROPS(push_tx_with_ops(tx, bob_private_key, op),
-        CHECK_ERROR(tx_invalid_operation, 0,
-            CHECK_ERROR(logic_exception, logic_exception::worker_proposal_can_be_created_only_on_post)));
+    GOLOS_CHECK_ERROR_LOGIC(worker_proposal_can_be_created_only_on_post, bob_private_key, op);
     generate_block();
 
     BOOST_TEST_MESSAGE("-- Normal create worker proposal case");
@@ -111,14 +96,7 @@ BOOST_AUTO_TEST_CASE(worker_proposal_apply_modify) {
 
     signed_transaction tx;
 
-    comment_operation cop;
-    cop.title = "test";
-    cop.body = "test";
-    cop.author = "alice";
-    cop.permlink = "i-am-post";
-    cop.parent_author = "";
-    cop.parent_permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, cop));
+    comment_create("alice", alice_private_key, "i-am-post", "", "i-am-post");
 
     worker_proposal_operation op;
     op.author = "alice";
@@ -151,41 +129,38 @@ BOOST_AUTO_TEST_CASE(worker_proposal_delete_apply) {
 
     signed_transaction tx;
 
-    comment_operation cop;
-    cop.title = "test";
-    cop.body = "test";
-    cop.author = "alice";
-    cop.permlink = "i-am-post";
-    cop.parent_author = "";
-    cop.parent_permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, cop));
+    BOOST_TEST_MESSAGE("-- Deleting worker proposal with non-existant post case");
+
+    worker_proposal_delete_operation op;
+    op.author = "alice";
+    op.permlink = "i-am-post";
+    GOLOS_CHECK_ERROR_MISSING(comment, make_comment_id("alice", "i-am-post"), alice_private_key, op);
     generate_block();
 
-    worker_proposal_operation wpop;
-    wpop.author = "alice";
-    wpop.permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, wpop));
+    BOOST_TEST_MESSAGE("-- Deleting non-existant worker proposal case");
+
+    comment_create("alice", alice_private_key, "i-am-post", "", "i-am-post");
+
+    GOLOS_CHECK_ERROR_MISSING(worker_proposal_object, make_comment_id("alice", "i-am-post"), alice_private_key, op);
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Checking cannot delete post with worker proposal");
+
+    worker_proposal("alice", alice_private_key, "i-am-post", worker_proposal_type::task);
     generate_block();
 
     const auto& wpo_post = db->get_comment("alice", string("i-am-post"));
     const auto* wpo = db->find_worker_proposal(wpo_post.id);
     BOOST_CHECK(wpo);
 
-    BOOST_TEST_MESSAGE("-- Checking cannot delete post with worker proposal");
-
     delete_comment_operation dcop;
     dcop.author = "alice";
     dcop.permlink = "i-am-post";
-    GOLOS_CHECK_ERROR_PROPS(push_tx_with_ops(tx, alice_private_key, dcop),
-        CHECK_ERROR(tx_invalid_operation, 0,
-            CHECK_ERROR(logic_exception, logic_exception::cannot_delete_post_with_worker_proposal)));
+    GOLOS_CHECK_ERROR_LOGIC(cannot_delete_post_with_worker_proposal, alice_private_key, dcop);
     generate_block();
 
     BOOST_TEST_MESSAGE("-- Deleting worker proposal");
 
-    worker_proposal_delete_operation op;
-    op.author = "alice";
-    op.permlink = "i-am-post";
     BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, op));
     generate_block();
 

@@ -141,7 +141,7 @@ namespace golos { namespace chain {
             ordered_non_unique<
                 tag<by_worker_proposal>,
                 member<worker_techspec_object, comment_id_type, &worker_techspec_object::worker_proposal_post>>,
-            ordered_unique<
+            ordered_non_unique<
                 tag<by_worker_result>,
                 member<worker_techspec_object, comment_id_type, &worker_techspec_object::worker_result_post>>,
             ordered_unique<

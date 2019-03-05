@@ -18,36 +18,31 @@ namespace golos { namespace protocol {
         GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
     }
 
-    template<typename Operation>
-    void worker_techspec_validate(const Operation& op) {
-        GOLOS_CHECK_PARAM_ACCOUNT(op.author);
-        GOLOS_CHECK_PARAM(op.permlink, validate_permlink(op.permlink));
-        GOLOS_CHECK_PARAM_ACCOUNT(op.worker_proposal_author);
-        GOLOS_CHECK_PARAM(op.worker_proposal_permlink, validate_permlink(op.worker_proposal_permlink));
+    void worker_techspec_operation::validate() const {
+        GOLOS_CHECK_PARAM_ACCOUNT(author);
+        GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
+        GOLOS_CHECK_PARAM_ACCOUNT(worker_proposal_author);
+        GOLOS_CHECK_PARAM(worker_proposal_permlink, validate_permlink(worker_proposal_permlink));
 
-        GOLOS_CHECK_PARAM(op.specification_cost, {
-            GOLOS_CHECK_ASSET_GOLOS(op.specification_cost);
-            GOLOS_CHECK_VALUE_GE(op.specification_cost.amount, 0);
+        GOLOS_CHECK_PARAM(specification_cost, {
+            GOLOS_CHECK_ASSET_GOLOS(specification_cost);
+            GOLOS_CHECK_VALUE_GE(specification_cost.amount, 0);
         });
-        GOLOS_CHECK_PARAM(op.development_cost, {
-            GOLOS_CHECK_ASSET_GOLOS(op.development_cost);
-            GOLOS_CHECK_VALUE_GE(op.development_cost.amount, 0);
+        GOLOS_CHECK_PARAM(development_cost, {
+            GOLOS_CHECK_ASSET_GOLOS(development_cost);
+            GOLOS_CHECK_VALUE_GE(development_cost.amount, 0);
         });
 
-        GOLOS_CHECK_PARAM(op.payments_count, {
-            GOLOS_CHECK_VALUE_GE(op.payments_count, 1);
+        GOLOS_CHECK_PARAM(payments_count, {
+            GOLOS_CHECK_VALUE_GE(payments_count, 1);
         });
-        GOLOS_CHECK_PARAM(op.payments_interval, {
-            GOLOS_CHECK_VALUE_GE(op.payments_interval, 1);
+        GOLOS_CHECK_PARAM(payments_interval, {
+            GOLOS_CHECK_VALUE_GE(payments_interval, 1);
 
-            if (op.payments_count == 1) {
-                GOLOS_CHECK_VALUE_EQ(op.payments_interval, 1);
+            if (payments_count == 1) {
+                GOLOS_CHECK_VALUE_EQ(payments_interval, 1);
             }
         });
-    }
-
-    void worker_techspec_operation::validate() const {
-        worker_techspec_validate(*this);
     }
 
     void worker_techspec_delete_operation::validate() const {
@@ -84,7 +79,30 @@ namespace golos { namespace protocol {
     }
 
     void worker_result_premade_operation::validate() const {
-        worker_techspec_validate(*this);
+        GOLOS_CHECK_PARAM_ACCOUNT(author);
+        GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
+        GOLOS_CHECK_PARAM_ACCOUNT(worker_proposal_author);
+        GOLOS_CHECK_PARAM(worker_proposal_permlink, validate_permlink(worker_proposal_permlink));
+
+        GOLOS_CHECK_PARAM(specification_cost, {
+            GOLOS_CHECK_ASSET_GOLOS(specification_cost);
+            GOLOS_CHECK_VALUE_GE(specification_cost.amount, 0);
+        });
+        GOLOS_CHECK_PARAM(development_cost, {
+            GOLOS_CHECK_ASSET_GOLOS(development_cost);
+            GOLOS_CHECK_VALUE_GE(development_cost.amount, 0);
+        });
+
+        GOLOS_CHECK_PARAM(payments_count, {
+            GOLOS_CHECK_VALUE_GE(payments_count, 1);
+        });
+        GOLOS_CHECK_PARAM(payments_interval, {
+            GOLOS_CHECK_VALUE_GE(payments_interval, 1);
+
+            if (payments_count == 1) {
+                GOLOS_CHECK_VALUE_EQ(payments_interval, 1);
+            }
+        });
     }
 
     void worker_result_delete_operation::validate() const {

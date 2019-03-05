@@ -684,12 +684,12 @@ namespace golos { namespace protocol {
             /**
              * Maximum term of worker techspec approving
              */
-            uint32_t worker_techspec_approve_term_sec = UINT32_MAX;
+            uint32_t worker_techspec_approve_term_sec = GOLOS_WORKER_TECHSPEC_APPROVE_TERM_SEC;
 
             /**
              * Maximum term of worker result approving
              */
-            uint32_t worker_result_approve_term_sec = UINT32_MAX;
+            uint32_t worker_result_approve_term_sec = GOLOS_WORKER_RESULT_APPROVE_TERM_SEC;
 
             void validate() const;
 

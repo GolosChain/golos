@@ -17,7 +17,7 @@ struct worker_api_fixture : public golos::chain::database_fixture {
     }
 };
 
-BOOST_FIXTURE_TEST_SUITE(worker_api_plugin, worker_api_fixture)
+BOOST_FIXTURE_TEST_SUITE(worker_api_plugin_proposal, worker_api_fixture)
 
 BOOST_AUTO_TEST_CASE(worker_proposal_create) {
     BOOST_TEST_MESSAGE("Testing: worker_proposal_create");
@@ -29,14 +29,7 @@ BOOST_AUTO_TEST_CASE(worker_proposal_create) {
 
     const auto& wpmo_idx = db->get_index<worker_proposal_metadata_index, by_post>();
 
-    comment_operation cop;
-    cop.title = "test";
-    cop.body = "test";
-    cop.author = "alice";
-    cop.permlink = "i-am-post";
-    cop.parent_author = "";
-    cop.parent_permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, cop));
+    comment_create("alice", alice_private_key, "i-am-post", "", "i-am-post");
 
     vote_operation vop;
     vop.voter = "bob";
@@ -74,14 +67,7 @@ BOOST_AUTO_TEST_CASE(worker_proposal_modify) {
 
     const auto& wpmo_idx = db->get_index<worker_proposal_metadata_index, by_post>();
 
-    comment_operation cop;
-    cop.title = "test";
-    cop.body = "test";
-    cop.author = "alice";
-    cop.permlink = "i-am-post";
-    cop.parent_author = "";
-    cop.parent_permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, cop));
+    comment_create("alice", alice_private_key, "i-am-post", "", "i-am-post");
 
     worker_proposal_operation op;
     op.author = "alice";
@@ -134,15 +120,7 @@ BOOST_AUTO_TEST_CASE(worker_proposal_delete) {
 
     const auto& wpmo_idx = db->get_index<worker_proposal_metadata_index, by_post>();
 
-    comment_operation cop;
-    cop.title = "test";
-    cop.body = "test";
-    cop.author = "alice";
-    cop.permlink = "i-am-post";
-    cop.parent_author = "";
-    cop.parent_permlink = "i-am-post";
-    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, cop));
-    generate_block();
+    comment_create("alice", alice_private_key, "i-am-post", "", "i-am-post");
 
     worker_proposal_operation wpop;
     wpop.author = "alice";

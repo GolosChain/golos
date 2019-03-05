@@ -20,6 +20,7 @@ namespace golos { namespace chain {
             reward_fund_ = gpo.total_reward_fund_steem;
             vesting_shares_ = gpo.total_vesting_shares;
             vesting_fund_ = gpo.total_vesting_fund_steem;
+            worker_fund_ = gpo.total_worker_fund_steem;
 
             process_funds();
         }
@@ -40,8 +41,16 @@ namespace golos { namespace chain {
             return vesting_fund_;
         }
 
+        const asset& worker_fund() const {
+            return worker_fund_;
+        }
+
         price get_vesting_share_price() const {
             return price(vesting_shares_, vesting_fund_);
+        }
+
+        asset worker_revenue_per_month() const {
+            return worker_revenue_per_month_;
         }
 
         asset claim_comment_reward(const comment_object& comment) {
@@ -78,15 +87,20 @@ namespace golos { namespace chain {
             auto vesting_reward = total_reward * uint16_t(STEEMIT_VESTING_FUND_PERCENT) / STEEMIT_100_PERCENT;
             auto witness_reward = total_reward - content_reward - vesting_reward;
 
+            auto worker_reward = int64_t(0);
+
             if (db_.has_hardfork(STEEMIT_HARDFORK_0_21__1013)) {
                 auto content_to_worker = content_reward * uint16_t(GOLOS_WORKER_FROM_CONTENT_FUND_PERCENT) / STEEMIT_100_PERCENT;
                 content_reward -= content_to_worker;
+                worker_reward += content_to_worker;
 
                 auto vesting_to_worker = vesting_reward * uint16_t(GOLOS_WORKER_FROM_VESTING_FUND_PERCENT) / STEEMIT_100_PERCENT;
                 vesting_reward -= vesting_to_worker;
+                worker_reward += vesting_to_worker;
 
                 auto witness_to_worker = witness_reward * uint16_t(GOLOS_WORKER_FROM_WITNESS_FUND_PERCENT) / STEEMIT_100_PERCENT;
                 witness_reward -= witness_to_worker;
+                worker_reward += witness_to_worker;
             }
 
             auto witness_normalize = db_.get_witness_schedule_object().witness_pay_normalization_factor;
@@ -96,6 +110,9 @@ namespace golos { namespace chain {
             reward_fund_ += asset(content_reward, STEEM_SYMBOL);
 
             create_vesting(asset(witness_reward, STEEM_SYMBOL));
+
+            worker_fund_ += asset(worker_reward, STEEM_SYMBOL);
+            worker_revenue_per_month_ = asset(worker_reward * 24*60*60*30 / 3, STEEM_SYMBOL);
         }
         
         database& db_;
@@ -103,6 +120,8 @@ namespace golos { namespace chain {
         asset reward_fund_;
         asset vesting_shares_;
         asset vesting_fund_;
+        asset worker_fund_;
+        asset worker_revenue_per_month_;
     };
 
     class comment_reward final {

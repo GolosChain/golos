@@ -10,7 +10,7 @@ namespace golos { namespace chain {
         return get<worker_proposal_object, by_post>(post);
     } catch (const std::out_of_range &e) {
         const auto& comment = get_comment(post);
-        GOLOS_THROW_MISSING_OBJECT("worker_proposal_object", fc::mutable_variant_object()("author",comment.author)("permlink",comment.permlink));
+        GOLOS_THROW_MISSING_OBJECT("worker_proposal_object", fc::mutable_variant_object()("account",comment.author)("permlink",comment.permlink));
     } FC_CAPTURE_AND_RETHROW((post)) }
 
     const worker_proposal_object* database::find_worker_proposal(const comment_id_type& post) const {
@@ -21,7 +21,7 @@ namespace golos { namespace chain {
         return get<worker_techspec_object, by_post>(post);
     } catch (const std::out_of_range &e) {
         const auto& comment = get_comment(post);
-        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("author",comment.author)("permlink",comment.permlink));
+        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("account",comment.author)("permlink",comment.permlink));
     } FC_CAPTURE_AND_RETHROW((post)) }
 
     const worker_techspec_object* database::find_worker_techspec(const comment_id_type& post) const {
@@ -32,7 +32,7 @@ namespace golos { namespace chain {
         return get<worker_techspec_object, by_worker_result>(post);
     } catch (const std::out_of_range &e) {
         const auto& comment = get_comment(post);
-        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("author",comment.author)("worker_result_permlink",comment.permlink));
+        GOLOS_THROW_MISSING_OBJECT("worker_techspec_object", fc::mutable_variant_object()("account",comment.author)("worker_result_permlink",comment.permlink));
     } FC_CAPTURE_AND_RETHROW((post)) }
 
     const worker_techspec_object* database::find_worker_result(const comment_id_type& post) const {
@@ -160,11 +160,8 @@ namespace golos { namespace chain {
         const auto& mprops = get_witness_schedule_object().median_props;
 
         const auto& idx = get_index<worker_techspec_index>().indices().get<by_created>();
-        for (auto itr = idx.begin(); itr != idx.end(); itr++) {
-            if (uint64_t(itr->created.sec_since_epoch()) + mprops.worker_techspec_approve_term_sec > head_block_time().sec_since_epoch()) {
-                break;
-            }
-
+        auto itr = idx.begin();
+        for (; itr != idx.end() && head_block_time() > itr->created + mprops.worker_techspec_approve_term_sec; itr++) {
             clear_worker_techspec_approves(*itr);
 
             modify(*itr, [&](worker_techspec_object& wto) {

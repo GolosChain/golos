@@ -7747,20 +7747,6 @@ struct votes_extended_fixture : public golos::chain::clean_database_fixture {
         validate_database();
     }
 
-    void post(const std::string& permlink = "post", const std::string& parent_permlink = "test") {
-        ACTOR(alice);
-        comment_operation op;
-        op.author = "alice";
-        op.permlink = permlink;
-        op.parent_author = parent_permlink == "test" ? "" : "alice";
-        op.parent_permlink = parent_permlink;
-        op.title = "foo";
-        op.body = "bar";
-        signed_transaction tx;
-        GOLOS_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, op));
-        validate_database();
-    }
-
     uint32_t count_stored_votes() {
         const auto n = db->get_index<golos::chain::comment_vote_index>().indices().size();
         return n;
