@@ -346,7 +346,6 @@ namespace golos {
             worker_techspec_can_be_created_only_for_existing_proposal,
             this_worker_proposal_already_has_approved_techspec,
             this_worker_techspec_is_already_used_for_another_worker_proposal,
-            cannot_change_cost_symbol,
             cannot_delete_paying_worker_techspec,
             approver_of_techspec_should_be_in_top19_of_witnesses,
             techspec_is_already_approved_or_closed,
@@ -651,7 +650,6 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (worker_techspec_can_be_created_only_for_existing_proposal)
         (this_worker_proposal_already_has_approved_techspec)
         (this_worker_techspec_is_already_used_for_another_worker_proposal)
-        (cannot_change_cost_symbol)
         (cannot_delete_paying_worker_techspec)
         (approver_of_techspec_should_be_in_top19_of_witnesses)
         (techspec_is_already_approved_or_closed)

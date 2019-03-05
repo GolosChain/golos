@@ -94,13 +94,6 @@ namespace golos { namespace chain {
                 logic_exception::this_worker_techspec_is_already_used_for_another_worker_proposal,
                 "This worker techspec is already used for another worker proposal");
 
-            GOLOS_CHECK_LOGIC(o.specification_cost.symbol == wto->specification_cost.symbol,
-                logic_exception::cannot_change_cost_symbol,
-                "Cannot change cost symbol");
-            GOLOS_CHECK_LOGIC(o.development_cost.symbol == wto->development_cost.symbol,
-                logic_exception::cannot_change_cost_symbol,
-                "Cannot change cost symbol");
-
             _db.modify(*wto, [&](worker_techspec_object& wto) {
                 wto.payments_count = o.payments_count;
                 wto.payments_interval = o.payments_interval;
