@@ -108,6 +108,8 @@ namespace golos { namespace chain {
                     gpo.worker_consumption_per_month -= calculate_worker_techspec_month_consumption(*wto_itr);
                 });
 
+                clear_worker_payment_approves(*wto_itr);
+
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
                     wto.next_cashout_time = time_point_sec::maximum();
@@ -138,18 +140,35 @@ namespace golos { namespace chain {
         _clear_old_worker_techspec_approves = clear_old_worker_techspec_approves;
     }
 
+    void database::set_clear_old_worker_payment_approves(bool clear_old_worker_payment_approves) {
+        _clear_old_worker_payment_approves = clear_old_worker_payment_approves;
+    }
+
+    template<typename ApproveMultiIndex, typename ApproveIndex>
+    void clear_worker_approves(database& _db, const comment_id_type& post) {
+        const auto& approve_idx = _db.get_index<ApproveMultiIndex, ApproveIndex>();
+        auto approve_itr = approve_idx.lower_bound(post);
+        while (approve_itr != approve_idx.end() && approve_itr->post == post) {
+            const auto& approve = *approve_itr;
+            ++approve_itr;
+            _db.remove(approve);
+        }
+    }
+
     void database::clear_worker_techspec_approves(const worker_techspec_object& wto) {
         if (!_clear_old_worker_techspec_approves) {
             return;
         }
 
-        const auto& wtao_idx = get_index<worker_techspec_approve_index, by_techspec_approver>();
-        auto wtao_itr = wtao_idx.find(wto.post);
-        while (wtao_itr != wtao_idx.end() && wtao_itr->post == wto.post) {
-            const auto& wtao = *wtao_itr;
-            ++wtao_itr;
-            remove(wtao);
+        clear_worker_approves<worker_techspec_approve_index, by_techspec_approver>(*this, wto.post);
+    }
+
+    void database::clear_worker_payment_approves(const worker_techspec_object& wto) {
+        if (!_clear_old_worker_payment_approves) {
+            return;
         }
+
+        clear_worker_approves<worker_payment_approve_index, by_result_approver>(*this, wto.worker_result_post);
     }
 
     void database::clear_expired_worker_objects() {

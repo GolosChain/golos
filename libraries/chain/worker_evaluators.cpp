@@ -526,6 +526,8 @@ namespace golos { namespace chain {
             return;
         }
 
+        _db.clear_worker_payment_approves(wto);
+
         const auto& gpo = _db.get_dynamic_global_properties();
         _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
             gpo.worker_consumption_per_month -= _db.calculate_worker_techspec_month_consumption(wto);
