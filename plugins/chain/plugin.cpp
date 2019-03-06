@@ -59,8 +59,7 @@ namespace golos { namespace plugins { namespace chain {
         std::vector<std::string> accounts_to_store_metadata;
         bool store_memo_in_savings_withdraws = true;
 
-        bool clear_old_worker_techspec_approves = false;
-        bool clear_old_worker_payment_approves = false;
+        bool clear_old_worker_approves = false;
 
         impl() {
             // get default settings
@@ -264,11 +263,8 @@ namespace golos { namespace plugins { namespace chain {
                 "store-memo-in-savings-withdraws", bpo::value<bool>()->default_value(true),
                 "store memo for all savings withdraws"
             ) (
-                "clear-old-worker-techspec-approves", bpo::value<bool>()->default_value(false),
-                "if set, remove approves on worker techspec closing and on worker techspec approve term end"
-            ) (
-                "clear-old-worker-payment-approves", bpo::value<bool>()->default_value(false),
-                "if set, remove approves when no need in them"
+                "clear-old-worker-approves", bpo::value<bool>()->default_value(false),
+                "if set, remove worker techspec, result, payment approves when approving ends"
             );
         //  Do not use bool_switch() in cfg!
         cli.add_options()
@@ -375,8 +371,7 @@ namespace golos { namespace plugins { namespace chain {
 
         my->store_memo_in_savings_withdraws = options.at("store-memo-in-savings-withdraws").as<bool>();
 
-        my->clear_old_worker_techspec_approves = options.at("clear-old-worker-techspec-approves").as<bool>();
-        my->clear_old_worker_payment_approves = options.at("clear-old-worker-payment-approves").as<bool>();
+        my->clear_old_worker_approves = options.at("clear-old-worker-approves").as<bool>();
     }
 
     void plugin::plugin_startup() {
@@ -410,8 +405,7 @@ namespace golos { namespace plugins { namespace chain {
 
         my->db.set_store_memo_in_savings_withdraws(my->store_memo_in_savings_withdraws);
 
-        my->db.set_clear_old_worker_techspec_approves(my->clear_old_worker_techspec_approves);
-        my->db.set_clear_old_worker_payment_approves(my->clear_old_worker_payment_approves);
+        my->db.set_clear_old_worker_approves(my->clear_old_worker_approves);
 
         if (my->skip_virtual_ops) {
             my->db.set_skip_virtual_ops();

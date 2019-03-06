@@ -136,12 +136,8 @@ namespace golos { namespace chain {
         }
     }
 
-    void database::set_clear_old_worker_techspec_approves(bool clear_old_worker_techspec_approves) {
-        _clear_old_worker_techspec_approves = clear_old_worker_techspec_approves;
-    }
-
-    void database::set_clear_old_worker_payment_approves(bool clear_old_worker_payment_approves) {
-        _clear_old_worker_payment_approves = clear_old_worker_payment_approves;
+    void database::set_clear_old_worker_approves(bool clear_old_worker_approves) {
+        _clear_old_worker_approves = clear_old_worker_approves;
     }
 
     template<typename ApproveMultiIndex, typename ApproveIndex>
@@ -156,7 +152,7 @@ namespace golos { namespace chain {
     }
 
     void database::clear_worker_techspec_approves(const worker_techspec_object& wto) {
-        if (!_clear_old_worker_techspec_approves) {
+        if (!_clear_old_worker_approves) {
             return;
         }
 
@@ -164,7 +160,7 @@ namespace golos { namespace chain {
     }
 
     void database::clear_worker_payment_approves(const worker_techspec_object& wto) {
-        if (!_clear_old_worker_payment_approves) {
+        if (!_clear_old_worker_approves) {
             return;
         }
 

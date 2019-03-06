@@ -122,8 +122,7 @@ namespace golos { namespace chain {
             void set_store_memo_in_savings_withdraws(bool store_memo_in_savings_withdraws);
             bool store_memo_in_savings_withdraws() const;
 
-            void set_clear_old_worker_techspec_approves(bool clear_old_worker_techspec_approves);
-            void set_clear_old_worker_payment_approves(bool clear_old_worker_payment_approves);
+            void set_clear_old_worker_approves(bool clear_old_worker_approves);
 
             /**
              * @brief wipe Delete database from disk, and potentially the raw chain as well.
@@ -681,8 +680,7 @@ namespace golos { namespace chain {
 
             bool _store_memo_in_savings_withdraws = true;
 
-            bool _clear_old_worker_techspec_approves = false;
-            bool _clear_old_worker_payment_approves = false;
+            bool _clear_old_worker_approves = false;
 
             flat_map<std::string, std::shared_ptr<custom_operation_interpreter>> _custom_operation_interpreters;
             std::string _json_schema;
