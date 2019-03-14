@@ -639,4 +639,166 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_disapprove) {
     BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, op));
 }
 
+BOOST_AUTO_TEST_CASE(worker_assign_validate) {
+    BOOST_TEST_MESSAGE("Testing: worker_assign_validate");
+
+    BOOST_TEST_MESSAGE("-- Normal case");
+
+    worker_assign_operation op;
+    op.assigner = "bob";
+    op.worker_techspec_author = "bob";
+    op.worker_techspec_permlink = "techspec-permlink";
+    op.worker = "alice";
+    CHECK_OP_VALID(op);
+
+    BOOST_TEST_MESSAGE("-- Incorrect account or permlink case");
+
+    CHECK_PARAM_INVALID(op, assigner, "");
+    CHECK_PARAM_INVALID(op, worker_techspec_author, "");
+    CHECK_PARAM_INVALID(op, worker_techspec_permlink, std::string(STEEMIT_MAX_PERMLINK_LENGTH+1, ' '));
+
+    BOOST_TEST_MESSAGE("-- Assigning worker not by techspec author case");
+
+    CHECK_PARAM_INVALID(op, assigner, "alice");
+
+    BOOST_TEST_MESSAGE("-- Unassigning worker by worker case");
+
+    op.worker = "";
+    CHECK_PARAM_VALID(op, assigner, "alice");
+}
+
+BOOST_AUTO_TEST_CASE(worker_assign_apply) {
+    BOOST_TEST_MESSAGE("Testing: worker_assign_apply");
+
+    ACTORS((alice)(bob)(chuck))
+    auto private_key = create_approvers(0, STEEMIT_MAJOR_VOTED_WITNESSES);
+    generate_block();
+
+    signed_transaction tx;
+
+    comment_create("alice", alice_private_key, "alice-proposal", "", "alice-proposal");
+
+    worker_proposal("alice", alice_private_key, "alice-proposal", worker_proposal_type::task);
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Assigning worker to techspec without post case");
+
+    worker_assign_operation op;
+    op.assigner = "bob";
+    op.worker_techspec_author = "bob";
+    op.worker_techspec_permlink = "bob-techspec";
+    op.worker = "alice";
+
+    GOLOS_CHECK_ERROR_MISSING(comment, make_comment_id("bob", "bob-techspec"), bob_private_key, op);
+
+    comment_create("bob", bob_private_key, "bob-techspec", "", "bob-techspec");
+
+    BOOST_TEST_MESSAGE("-- Assigning worker to non-existing techspec case");
+
+    GOLOS_CHECK_ERROR_MISSING(worker_techspec_object, make_comment_id("bob", "bob-techspec"), bob_private_key, op);
+
+    worker_techspec_operation wtop;
+    wtop.author = "bob";
+    wtop.permlink = "bob-techspec";
+    wtop.worker_proposal_author = "alice";
+    wtop.worker_proposal_permlink = "alice-proposal";
+    wtop.specification_cost = ASSET_GOLOS(6);
+    wtop.development_cost = ASSET_GOLOS(60);
+    wtop.payments_interval = 60*60*24;
+    wtop.payments_count = 40;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, wtop));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Assigning worker to non-approved techspec case");
+
+    GOLOS_CHECK_ERROR_LOGIC(worker_can_be_assigned_only_to_proposal_with_approved_techspec, bob_private_key, op);
+
+    BOOST_TEST_MESSAGE("-- Approving worker techspec by witnesses");
+
+    generate_blocks(STEEMIT_MAX_WITNESSES); // Enough for approvers to reach TOP-19 and not leave it
+
+    for (auto i = 0; i < STEEMIT_MAJOR_VOTED_WITNESSES; ++i) {
+        const auto name = "approver" + std::to_string(i);
+
+        worker_techspec_approve_operation wtaop;
+        wtaop.approver = name;
+        wtaop.author = "bob";
+        wtaop.permlink = "bob-techspec";
+        wtaop.state = worker_techspec_approve_state::approve;
+        BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, wtaop));
+        generate_block();
+    }
+
+    {
+        const auto& wto = db->get_worker_techspec(db->get_comment("bob", string("bob-techspec")).id);
+        BOOST_CHECK_EQUAL(wto.worker, account_name_type());
+        BOOST_CHECK(wto.state == worker_techspec_state::approved);
+    }
+
+    BOOST_TEST_MESSAGE("-- Assigning non-existing worker to techspec case");
+
+    op.worker = "notexistacc";
+    GOLOS_CHECK_ERROR_MISSING(account, "notexistacc", bob_private_key, op);
+
+    BOOST_TEST_MESSAGE("-- Unassigning worker without assigned case");
+
+    op.worker = "";
+    GOLOS_CHECK_ERROR_LOGIC(cannot_unassign_worker_from_finished_or_not_started_work, bob_private_key, op);
+
+    BOOST_TEST_MESSAGE("-- Normal assigning worker case");
+
+    op.worker = "alice";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    {
+        const auto& wto = db->get_worker_techspec(db->get_comment("bob", string("bob-techspec")).id);
+        BOOST_CHECK_EQUAL(wto.worker, op.worker);
+        BOOST_CHECK(wto.state == worker_techspec_state::work);
+    }
+
+    BOOST_TEST_MESSAGE("-- Repeat assigning worker case");
+
+    GOLOS_CHECK_ERROR_LOGIC(worker_can_be_assigned_only_to_proposal_with_approved_techspec, bob_private_key, op);
+
+    BOOST_TEST_MESSAGE("-- Unassigning worker by foreign person case");
+
+    op.assigner = "chuck";
+    op.worker = "";
+    GOLOS_CHECK_ERROR_LOGIC(worker_can_be_unassigned_only_by_techspec_author_or_himself, chuck_private_key, op);
+
+    BOOST_TEST_MESSAGE("-- Normal unassigning worker by techspec author case");
+
+    op.assigner = "bob";
+    op.worker = "";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    {
+        const auto& wto = db->get_worker_techspec(db->get_comment("bob", string("bob-techspec")).id);
+        BOOST_CHECK_EQUAL(wto.worker, account_name_type());
+        BOOST_CHECK(wto.state == worker_techspec_state::approved);
+    }
+
+    BOOST_TEST_MESSAGE("-- Normal unassigning worker by himself case");
+
+    op.assigner = "bob";
+    op.worker = "alice";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    op.assigner = "alice";
+    op.worker = "";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, op));
+    generate_block();
+
+    {
+        const auto& wto = db->get_worker_techspec(db->get_comment("bob", string("bob-techspec")).id);
+        BOOST_CHECK_EQUAL(wto.worker, account_name_type());
+        BOOST_CHECK(wto.state == worker_techspec_state::approved);
+    }
+
+    validate_database();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
