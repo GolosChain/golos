@@ -1,6 +1,7 @@
 file(GLOB COMMON_SOURCES
         common/database_fixture.cpp
         common/database_fixture.hpp
+        common/worker_fixture.hpp
         common/comment_reward.hpp)
 
 find_package(Gperftools QUIET)

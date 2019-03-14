@@ -216,6 +216,16 @@ SIMPLE_PROTOCOL_ERROR_VALIDATOR(tx_missing_other_auth);
 #define GOLOS_CHECK_ERROR_PROPS(S, C)         GOLOS_CHECK_ERROR_PROPS_IMPL(S, C, ERROR)
 #define GOLOS_REQUIRE_ERROR_PROPS(S, C)       GOLOS_CHECK_ERROR_PROPS_IMPL(S, C, FAIL)
 
+#define GOLOS_CHECK_ERROR_LOGIC(EXCEPTION, KEY, OP) \
+    GOLOS_CHECK_ERROR_PROPS(push_tx_with_ops(tx, KEY, OP), \
+        CHECK_ERROR(tx_invalid_operation, 0, \
+            CHECK_ERROR(logic_exception, logic_exception::EXCEPTION)))
+
+#define GOLOS_CHECK_ERROR_MISSING(OBJECT, ID, KEY, OP) \
+    GOLOS_CHECK_ERROR_PROPS(push_tx_with_ops(tx, KEY, OP), \
+        CHECK_ERROR(tx_invalid_operation, 0, \
+            CHECK_ERROR(missing_object, #OBJECT, ID)))
+
 
 ///This simply resets v back to its default-constructed value. Requires v to have a working assingment operator and
 /// default constructor.
@@ -544,6 +554,25 @@ namespace golos { namespace chain {
                     const string &url,
                     const public_key_type &signing_key,
                     const share_type &fee
+            );
+
+            const comment_object& comment_create(
+                    const string& author,
+                    const private_key_type& author_key,
+                    const string& permlink,
+                    const string& parent_author,
+                    const string& parent_permlink,
+                    const string& title,
+                    const string& body,
+                    const string& json
+            );
+
+            const comment_object& comment_create(
+                    const string& author,
+                    const private_key_type& author_key,
+                    const string& permlink,
+                    const string& parent_author,
+                    const string& parent_permlink
             );
 
             void fund(const string &account_name, const share_type &amount = 500000);

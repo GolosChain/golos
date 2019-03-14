@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include "database_fixture.hpp"
+#include "worker_fixture.hpp"
 #include "helpers.hpp"
 
 #include <golos/protocol/worker_operations.hpp>
@@ -9,7 +9,7 @@ using namespace golos;
 using namespace golos::protocol;
 using namespace golos::chain;
 
-BOOST_FIXTURE_TEST_SUITE(worker_techspec_tests, clean_database_fixture)
+BOOST_FIXTURE_TEST_SUITE(worker_techspec_tests, worker_fixture)
 
 BOOST_AUTO_TEST_CASE(worker_authorities) {
     BOOST_TEST_MESSAGE("Testing: worker_authorities");
@@ -108,6 +108,62 @@ BOOST_AUTO_TEST_CASE(worker_techspec_validate) {
 
     op.payments_count = 1;
     CHECK_PARAM_VALID(op, payments_interval, 60*60*24);
+}
+
+BOOST_AUTO_TEST_CASE(worker_techspec_delete_apply) {
+    BOOST_TEST_MESSAGE("Testing: worker_techspec_delete_apply");
+
+    ACTORS((alice)(bob)(approver))
+    generate_block();
+
+    signed_transaction tx;
+
+    comment_create("alice", alice_private_key, "alice-proposal", "", "alice-proposal");
+
+    worker_proposal("alice", alice_private_key, "alice-proposal", worker_proposal_type::task);
+    generate_block();
+
+    comment_create("bob", bob_private_key, "bob-techspec", "", "bob-techspec");
+
+    worker_techspec_operation wtop;
+    wtop.author = "bob";
+    wtop.permlink = "bob-techspec";
+    wtop.worker_proposal_author = "alice";
+    wtop.worker_proposal_permlink = "alice-proposal";
+    wtop.specification_cost = ASSET_GOLOS(6);
+    wtop.development_cost = ASSET_GOLOS(60);
+    wtop.payments_interval = 60*60*24*2;
+    wtop.payments_count = 2;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, wtop));
+    generate_block();
+
+    witness_create("approver", approver_private_key, "foo.bar", approver_private_key.get_public_key(), 1000);
+
+    generate_blocks(STEEMIT_MAX_WITNESSES); // Enough for approvers to reach TOP-19 and not leave it
+
+    BOOST_TEST_MESSAGE("-- Approving worker techspec (after abstain)");
+
+    worker_techspec_approve_operation wtaop;
+    wtaop.approver = "approver";
+    wtaop.author = "bob";
+    wtaop.permlink = "bob-techspec";
+    wtaop.state = worker_techspec_approve_state::approve;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, approver_private_key, wtaop));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Deleting worker techspec with approves");
+
+    worker_techspec_delete_operation op;
+    op.author = "bob";
+    op.permlink = "bob-techspec";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    const auto* wto = db->find_worker_techspec(db->get_comment("bob", string("bob-techspec")).id);
+    BOOST_CHECK(wto);
+    BOOST_CHECK(wto->state == worker_techspec_state::closed_by_author);
+
+    validate_database();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

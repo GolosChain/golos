@@ -129,6 +129,17 @@ namespace golos { namespace chain {
             });
         }
 
+        const auto& wtao_idx = _db.get_index<worker_techspec_approve_index, by_techspec_approver>();
+        const auto& wrao_idx = _db.get_index<worker_result_approve_index, by_result_approver>();
+        auto wtao_itr = wtao_idx.find(wto.post);
+        auto wrao_itr = wrao_idx.find(wto.worker_result_post);
+        if (wtao_itr != wtao_idx.end() || wrao_itr != wrao_idx.end()) {
+            _db.modify(wto, [&](worker_techspec_object& wto) {
+                wto.state = worker_techspec_state::closed_by_author;
+            });
+            return;
+        }
+
         _db.remove(wto);
     }
 
