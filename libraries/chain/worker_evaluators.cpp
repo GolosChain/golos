@@ -93,6 +93,8 @@ namespace golos { namespace chain {
                 "This worker techspec is already used for another worker proposal");
 
             _db.modify(*wto, [&](worker_techspec_object& wto) {
+                wto.specification_cost = o.specification_cost;
+                wto.development_cost = o.development_cost;
                 wto.payments_count = o.payments_count;
                 wto.payments_interval = o.payments_interval;
             });
