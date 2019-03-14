@@ -25,6 +25,18 @@ struct worker_fixture : public clean_database_fixture {
         return private_key;
     }
 
+    void push_approvers_top19(const account_name_type& voter, const private_key_type& voter_key, uint16_t first, uint16_t count, bool up) {
+        signed_transaction tx;
+        for (auto i = first; i < count; ++i) {
+            const auto name = "approver" + std::to_string(i);
+            account_witness_vote_operation awvop;
+            awvop.account = voter;
+            awvop.witness = name;
+            awvop.approve = up;
+            BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, voter_key, awvop));
+        }
+    }
+
     const worker_proposal_object& worker_proposal(
             const string& author, const private_key_type& author_key, const string& permlink, worker_proposal_type type) {
         signed_transaction tx;
