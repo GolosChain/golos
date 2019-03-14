@@ -30,8 +30,10 @@ namespace golos { namespace chain {
         created,
         approved,
         work,
+        wip,
         complete,
         payment,
+        result_disapproved,
         payment_complete,
         payment_canceled,
         closed
@@ -212,7 +214,8 @@ CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_proposal_object,
     golos::chain::worker_proposal_index);
 
-FC_REFLECT_ENUM(golos::chain::worker_techspec_state, (created)(approved)(work)(complete)(payment)(payment_complete)(payment_canceled)(closed))
+FC_REFLECT_ENUM(golos::chain::worker_techspec_state,
+    (created)(approved)(work)(wip)(complete)(payment)(result_disapproved)(payment_complete)(payment_canceled)(closed))
 
 CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_techspec_object,

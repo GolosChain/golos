@@ -234,11 +234,6 @@ namespace golos { namespace chain {
             logic_exception::worker_result_can_be_created_only_on_post,
             "Worker result can be created only on post");
 
-        const auto* wto_result = _db.find_worker_result(post.id);
-        GOLOS_CHECK_LOGIC(!wto_result,
-            logic_exception::this_post_already_used_as_worker_result,
-            "This post already used as worker result");
-
         const auto* wto = _db.find_worker_techspec(post.id);
         GOLOS_CHECK_LOGIC(!wto,
             logic_exception::this_post_already_used_as_worker_techspec,
@@ -252,8 +247,17 @@ namespace golos { namespace chain {
 
         worker_result_check_post(_db, post);
 
+        const auto* wto_result = _db.find_worker_result(post.id);
+        GOLOS_CHECK_LOGIC(!wto_result,
+            logic_exception::this_post_already_used_as_worker_result,
+            "This post already used as worker result");
+
         const auto& wto_post = _db.get_comment(o.author, o.worker_techspec_permlink);
         const auto& wto = _db.get_worker_techspec(wto_post.id);
+
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::work || wto.state == worker_techspec_state::wip,
+            logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
+            "Worker result can be created only for techspec in work");
 
         const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
 
@@ -261,9 +265,17 @@ namespace golos { namespace chain {
             logic_exception::only_premade_worker_result_can_be_created_for_premade_worker_proposal,
             "Only premade worker result can be created for premade worker proposal");
 
-        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::work,
-            logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
-            "Worker result can be created only for techspec in work");
+        if (wto.worker_result_post != comment_id_type()) {
+            GOLOS_CHECK_LOGIC(wto.worker_result_post == post.id,
+                logic_exception::worker_result_post_cannot_be_replaced_with_another,
+                "Worker result post cannot be replaced with another");
+
+            _db.modify(wto, [&](worker_techspec_object& wto) {
+                wto.state = worker_techspec_state::complete;
+            });
+
+            return;
+        }
 
         _db.modify(wto, [&](worker_techspec_object& wto) {
             wto.worker_result_post = post.id;
@@ -277,6 +289,11 @@ namespace golos { namespace chain {
         const auto& post = _db.get_comment(o.author, o.permlink);
 
         worker_result_check_post(_db, post);
+
+        const auto* wto_result = _db.find_worker_result(post.id);
+        GOLOS_CHECK_LOGIC(!wto_result,
+            logic_exception::this_post_already_used_as_worker_result,
+            "This post already used as worker result");
 
         const auto& wpo_post = _db.get_comment(o.worker_proposal_author, o.worker_proposal_permlink);
         const auto& wpo = _db.get_worker_proposal(wpo_post.id);
@@ -309,13 +326,18 @@ namespace golos { namespace chain {
         const auto& worker_result_post = _db.get_comment(o.author, o.permlink);
         const auto& wto = _db.get_worker_result(worker_result_post.id);
 
-        GOLOS_CHECK_LOGIC(wto.state < worker_techspec_state::payment,
-            logic_exception::cannot_delete_worker_result_for_paying_techspec,
-            "Cannot delete worker result for paying techspec");
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::complete,
+            logic_exception::cannot_delete_worker_result_for_incomplete_or_paying_techspec,
+            "Cannot delete worker result for incomplete or paying techspec");
+
+        const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
+
+        GOLOS_CHECK_LOGIC(wpo.type == worker_proposal_type::premade_work,
+            logic_exception::cannot_delete_premade_worker_result,
+            "Cannot delete worker result for premade work proposal");
 
         _db.modify(wto, [&](worker_techspec_object& wto) {
-            wto.worker_result_post = comment_id_type();
-            wto.state = worker_techspec_state::work;
+            wto.state = worker_techspec_state::wip;
         });
     }
 
@@ -379,11 +401,7 @@ namespace golos { namespace chain {
             }
 
             _db.modify(wto, [&](worker_techspec_object& wto) {
-                if (wpo.type == worker_proposal_type::premade_work) {
-                    wto.state = worker_techspec_state::closed;
-                } else {
-                    wto.state = worker_techspec_state::work;
-                }
+                wto.state = worker_techspec_state::result_disapproved;
             });
         } else if (o.state == worker_techspec_approve_state::approve) {
             if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {

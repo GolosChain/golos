@@ -351,7 +351,9 @@ namespace golos {
             techspec_is_already_approved_or_closed,
             worker_result_can_be_created_only_on_post,
             worker_result_can_be_created_only_for_techspec_in_work,
-            cannot_delete_worker_result_for_paying_techspec,
+            worker_result_post_cannot_be_replaced_with_another,
+            cannot_delete_worker_result_for_incomplete_or_paying_techspec,
+            cannot_delete_premade_worker_result,
             this_post_already_used_as_worker_result,
             approver_of_result_should_be_in_top19_of_witnesses,
             worker_techspec_should_be_complete_to_approve_result,
@@ -654,7 +656,9 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (techspec_is_already_approved_or_closed)
         (worker_result_can_be_created_only_on_post)
         (worker_result_can_be_created_only_for_techspec_in_work)
-        (cannot_delete_worker_result_for_paying_techspec)
+        (worker_result_post_cannot_be_replaced_with_another)
+        (cannot_delete_worker_result_for_incomplete_or_paying_techspec)
+        (cannot_delete_premade_worker_result)
         (this_post_already_used_as_worker_result)
         (approver_of_result_should_be_in_top19_of_witnesses)
         (worker_techspec_should_be_complete_to_approve_result)
