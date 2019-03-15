@@ -73,4 +73,55 @@ BOOST_AUTO_TEST_CASE(worker_techspec_create) {
     validate_database();
 }
 
+BOOST_AUTO_TEST_CASE(worker_techspec_modify) {
+    BOOST_TEST_MESSAGE("Testing: worker_techspec_modify");
+
+    ACTORS((alice)(bob))
+    generate_block();
+
+    signed_transaction tx;
+
+    const auto& wtmo_idx = db->get_index<worker_techspec_metadata_index, by_post>();
+
+    comment_create("alice", alice_private_key, "alice-proposal", "", "alice-proposal");
+
+    worker_proposal("alice", alice_private_key, "alice-proposal", worker_proposal_type::task);
+    generate_block();
+
+    comment_create("bob", bob_private_key, "bob-techspec", "", "bob-techspec");
+
+    worker_techspec_operation op;
+    op.author = "bob";
+    op.permlink = "bob-techspec";
+    op.worker_proposal_author = "alice";
+    op.worker_proposal_permlink = "alice-proposal";
+    op.specification_cost = ASSET_GOLOS(6);
+    op.development_cost = ASSET_GOLOS(60);
+    op.payments_interval = 60*60*24*2;
+    op.payments_count = 2;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
+    auto wtmo_itr = wtmo_idx.find(wto_post.id);
+    BOOST_CHECK(wtmo_itr != wtmo_idx.end());
+    BOOST_CHECK_EQUAL(wtmo_itr->modified, fc::time_point_sec::min());
+
+    BOOST_TEST_MESSAGE("-- Modifying worker techspec");
+
+    auto now = db->head_block_time();
+
+    op.payments_count = 3;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    wtmo_itr = wtmo_idx.find(wto_post.id);
+
+    BOOST_TEST_MESSAGE("-- Checking metadata has updated field modified");
+
+    BOOST_CHECK_EQUAL(wtmo_itr->modified, now);
+
+    validate_database();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
