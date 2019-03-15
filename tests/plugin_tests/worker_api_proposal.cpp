@@ -17,7 +17,7 @@ struct worker_api_fixture : public golos::chain::database_fixture {
     }
 };
 
-BOOST_FIXTURE_TEST_SUITE(worker_api_plugin, worker_api_fixture)
+BOOST_FIXTURE_TEST_SUITE(worker_api_plugin_proposal, worker_api_fixture)
 
 BOOST_AUTO_TEST_CASE(worker_proposal_create) {
     BOOST_TEST_MESSAGE("Testing: worker_proposal_create");
