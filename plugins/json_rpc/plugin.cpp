@@ -273,24 +273,30 @@ namespace golos {
                 }
 
                 struct dump_rpc_time {
-                    dump_rpc_time(const fc::variant& data)
-                        : data_(data) {
+                    dump_rpc_time(const fc::variant& data, const impl* pimpl)
+                        : data_(data), pimpl_(pimpl) {
 
                         dlog("data: ${data}", ("data", fc::json::to_string(data_)));
                     }
 
                     ~dump_rpc_time() {
+                        auto msecs = (fc::time_point::now() - start_).count() / 1000;
+
+                        if (msecs < pimpl_->dump_rpc_time_msecs_) {
+                            return;
+                        }
+
                         if (error_.empty()) {
-                            dlog(
-                                "elapsed: ${time} sec, data: ${data}",
+                            wlog(
+                                "elapsed: ${time} msec, data: ${data}",
                                 ("data", fc::json::to_string(data_))
-                                ("time", double((fc::time_point::now() - start_).count()) / 1000000.0));
+                                ("time", msecs));
                         } else {
-                            dlog(
-                                "elapsed: ${time} sec, error: '${error}', data: ${data}",
+                            wlog(
+                                "elapsed: ${time} msec, error: '${error}', data: ${data}",
                                 ("data", fc::json::to_string(data_))
                                 ("error", error_)
-                                ("time", double((fc::time_point::now() - start_).count()) / 1000000.0));
+                                ("time", msecs));
                         }
                     }
 
@@ -302,10 +308,11 @@ namespace golos {
                     fc::time_point start_ = fc::time_point::now();
                     std::string error_;
                     const fc::variant& data_;
+                    const impl* pimpl_;
                 };
 
                 void rpc(const fc::variant& data, msg_pack& msg) {
-                    dump_rpc_time dump(data);
+                    dump_rpc_time dump(data, this);
 
                     try {
                         rpc_jsonrpc(data, msg);
@@ -406,6 +413,7 @@ namespace golos {
                 map<string, api_description> _registered_apis;
                 vector<string> _methods;
                 map<string, map<string, api_method_signature> > _method_sigs;
+                int64_t dump_rpc_time_msecs_ = INT64_MAX;
             private:
                 // This is a reindex which allows to get parent plugin by method
                 // unordered_map[method] -> plugin
@@ -422,10 +430,18 @@ namespace golos {
             plugin::~plugin() {
             }
 
+            void plugin::set_program_options(boost::program_options::options_description& cli,
+                    boost::program_options::options_description& cfg) {
+                cfg.add_options()
+                    ("dump-rpc-time-msecs", boost::program_options::value<int64_t>()->default_value(INT64_MAX),
+                        "Minimum time of RPC call to log this call with its time");
+            }
+
             void plugin::plugin_initialize(const boost::program_options::variables_map &options) {
                 ilog("json_rpc plugin: plugin_initialize() begin");
                 pimpl = std::make_unique<impl>();
                 pimpl->initialize();
+                pimpl->dump_rpc_time_msecs_ = options.at("dump-rpc-time-msecs").as<int64_t>();
                 ilog("json_rpc plugin: plugin_initialize() end");
             }
 

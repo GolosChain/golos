@@ -111,19 +111,18 @@ BOOST_FIXTURE_TEST_SUITE(json_rpc, database_fixture)
 
     BOOST_AUTO_TEST_CASE(json_rpc_test) {
         try {
-            initialize();
+            initialize<json_rpc_plugin>();
 
 
-            auto &rpc_plugin  = appbase::app().register_plugin<json_rpc_plugin>();
             auto &testing_api = appbase::app().register_plugin<test_plugin::testing_api>();
 
             boost::program_options::variables_map options;
-            rpc_plugin.plugin_initialize(options);
             testing_api.plugin_initialize(options);
 
             open_database();
 
             startup();
+            auto& rpc_plugin  = appbase::app().get_plugin<json_rpc_plugin>();
             rpc_plugin.plugin_startup();
             testing_api.plugin_startup();
 
