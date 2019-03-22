@@ -245,11 +245,6 @@ namespace golos { namespace chain {
             logic_exception::worker_result_can_be_created_only_on_post,
             "Worker result can be created only on post");
 
-        const auto* wto_result = _db.find_worker_result(post.id);
-        GOLOS_CHECK_LOGIC(!wto_result,
-            logic_exception::this_post_already_used_as_worker_result,
-            "This post already used as worker result");
-
         const auto* wto = _db.find_worker_techspec(post.id);
         GOLOS_CHECK_LOGIC(!wto,
             logic_exception::this_post_already_used_as_worker_techspec,
@@ -276,6 +271,18 @@ namespace golos { namespace chain {
             logic_exception::worker_result_can_be_created_only_for_techspec_in_work,
             "Worker result can be created only for techspec in work");
 
+        if (wto.worker_result_post != comment_id_type()) {
+            GOLOS_CHECK_LOGIC(wto.worker_result_post == post.id,
+                logic_exception::worker_result_post_cannot_be_replaced_with_another,
+                "Worker result post cannot be replaced with another");
+
+            _db.modify(wto, [&](worker_techspec_object& wto) {
+                wto.state = worker_techspec_state::complete;
+            });
+
+            return;
+        }
+
         _db.modify(wto, [&](worker_techspec_object& wto) {
             wto.worker_result_post = post.id;
             wto.state = worker_techspec_state::complete;
@@ -288,6 +295,11 @@ namespace golos { namespace chain {
         const auto& post = _db.get_comment(o.author, o.permlink);
 
         worker_result_check_post(_db, post);
+
+        const auto* wto_result = _db.find_worker_result(post.id);
+        GOLOS_CHECK_LOGIC(!wto_result,
+            logic_exception::this_post_already_used_as_worker_result,
+            "This post already used as worker result");
 
         const auto& wpo_post = _db.get_comment(o.worker_proposal_author, o.worker_proposal_permlink);
         const auto& wpo = _db.get_worker_proposal(wpo_post.id);
