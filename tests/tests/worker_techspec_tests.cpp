@@ -247,6 +247,105 @@ BOOST_AUTO_TEST_CASE(worker_techspec_apply_create) {
     validate_database();
 }
 
+BOOST_AUTO_TEST_CASE(worker_techspec_apply_create_with_reusing_post) {
+    BOOST_TEST_MESSAGE("Testing: worker_techspec_apply_create_with_reusing_post");
+
+    ACTORS((alice)(bob))
+    auto private_key = create_approvers(0, STEEMIT_MAJOR_VOTED_WITNESSES);
+    generate_block();
+
+    signed_transaction tx;
+
+    BOOST_TEST_MESSAGE("-- Check can create techspec on worker proposal post");
+
+    comment_create("alice", alice_private_key, "proposal-techspec", "", "proposal-techspec");
+
+    worker_proposal("alice", alice_private_key, "proposal-techspec", worker_proposal_type::task);
+    generate_block();
+
+    worker_techspec_operation op;
+    op.author = "alice";
+    op.permlink = "proposal-techspec";
+    op.worker_proposal_author = "alice";
+    op.worker_proposal_permlink = "proposal-techspec";
+    op.specification_cost = ASSET_GOLOS(6);
+    op.development_cost = ASSET_GOLOS(60);
+    op.payments_interval = 60*60*24*30;
+    op.payments_count = 2;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, op));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Check cannot create another techspec on same post (it should modify same one)");
+
+    op.payments_count = 3;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, op));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Creating worker result post");
+
+    generate_blocks(STEEMIT_MAX_WITNESSES); // Enough for approvers to reach TOP-19 and not leave it
+
+    for (auto i = 0; i < STEEMIT_MAJOR_VOTED_WITNESSES; ++i) {
+        const auto name = "approver" + std::to_string(i);
+        worker_techspec_approve_operation wtaop;
+        wtaop.approver = name;
+        wtaop.author = "alice";
+        wtaop.permlink = "proposal-techspec";
+        wtaop.state = worker_techspec_approve_state::approve;
+        BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, wtaop));
+        generate_block();
+    }
+
+    worker_assign_operation waop;
+    waop.assigner = "alice";
+    waop.worker_techspec_author = "alice";
+    waop.worker_techspec_permlink = "proposal-techspec";
+    waop.worker = "alice";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, waop));
+    generate_block();
+
+    comment_create("alice", alice_private_key, "result-techspec", "", "result-techspec");
+
+    worker_result_operation wrop;
+    wrop.author = "alice";
+    wrop.permlink = "result-techspec";
+    wrop.worker_techspec_permlink = "proposal-techspec";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, wrop));
+    generate_block();
+
+    comment_create("bob", bob_private_key, "another-proposal", "", "another-proposal");
+
+    worker_proposal("bob", bob_private_key, "another-proposal", worker_proposal_type::task);
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Check can create techspec on worker result post");
+
+    op.author = "alice";
+    op.permlink = "result-techspec";
+    op.worker_proposal_author = "bob";
+    op.worker_proposal_permlink = "another-proposal";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, alice_private_key, op));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Validating all data");
+
+    {
+        const auto& wpo_wto_post = db->get_comment("alice", string("proposal-techspec"));
+        db->get_worker_proposal(wpo_wto_post.id);
+        db->get_worker_techspec(wpo_wto_post.id);
+
+        const auto& wto_result_post = db->get_comment("alice", string("result-techspec"));
+        db->get_worker_techspec(wto_result_post.id);
+        db->get_worker_result(wto_result_post.id);
+
+        const auto& wto_idx = db->get_index<worker_techspec_index, by_post>();
+        BOOST_CHECK_EQUAL(wto_idx.count(wpo_wto_post.id), 1);
+        BOOST_CHECK_EQUAL(wto_idx.count(wto_result_post.id), 1);
+    }
+
+    validate_database();
+}
+
 BOOST_AUTO_TEST_CASE(worker_techspec_apply_modify) {
     BOOST_TEST_MESSAGE("Testing: worker_techspec_apply_modify");
 
