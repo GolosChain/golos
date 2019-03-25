@@ -824,21 +824,20 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_approve) {
 BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
     BOOST_TEST_MESSAGE("Testing: worker_techspec_approve_apply_clear_on_expired");
 
-    ACTORS((alice)(bob))
-    auto private_key = create_approvers(0, 1);
+    ACTORS((alice)(bob)(carol))
+    auto private_key = create_approvers(0, STEEMIT_MAJOR_VOTED_WITNESSES);
     generate_block();
 
     signed_transaction tx;
-
-    db->set_clear_old_worker_approves(true);
 
     comment_create("alice", alice_private_key, "alice-proposal", "", "alice-proposal");
 
     worker_proposal("alice", alice_private_key, "alice-proposal", worker_proposal_type::task);
     generate_block();
 
+    BOOST_TEST_MESSAGE("-- Creating bob techspec");
+
     comment_create("bob", bob_private_key, "bob-techspec", "", "bob-techspec");
-    generate_block();
 
     worker_techspec_operation wtop;
     wtop.author = "bob";
@@ -850,9 +849,17 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
     wtop.payments_interval = 60*60*24;
     wtop.payments_count = 40;
     BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, wtop));
+
+    BOOST_TEST_MESSAGE("-- Creating carol techspec in same block");
+
+    comment_create("carol", carol_private_key, "carol-techspec", "", "carol-techspec");
+
+    wtop.author = "carol";
+    wtop.permlink = "carol-techspec";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, carol_private_key, wtop));
     generate_block();
 
-    BOOST_TEST_MESSAGE("-- Approving techspec by 1 witness");
+    BOOST_TEST_MESSAGE("-- Approving bob techspec by 1 witness");
 
     generate_blocks(STEEMIT_MAX_WITNESSES); // Enough for approvers to reach TOP-19 and not leave it
 
@@ -863,10 +870,25 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
     op.state = worker_techspec_approve_state::approve;
     BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, op));
 
-    BOOST_TEST_MESSAGE("-- Checking techspec opened and approve exists");
+    BOOST_TEST_MESSAGE("-- Approving carol techspec by major witnesses");
 
-    generate_blocks(db->get_comment("bob", string("bob-techspec")).created
+    for (auto i = 0; i < STEEMIT_MAJOR_VOTED_WITNESSES; ++i) {
+        const auto name = "approver" + std::to_string(i);
+        op.approver = name;
+        op.author = "carol";
+        op.permlink = "carol-techspec";
+        BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, op));
+        generate_block();
+    }
+
+    BOOST_TEST_MESSAGE("-- Enabling clearing of approves and waiting for (approve_term - 1 block)");
+
+    generate_blocks(db->get_comment("carol", string("carol-techspec")).created
         + GOLOS_WORKER_TECHSPEC_APPROVE_TERM_SEC - STEEMIT_BLOCK_INTERVAL, true);
+
+    db->set_clear_old_worker_approves(true);
+
+    BOOST_TEST_MESSAGE("-- Checking bob techspec opened and approve still exists");
 
     {
         const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
@@ -877,9 +899,11 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
         BOOST_CHECK(wtao_idx.find(wto_post.id) != wtao_idx.end());
     }
 
-    BOOST_TEST_MESSAGE("-- Waiting for approve term expiration, and checking techspec closed and approve cleared");
+    BOOST_TEST_MESSAGE("-- Waiting for 1 block to expire both techspecs approve term");
 
     generate_block();
+
+    BOOST_TEST_MESSAGE("-- Checking bob techspec closed and approve cleared");
 
     {
         const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
@@ -888,6 +912,19 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
 
         const auto& wtao_idx = db->get_index<worker_techspec_approve_index, by_techspec_approver>();
         BOOST_CHECK(wtao_idx.find(wto_post.id) == wtao_idx.end());
+    }
+
+    BOOST_TEST_MESSAGE("-- Checking carol techspec is not closed and has approves");
+
+    {
+        const auto& wto_post = db->get_comment("carol", string("carol-techspec"));
+        const auto& wto = db->get_worker_techspec(wto_post.id);
+        BOOST_CHECK(wto.state == worker_techspec_state::approved);
+
+        BOOST_TEST_MESSAGE("-- Checking carol techspec has approves (it should, clearing is enabled after final approve)");
+
+        const auto& wtao_idx = db->get_index<worker_techspec_approve_index, by_techspec_approver>();
+        BOOST_CHECK(wtao_idx.find(wto_post.id) != wtao_idx.end());
     }
 }
 
