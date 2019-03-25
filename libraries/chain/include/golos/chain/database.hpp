@@ -451,6 +451,7 @@ namespace golos { namespace chain {
             void process_comment_cashout();
 
             flat_map<worker_techspec_approve_state, int32_t> count_worker_techspec_approves(const comment_id_type& post);
+            flat_map<worker_techspec_approve_state, int32_t> count_worker_work_approves(const comment_id_type& post);
             flat_map<worker_techspec_approve_state, int32_t> count_worker_result_approves(const comment_id_type& post);
             flat_map<worker_techspec_approve_state, int32_t> count_worker_payment_approves(const comment_id_type& worker_result_post);
 

@@ -59,6 +59,10 @@ namespace golos { namespace chain {
         return count_worker_approves<worker_techspec_approve_index, by_techspec_approver>(*this, post);
     }
 
+    flat_map<worker_techspec_approve_state, int32_t> database::count_worker_work_approves(const comment_id_type& post) {
+        return count_worker_approves<worker_work_approve_index, by_techspec_approver>(*this, post);
+    }
+
     flat_map<worker_techspec_approve_state, int32_t> database::count_worker_result_approves(const comment_id_type& post) {
         return count_worker_approves<worker_result_approve_index, by_result_approver>(*this, post);
     }

@@ -456,6 +456,67 @@ namespace golos { namespace chain {
 
     void worker_work_approve_evaluator::do_apply(const worker_work_approve_operation& o) {
         ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_work_approve_operation");
+
+        auto approver_witness = _db.get_witness(o.approver);
+        GOLOS_CHECK_LOGIC(approver_witness.schedule == witness_object::top19,
+            logic_exception::approver_of_work_should_be_in_top19_of_witnesses,
+            "Approver of work should be in Top 19 of witnesses");
+
+        const auto& wto_post = _db.get_comment(o.worker_techspec_author, o.worker_techspec_permlink);
+        const auto& wto = _db.get_worker_techspec(wto_post.id);
+
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::work || wto.state == worker_techspec_state::complete,
+            logic_exception::worker_techspec_should_be_in_work_or_complete_state,
+            "Worker techspec should be in work or complete state");
+
+        const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
+
+        GOLOS_CHECK_LOGIC(wpo.type != worker_proposal_type::premade_work,
+            logic_exception::cannot_approve_work_for_premade_worker_proposal,
+            "Cannot approve work for premade worker proposal");
+
+        const auto& wwao_idx = _db.get_index<worker_work_approve_index, by_techspec_approver>();
+        auto wwao_itr = wwao_idx.find(std::make_tuple(wto_post.id, o.approver));
+
+        if (o.state == worker_techspec_approve_state::abstain) {
+            WORKER_CHECK_NO_VOTE_REPEAT(wwao_itr, wwao_idx.end());
+
+            _db.remove(*wwao_itr);
+            return;
+        }
+
+        if (wwao_itr != wwao_idx.end()) {
+            WORKER_CHECK_NO_VOTE_REPEAT(wwao_itr->state, o.state);
+
+            _db.modify(*wwao_itr, [&](worker_work_approve_object& wwao) {
+                wwao.state = o.state;
+            });
+        } else {
+            _db.create<worker_work_approve_object>([&](worker_work_approve_object& wwao) {
+                wwao.approver = o.approver;
+                wwao.post = wto_post.id;
+                wwao.state = o.state;
+            });
+        }
+
+        auto approves = _db.count_worker_work_approves(wto_post.id);
+
+        if (approves[worker_techspec_approve_state::disapprove] < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
+            return;
+        }
+
+        _db.modify(wto, [&](worker_techspec_object& wto) {
+            wto.state = worker_techspec_state::closed;
+        });
+
+        // TODO: Here should be unfreezing. Techspec cannot be re-opened after work disapproved.
+
+        // Another techspec could be approved for this worker-proposal
+        _db.modify(wpo, [&](worker_proposal_object& wpo) {
+            wpo.approved_techspec_post = comment_id_type();
+            wpo.state = worker_proposal_state::created;
+        });
+        // TODO: Also set worker-proposal to created in another cases with approved techspec closing
     }
 
     void worker_payment_approve_evaluator::do_apply(const worker_payment_approve_operation& o) {

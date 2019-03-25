@@ -3152,6 +3152,7 @@ namespace golos { namespace chain {
             add_core_index<worker_proposal_index>(*this);
             add_core_index<worker_techspec_index>(*this);
             add_core_index<worker_techspec_approve_index>(*this);
+            add_core_index<worker_work_approve_index>(*this);
             add_core_index<worker_result_approve_index>(*this);
             add_core_index<worker_payment_approve_index>(*this);
 
