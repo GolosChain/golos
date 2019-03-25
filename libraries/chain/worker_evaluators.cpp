@@ -454,6 +454,10 @@ namespace golos { namespace chain {
         });
     }
 
+    void worker_work_approve_evaluator::do_apply(const worker_work_approve_operation& o) {
+        ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_work_approve_operation");
+    }
+
     void worker_payment_approve_evaluator::do_apply(const worker_payment_approve_operation& o) {
         ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_payment_approve_operation");
 

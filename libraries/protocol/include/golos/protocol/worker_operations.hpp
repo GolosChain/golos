@@ -108,6 +108,21 @@ namespace golos { namespace protocol {
         }
     };
 
+    struct worker_work_approve_operation : public base_operation {
+        account_name_type approver;
+        account_name_type worker_techspec_author;
+        std::string worker_techspec_permlink;
+        worker_techspec_approve_state state;
+
+        extensions_type extensions;
+
+        void validate() const;
+
+        void get_required_posting_authorities(flat_set<account_name_type>& a) const {
+            a.insert(approver);
+        }
+    };
+
     struct worker_result_operation : public base_operation {
         account_name_type author;
         std::string permlink;
@@ -212,6 +227,10 @@ FC_REFLECT(
 FC_REFLECT(
     (golos::protocol::worker_assign_operation),
     (assigner)(worker_techspec_author)(worker_techspec_permlink)(worker)(extensions))
+
+FC_REFLECT(
+    (golos::protocol::worker_work_approve_operation),
+    (approver)(worker_techspec_author)(worker_techspec_permlink)(state)(extensions))
 
 FC_REFLECT(
     (golos::protocol::worker_result_operation),

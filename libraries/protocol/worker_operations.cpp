@@ -74,6 +74,16 @@ namespace golos { namespace protocol {
         }
     }
 
+    void worker_work_approve_operation::validate() const {
+        GOLOS_CHECK_PARAM_ACCOUNT(approver);
+        GOLOS_CHECK_PARAM_ACCOUNT(worker_techspec_author);
+        GOLOS_CHECK_PARAM(worker_techspec_permlink, validate_permlink(worker_techspec_permlink));
+
+        GOLOS_CHECK_PARAM(state, {
+            GOLOS_CHECK_VALUE(state < worker_techspec_approve_state::_size, "This value is reserved");
+        });
+    }
+
     void worker_result_operation::validate() const {
         GOLOS_CHECK_PARAM_ACCOUNT(author);
         GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
