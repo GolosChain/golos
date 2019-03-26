@@ -331,12 +331,12 @@ BOOST_AUTO_TEST_CASE(worker_techspec_apply_create_with_reusing_post) {
 
     {
         const auto& wpo_wto_post = db->get_comment("alice", string("proposal-techspec"));
-        db->get_worker_proposal(wpo_wto_post.id);
-        db->get_worker_techspec(wpo_wto_post.id);
+        BOOST_CHECK_NO_THROW(db->get_worker_proposal(wpo_wto_post.id));
+        BOOST_CHECK_NO_THROW(db->get_worker_techspec(wpo_wto_post.id));
 
         const auto& wto_result_post = db->get_comment("alice", string("result-techspec"));
-        db->get_worker_techspec(wto_result_post.id);
-        db->get_worker_result(wto_result_post.id);
+        BOOST_CHECK_NO_THROW(db->get_worker_techspec(wto_result_post.id));
+        BOOST_CHECK_NO_THROW(db->get_worker_result(wto_result_post.id));
 
         const auto& wto_idx = db->get_index<worker_techspec_index, by_post>();
         BOOST_CHECK_EQUAL(wto_idx.count(wpo_wto_post.id), 1);
