@@ -1,5 +1,4 @@
 #include <golos/chain/database.hpp>
-#include <golos/chain/worker_objects.hpp>
 #include <golos/chain/account_object.hpp>
 #include <golos/chain/comment_object.hpp>
 #include <golos/protocol/exceptions.hpp>
@@ -164,6 +163,41 @@ namespace golos { namespace chain {
         }
 
         clear_worker_approves<worker_payment_approve_index, by_result_approver>(*this, wto.worker_result_post);
+    }
+
+    void database::close_worker_techspec(const worker_techspec_object& wto, golos::chain::worker_techspec_state closed_state) {
+        if (wto.state == worker_techspec_state::approved) {
+            const auto& wpo = get_worker_proposal(wto.worker_proposal_post);
+            if (wpo.type == worker_proposal_type::task) {
+                modify(wpo, [&](worker_proposal_object& wpo) {
+                    wpo.state = worker_proposal_state::techspec;
+                    wpo.approved_techspec_post = comment_id_type();
+                });
+            }
+
+            const auto& gpo = get_dynamic_global_properties();
+            modify(gpo, [&](dynamic_global_property_object& gpo) {
+                gpo.worker_consumption_per_day -= calculate_worker_techspec_consumption_per_day(wto);
+            });
+        }
+
+        const auto& wtao_idx = get_index<worker_techspec_approve_index, by_techspec_approver>();
+        const auto& wrao_idx = get_index<worker_result_approve_index, by_result_approver>();
+        auto wtao_itr = wtao_idx.find(wto.post);
+        auto wrao_itr = wrao_idx.find(wto.worker_result_post);
+        bool has_approves = (wtao_itr != wtao_idx.end() || wrao_itr != wrao_idx.end());
+
+        clear_worker_techspec_approves(wto);
+        // TODO: clear worker result approves
+
+        if (has_approves) {
+            modify(wto, [&](worker_techspec_object& wto) {
+                wto.state = closed_state;
+            });
+            return;
+        }
+
+        remove(wto);
     }
 
     void database::clear_expired_worker_objects() {

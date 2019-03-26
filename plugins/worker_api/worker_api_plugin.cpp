@@ -84,6 +84,11 @@ struct post_operation_visitor {
     result_type operator()(const worker_techspec_delete_operation& o) const {
         const auto& post = _db.get_comment(o.author, o.permlink);
 
+        const auto* wto = _db.find_worker_techspec(post.id);
+        if (wto) {
+            return;
+        }
+
         const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
         auto wtmo_itr = wtmo_idx.find(post.id);
 

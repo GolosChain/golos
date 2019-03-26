@@ -1,8 +1,12 @@
 #pragma once
 
-#include <golos/chain/database.hpp>
+#include <golos/chain/steem_object_types.hpp>
+#include <golos/protocol/worker_operations.hpp>
+#include <boost/multi_index/composite_key.hpp>
 
 namespace golos { namespace chain {
+
+    using namespace golos::protocol;
 
     enum class worker_proposal_state {
         created,
@@ -34,7 +38,8 @@ namespace golos { namespace chain {
         payment,
         payment_complete,
         payment_canceled,
-        closed
+        closed,
+        closed_by_author
     };
 
     class worker_techspec_object : public object<worker_techspec_object_type, worker_techspec_object> {
@@ -212,7 +217,7 @@ CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_proposal_object,
     golos::chain::worker_proposal_index);
 
-FC_REFLECT_ENUM(golos::chain::worker_techspec_state, (created)(approved)(work)(complete)(payment)(payment_complete)(payment_canceled)(closed))
+FC_REFLECT_ENUM(golos::chain::worker_techspec_state, (created)(approved)(work)(complete)(payment)(payment_complete)(payment_canceled)(closed)(closed_by_author))
 
 CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_techspec_object,
