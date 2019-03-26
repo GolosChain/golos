@@ -74,8 +74,7 @@ namespace golos { namespace chain {
             worker_proposal_object_type,
             worker_techspec_object_type,
             worker_techspec_approve_object_type,
-            worker_result_approve_object_type,
-            worker_payment_approve_object_type
+            worker_result_approve_object_type
         };
 
         class dynamic_global_property_object;
@@ -112,7 +111,6 @@ namespace golos { namespace chain {
         class worker_techspec_object;
         class worker_techspec_approve_object;
         class worker_result_approve_object;
-        class worker_payment_approve_object;
 
         typedef object_id<dynamic_global_property_object> dynamic_global_property_id_type;
         typedef object_id<account_object> account_id_type;
@@ -147,7 +145,6 @@ namespace golos { namespace chain {
         typedef object_id<worker_techspec_object> worker_techspec_object_id_type;
         typedef object_id<worker_techspec_approve_object> worker_techspec_approve_object_id_type;
         typedef object_id<worker_result_approve_object> worker_result_approve_object_id_type;
-        typedef object_id<worker_payment_approve_object> worker_payment_approve_object_id_type;
 
         enum bandwidth_type {
             post,         ///< Rate limiting posting reward eligibility over time
@@ -253,7 +250,6 @@ FC_REFLECT_ENUM(golos::chain::object_type,
                 (worker_techspec_object_type)
                 (worker_techspec_approve_object_type)
                 (worker_result_approve_object_type)
-                (worker_payment_approve_object_type)
 )
 
 FC_REFLECT_TYPENAME((golos::chain::shared_string))

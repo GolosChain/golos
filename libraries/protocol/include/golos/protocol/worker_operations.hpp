@@ -169,21 +169,6 @@ namespace golos { namespace protocol {
         }
     };
 
-    struct worker_payment_approve_operation : public base_operation {
-        account_name_type approver;
-        account_name_type worker_result_author;
-        std::string worker_result_permlink;
-        worker_techspec_approve_state state;
-
-        extensions_type extensions;
-
-        void validate() const;
-
-        void get_required_posting_authorities(flat_set<account_name_type>& a) const {
-            a.insert(approver);
-        }
-    };
-
 } } // golos::protocol
 
 FC_REFLECT_ENUM(golos::protocol::worker_proposal_type, (task)(premade_work)(_size))
@@ -229,7 +214,3 @@ FC_REFLECT(
 FC_REFLECT(
     (golos::protocol::worker_result_approve_operation),
     (approver)(author)(permlink)(state)(extensions))
-
-FC_REFLECT(
-    (golos::protocol::worker_payment_approve_operation),
-    (approver)(worker_result_author)(worker_result_permlink)(state)(extensions))

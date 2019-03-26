@@ -63,10 +63,6 @@ namespace golos { namespace chain {
         return count_worker_approves<worker_result_approve_index, by_result_approver>(*this, post);
     }
 
-    flat_map<worker_techspec_approve_state, int32_t> database::count_worker_payment_approves(const comment_id_type& worker_result_post) {
-        return count_worker_approves<worker_payment_approve_index, by_result_approver>(*this, worker_result_post);
-    }
-
     asset database::calculate_worker_techspec_consumption_per_day(const worker_techspec_object& wto) {
         auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
         uint128_t cost(wto.development_cost.amount.value);
@@ -106,8 +102,6 @@ namespace golos { namespace chain {
                 modify(gpo, [&](dynamic_global_property_object& gpo) {
                     gpo.worker_consumption_per_day -= calculate_worker_techspec_consumption_per_day(*wto_itr);
                 });
-
-                clear_worker_payment_approves(*wto_itr);
 
                 modify(*wto_itr, [&](worker_techspec_object& wto) {
                     wto.finished_payments_count++;
@@ -156,14 +150,6 @@ namespace golos { namespace chain {
         }
 
         clear_worker_approves<worker_techspec_approve_index, by_techspec_approver>(*this, wto.post);
-    }
-
-    void database::clear_worker_payment_approves(const worker_techspec_object& wto) {
-        if (!_clear_old_worker_approves) {
-            return;
-        }
-
-        clear_worker_approves<worker_payment_approve_index, by_result_approver>(*this, wto.worker_result_post);
     }
 
     void database::clear_expired_worker_objects() {

@@ -124,14 +124,4 @@ namespace golos { namespace protocol {
         });
     }
 
-    void worker_payment_approve_operation::validate() const {
-        GOLOS_CHECK_PARAM_ACCOUNT(approver);
-        GOLOS_CHECK_PARAM_ACCOUNT(worker_result_author);
-        GOLOS_CHECK_PARAM(worker_result_permlink, validate_permlink(worker_result_permlink));
-
-        GOLOS_CHECK_PARAM(state, {
-            GOLOS_CHECK_VALUE(state < worker_techspec_approve_state::_size, "This value is reserved");
-        });
-    }
-
 } } // golos::protocol

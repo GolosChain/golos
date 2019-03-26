@@ -3292,24 +3292,6 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction(tx, broadcast);
         }
 
-        annotated_signed_transaction wallet_api::approve_worker_payment(
-                const std::string& approver, const std::string& worker_result_author, const std::string& worker_result_permlink,
-                worker_techspec_approve_state state, bool broadcast
-        ) {
-            WALLET_CHECK_UNLOCKED();
-
-            worker_payment_approve_operation op;
-            op.approver = approver;
-            op.worker_result_author = worker_result_author;
-            op.worker_result_permlink = worker_result_permlink;
-            op.state = state;
-
-            signed_transaction tx;
-            tx.operations.push_back(op);
-            tx.validate();
-            return my->sign_transaction(tx, broadcast);
-        }
-
 } } // golos::wallet
 
 FC_REFLECT_ENUM(golos::wallet::logic_errors::types,

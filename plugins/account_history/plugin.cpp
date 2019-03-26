@@ -552,10 +552,6 @@ if (options.count(name)) { \
             insert_pair(op.approver, op.author);
         }
 
-        void operator()(const worker_payment_approve_operation& op) {
-            insert_pair(op.approver, op.worker_result_author);
-        }
-
         void operator()(const techspec_reward_operation& op) {
             insert_receiver(op.author);
         }

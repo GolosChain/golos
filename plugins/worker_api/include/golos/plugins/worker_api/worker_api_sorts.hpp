@@ -15,9 +15,7 @@ namespace golos { namespace plugins { namespace worker_api {
         by_approves,
         by_disapproves,
         by_worker_result_approves,
-        by_worker_result_disapproves,
-        by_worker_payment_approves,
-        by_worker_payment_disapproves
+        by_worker_result_disapproves
     };
 
 } } } // golos::plugins::worker_api
@@ -25,4 +23,4 @@ namespace golos { namespace plugins { namespace worker_api {
 FC_REFLECT_ENUM(golos::plugins::worker_api::worker_proposal_sort, (by_created)(by_net_rshares))
 
 FC_REFLECT_ENUM(golos::plugins::worker_api::worker_techspec_sort, (by_created)(by_net_rshares)(by_approves)(by_disapproves)
-    (by_worker_result_approves)(by_worker_result_disapproves)(by_worker_payment_approves)(by_worker_payment_disapproves))
+    (by_worker_result_approves)(by_worker_result_disapproves))

@@ -343,20 +343,22 @@ namespace golos { namespace chain {
 
         const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
 
-        if (wpo.type == worker_proposal_type::premade_work) {
-            GOLOS_CHECK_LOGIC(wpo.state == worker_proposal_state::created,
-                logic_exception::this_worker_proposal_already_has_approved_result,
-                "This worker proposal already has approved result");
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::complete || wto.state == worker_techspec_state::payment,
+            logic_exception::worker_techspec_should_be_complete_or_paying_to_approve_result,
+            "Worker techspec should be complete or paying to approve result");
+
+        if (wto.state == worker_techspec_state::complete) {
+            if (wpo.type == worker_proposal_type::premade_work) {
+                GOLOS_CHECK_LOGIC(wpo.state == worker_proposal_state::created,
+                    logic_exception::this_worker_proposal_already_has_approved_result,
+                    "This worker proposal already has approved result");
+            }
+
+            const auto& mprops = _db.get_witness_schedule_object().median_props;
+            GOLOS_CHECK_LOGIC(_db.head_block_time() <= worker_result_post.created + mprops.worker_result_approve_term_sec,
+                logic_exception::approve_term_has_expired,
+                "Approve term has expired");
         }
-
-        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::complete,
-            logic_exception::worker_techspec_should_be_complete_to_approve_result,
-            "Worker techspec should be complete to approve result");
-
-        const auto& mprops = _db.get_witness_schedule_object().median_props;
-        GOLOS_CHECK_LOGIC(_db.head_block_time() <= worker_result_post.created + mprops.worker_result_approve_term_sec,
-            logic_exception::approve_term_has_expired,
-            "Approve term has expired");
 
         const auto& wrao_idx = _db.get_index<worker_result_approve_index, by_result_approver>();
         auto wrao_itr = wrao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
@@ -389,15 +391,26 @@ namespace golos { namespace chain {
                 return;
             }
 
+            const auto& gpo = _db.get_dynamic_global_properties();
+            _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
+                gpo.worker_consumption_per_day -= _db.calculate_worker_techspec_consumption_per_day(wto);
+            });
+
             _db.modify(wto, [&](worker_techspec_object& wto) {
-                if (wpo.type == worker_proposal_type::premade_work) {
-                    wto.state = worker_techspec_state::closed;
-                } else {
-                    wto.state = worker_techspec_state::work;
+                if (wto.state == worker_techspec_state::payment) {
+                    wto.state = worker_techspec_state::payment_canceled;
+                    wto.next_cashout_time = time_point_sec::maximum();
+                    return;
                 }
+
+                wto.state = worker_techspec_state::closed;
             });
         } else if (o.state == worker_techspec_approve_state::approve) {
             if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
+                return;
+            }
+
+            if (wto.state == worker_techspec_state::payment) {
                 return;
             }
 
@@ -451,64 +464,6 @@ namespace golos { namespace chain {
         _db.modify(wto, [&](worker_techspec_object& wto) {
             wto.worker = o.worker;
             wto.state = worker_techspec_state::work;
-        });
-    }
-
-    void worker_payment_approve_evaluator::do_apply(const worker_payment_approve_operation& o) {
-        ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1013, "worker_payment_approve_operation");
-
-        auto approver_witness = _db.get_witness(o.approver);
-        GOLOS_CHECK_LOGIC(approver_witness.schedule == witness_object::top19,
-            logic_exception::approver_of_payment_should_be_in_top19_of_witnesses,
-            "Approver of payment should be in Top 19 of witnesses");
-
-        const auto& worker_result_post = _db.get_comment(o.worker_result_author, o.worker_result_permlink);
-        const auto& wto = _db.get_worker_result(worker_result_post.id);
-
-        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::payment,
-            logic_exception::worker_techspec_should_be_in_payment_state,
-            "Worker techspec should be in payment state");
-
-        const auto& wpao_idx = _db.get_index<worker_payment_approve_index, by_result_approver>();
-        auto wpao_itr = wpao_idx.find(std::make_tuple(worker_result_post.id, o.approver));
-
-        if (o.state == worker_techspec_approve_state::abstain) {
-            WORKER_CHECK_NO_VOTE_REPEAT(wpao_itr, wpao_idx.end());
-
-            _db.remove(*wpao_itr);
-            return;
-        }
-
-        if (wpao_itr != wpao_idx.end()) {
-            WORKER_CHECK_NO_VOTE_REPEAT(wpao_itr->state, o.state);
-
-            _db.modify(*wpao_itr, [&](worker_payment_approve_object& wpao) {
-                wpao.state = o.state;
-            });
-        } else {
-            _db.create<worker_payment_approve_object>([&](worker_payment_approve_object& wpao) {
-                wpao.approver = o.approver;
-                wpao.post = worker_result_post.id;
-                wpao.state = o.state;
-            });
-        }
-
-        auto approves = _db.count_worker_result_approves(worker_result_post.id);
-
-        if (approves[worker_techspec_approve_state::disapprove] < STEEMIT_SUPER_MAJOR_VOTED_WITNESSES) {
-            return;
-        }
-
-        _db.clear_worker_payment_approves(wto);
-
-        const auto& gpo = _db.get_dynamic_global_properties();
-        _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
-            gpo.worker_consumption_per_day -= _db.calculate_worker_techspec_consumption_per_day(wto);
-        });
-
-        _db.modify(wto, [&](worker_techspec_object& wto) {
-            wto.state = worker_techspec_state::payment_canceled;
-            wto.next_cashout_time = time_point_sec::maximum();
         });
     }
 
