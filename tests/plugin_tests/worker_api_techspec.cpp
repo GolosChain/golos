@@ -183,6 +183,7 @@ BOOST_AUTO_TEST_CASE(worker_techspec_delete) {
     BOOST_TEST_MESSAGE("Testing: worker_techspec_delete");
 
     ACTORS((alice)(bob))
+    auto private_key = create_approvers(0, 1);
     generate_block();
 
     signed_transaction tx;
@@ -193,6 +194,8 @@ BOOST_AUTO_TEST_CASE(worker_techspec_delete) {
 
     worker_proposal("alice", alice_private_key, "alice-proposal", worker_proposal_type::task);
     generate_block();
+
+    BOOST_TEST_MESSAGE("-- Creating techspec without approves");
 
     comment_create("bob", bob_private_key, "bob-techspec", "", "bob-techspec");
 
@@ -212,7 +215,7 @@ BOOST_AUTO_TEST_CASE(worker_techspec_delete) {
     auto wtmo_itr = wtmo_idx.find(wto_post.id);
     BOOST_CHECK(wtmo_itr != wtmo_idx.end());
 
-    BOOST_TEST_MESSAGE("-- Deleting worker techspec");
+    BOOST_TEST_MESSAGE("-- Deleting it");
 
     worker_techspec_delete_operation op;
     op.author = "bob";
@@ -220,11 +223,37 @@ BOOST_AUTO_TEST_CASE(worker_techspec_delete) {
     BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
     generate_block();
 
-    wtmo_itr = wtmo_idx.find(wto_post.id);
-
     BOOST_TEST_MESSAGE("-- Checking worker techspec metadata object is deleted");
 
+    wtmo_itr = wtmo_idx.find(wto_post.id);
     BOOST_CHECK(wtmo_itr == wtmo_idx.end());
+
+    BOOST_TEST_MESSAGE("-- Creating techspec with 1 approve");
+
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, wtop));
+    generate_block();
+
+    generate_blocks(STEEMIT_MAX_WITNESSES); // Enough for approvers to reach TOP-19 and not leave it
+
+    worker_techspec_approve_operation wtaop;
+    wtaop.approver = "approver0";
+    wtaop.author = "bob";
+    wtaop.permlink = "bob-techspec";
+    wtaop.state = worker_techspec_approve_state::approve;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, wtaop));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Deleting it");
+
+    op.author = "bob";
+    op.permlink = "bob-techspec";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Checking worker techspec metadata object exists");
+
+    wtmo_itr = wtmo_idx.find(wto_post.id);
+    BOOST_CHECK(wtmo_itr != wtmo_idx.end());
 
     validate_database();
 }

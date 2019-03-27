@@ -1053,4 +1053,146 @@ BOOST_AUTO_TEST_CASE(worker_assign_apply) {
     validate_database();
 }
 
+BOOST_AUTO_TEST_CASE(worker_techspec_delete_apply) {
+    BOOST_TEST_MESSAGE("Testing: worker_techspec_delete_apply");
+
+    ACTORS((alice)(bob)(carol))
+    auto private_key = create_approvers(0, STEEMIT_MAJOR_VOTED_WITNESSES);
+    generate_block();
+
+    signed_transaction tx;
+
+    db->set_clear_old_worker_approves(true);
+
+    comment_create("alice", alice_private_key, "alice-proposal", "", "alice-proposal");
+
+    worker_proposal("alice", alice_private_key, "alice-proposal", worker_proposal_type::task);
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Creating techspec without approves");
+
+    comment_create("bob", bob_private_key, "bob-techspec", "", "bob-techspec");
+
+    worker_techspec_operation wtop;
+    wtop.author = "bob";
+    wtop.permlink = "bob-techspec";
+    wtop.worker_proposal_author = "alice";
+    wtop.worker_proposal_permlink = "alice-proposal";
+    wtop.specification_cost = ASSET_GOLOS(6);
+    wtop.development_cost = ASSET_GOLOS(60);
+    wtop.payments_interval = 60*60*24;
+    wtop.payments_count = 40;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, wtop));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Deleting it");
+
+    worker_techspec_delete_operation op;
+    op.author = "bob";
+    op.permlink = "bob-techspec";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    {
+        BOOST_TEST_MESSAGE("-- Checking it is deleted");
+
+        const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
+        const auto* wto = db->find_worker_techspec(wto_post.id);
+        BOOST_CHECK(!wto);
+    }
+
+    BOOST_TEST_MESSAGE("-- Creating techspec with 1 approve");
+
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, wtop));
+    generate_block();
+
+    generate_blocks(STEEMIT_MAX_WITNESSES); // Enough for approvers to reach TOP-19 and not leave it
+
+    worker_techspec_approve_operation wtaop;
+    wtaop.approver = "approver0";
+    wtaop.author = "bob";
+    wtaop.permlink = "bob-techspec";
+    wtaop.state = worker_techspec_approve_state::approve;
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, wtaop));
+    generate_block();
+
+    BOOST_TEST_MESSAGE("-- Deleting it");
+
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, op));
+    generate_block();
+
+    {
+        BOOST_TEST_MESSAGE("-- Checking it is not deleted but closed");
+
+        const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
+        const auto* wto = db->find_worker_techspec(wto_post.id);
+        BOOST_CHECK(wto);
+        BOOST_CHECK(wto->state == worker_techspec_state::closed_by_author);
+
+        BOOST_TEST_MESSAGE("-- Checking approve is cleared");
+
+        const auto& wtao_idx = db->get_index<worker_techspec_approve_index, by_techspec_approver>();
+        BOOST_CHECK(wtao_idx.find(wto_post.id) == wtao_idx.end());
+    }
+
+    BOOST_TEST_MESSAGE("-- Creating techspec which will be approved");
+
+    comment_create("carol", carol_private_key, "carol-techspec", "", "carol-techspec");
+
+    wtop.author = "carol";
+    wtop.permlink = "carol-techspec";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, carol_private_key, wtop));
+    generate_block();
+
+    db->set_clear_old_worker_approves(false); // TODO: need only while approves are clearing on final techspec approve (to prevent it)
+
+    for (auto i = 0; i < STEEMIT_MAJOR_VOTED_WITNESSES; ++i) {
+        const auto name = "approver" + std::to_string(i);
+        wtaop.approver = name;
+        wtaop.author = "carol";
+        wtaop.permlink = "carol-techspec";
+        wtaop.state = worker_techspec_approve_state::approve;
+        BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, private_key, wtaop));
+        generate_block();
+    }
+
+    BOOST_TEST_MESSAGE("-- Deleting it");
+
+    generate_blocks(10);
+    db->set_clear_old_worker_approves(true);
+
+    op.author = "carol";
+    op.permlink = "carol-techspec";
+    BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, carol_private_key, op));
+    generate_block();
+
+    {
+        // TODO: move such checks to common methods of fixture when they will be used in another cases
+
+        BOOST_TEST_MESSAGE("-- Checking it is not deleted but closed");
+
+        const auto& wto_post = db->get_comment("carol", string("carol-techspec"));
+        const auto* wto = db->find_worker_techspec(wto_post.id);
+        BOOST_CHECK(wto);
+        BOOST_CHECK(wto->state == worker_techspec_state::closed_by_author);
+
+        BOOST_TEST_MESSAGE("-- Checking approves are cleared");
+
+        const auto& wtao_idx = db->get_index<worker_techspec_approve_index, by_techspec_approver>();
+        BOOST_CHECK(wtao_idx.find(wto_post.id) == wtao_idx.end());
+
+        BOOST_TEST_MESSAGE("-- Checking worker proposal is open");
+
+        const auto& wpo = db->get_worker_proposal(db->get_comment("alice", string("alice-proposal")).id);
+        BOOST_CHECK(wpo.state == worker_proposal_state::created);
+
+        BOOST_TEST_MESSAGE("-- Checking worker funds are unfrozen");
+
+        const auto& gpo = db->get_dynamic_global_properties();
+        BOOST_CHECK_EQUAL(gpo.worker_consumption_per_day.amount, 0);
+    }
+
+    validate_database();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
