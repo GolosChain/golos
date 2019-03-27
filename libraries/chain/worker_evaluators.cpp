@@ -154,15 +154,17 @@ namespace golos { namespace chain {
         const auto& wto_post = _db.get_comment(o.author, o.permlink);
         const auto& wto = _db.get_worker_techspec(wto_post.id);
 
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::created || wto.state == worker_techspec_state::work,
+            logic_exception::techspec_should_be_in_work_or_not_approved,
+            "Techspec should be in work or not approved");
+
         const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
 
-        GOLOS_CHECK_LOGIC(wpo.state == worker_proposal_state::created,
-            logic_exception::this_worker_proposal_already_has_approved_techspec,
-            "This worker proposal already has approved techspec");
-
-        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::created,
-            logic_exception::techspec_is_already_approved_or_closed,
-            "Techspec is already approved or closed");
+        if (wto.state == worker_techspec_state::created) {
+            GOLOS_CHECK_LOGIC(wpo.state == worker_proposal_state::created,
+                logic_exception::this_worker_proposal_already_has_approved_techspec,
+                "This worker proposal already has approved techspec");
+        }
 
         const auto& wtao_idx = _db.get_index<worker_techspec_approve_index, by_techspec_approver>();
         auto wtao_itr = wtao_idx.find(std::make_tuple(wto.post, o.approver));
@@ -201,6 +203,10 @@ namespace golos { namespace chain {
                 wto.state = worker_techspec_state::closed;
             });
         } else if (o.state == worker_techspec_approve_state::approve) {
+            if (wto.state == worker_techspec_state::work) {
+                return;
+            }
+
             auto day_sec = fc::days(1).to_seconds();
             auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
 
@@ -231,8 +237,6 @@ namespace golos { namespace chain {
                 wpo.approved_techspec_post = wto_post.id;
                 wpo.state = worker_proposal_state::techspec;
             });
-
-            _db.clear_worker_techspec_approves(wto);
 
             _db.modify(wto, [&](worker_techspec_object& wto) {
                 wto.state = worker_techspec_state::approved;
@@ -389,6 +393,8 @@ namespace golos { namespace chain {
                 return;
             }
 
+            _db.clear_worker_techspec_approves(wto); // TODO: normal closing
+
             _db.modify(wto, [&](worker_techspec_object& wto) {
                 if (wpo.type == worker_proposal_type::premade_work) {
                     wto.state = worker_techspec_state::closed;
@@ -400,6 +406,8 @@ namespace golos { namespace chain {
             if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
                 return;
             }
+
+            _db.clear_worker_techspec_approves(wto);
 
             _db.modify(wto, [&](worker_techspec_object& wto) {
                 wto.next_cashout_time = _db.head_block_time() + wto.payments_interval;

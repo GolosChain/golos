@@ -349,7 +349,7 @@ namespace golos {
             this_worker_techspec_is_already_used_for_another_worker_proposal,
             cannot_delete_paying_worker_techspec,
             approver_of_techspec_should_be_in_top19_of_witnesses,
-            techspec_is_already_approved_or_closed,
+            techspec_should_be_in_work_or_not_approved,
             worker_result_can_be_created_only_on_post,
             worker_result_can_be_created_only_for_techspec_in_work,
             cannot_delete_worker_result_for_paying_techspec,
@@ -653,7 +653,7 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (this_worker_techspec_is_already_used_for_another_worker_proposal)
         (cannot_delete_paying_worker_techspec)
         (approver_of_techspec_should_be_in_top19_of_witnesses)
-        (techspec_is_already_approved_or_closed)
+        (techspec_should_be_in_work_or_not_approved)
         (worker_result_can_be_created_only_on_post)
         (worker_result_can_be_created_only_for_techspec_in_work)
         (cannot_delete_worker_result_for_paying_techspec)
