@@ -1544,7 +1544,7 @@ namespace mongo_db {
 
     }
 
-    auto state_writer::operator()(const worker_result_approve_operation& op) -> result_type {
+    auto state_writer::operator()(const worker_payment_approve_operation& op) -> result_type {
 
     }
 

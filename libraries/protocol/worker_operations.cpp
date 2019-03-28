@@ -114,10 +114,10 @@ namespace golos { namespace protocol {
         GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
     }
 
-    void worker_result_approve_operation::validate() const {
+    void worker_payment_approve_operation::validate() const {
         GOLOS_CHECK_PARAM_ACCOUNT(approver);
-        GOLOS_CHECK_PARAM_ACCOUNT(author);
-        GOLOS_CHECK_PARAM(permlink, validate_permlink(permlink));
+        GOLOS_CHECK_PARAM_ACCOUNT(worker_techspec_author);
+        GOLOS_CHECK_PARAM(worker_techspec_permlink, validate_permlink(worker_techspec_permlink));
 
         GOLOS_CHECK_PARAM(state, {
             GOLOS_CHECK_VALUE(state < worker_techspec_approve_state::_size, "This value is reserved");

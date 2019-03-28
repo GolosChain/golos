@@ -78,7 +78,7 @@ namespace golos { namespace protocol {
                 worker_result_operation,
                 worker_result_premade_operation,
                 worker_result_delete_operation,
-                worker_result_approve_operation,
+                worker_payment_approve_operation,
                 worker_assign_operation,
 
                 /// virtual operations below this point

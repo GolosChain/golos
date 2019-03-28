@@ -354,8 +354,8 @@ namespace golos {
             worker_result_can_be_created_only_for_techspec_in_work,
             cannot_delete_worker_result_for_paying_techspec,
             this_post_already_used_as_worker_result,
-            approver_of_result_should_be_in_top19_of_witnesses,
-            worker_techspec_should_be_complete_or_paying_to_approve_result,
+            approver_of_payment_should_be_in_top19_of_witnesses,
+            worker_techspec_should_be_complete_or_paying,
             worker_techspec_already_has_final_result,
             worker_can_be_assigned_only_to_proposal_with_approved_techspec,
             worker_cannot_be_assigned_to_premade_proposal,
@@ -363,8 +363,6 @@ namespace golos {
             worker_can_be_unassigned_only_by_techspec_author_or_himself,
             insufficient_funds_to_approve_worker_techspec,
             approve_term_has_expired,
-            approver_of_payment_should_be_in_top19_of_witnesses,
-            worker_techspec_should_be_in_payment_state,
             you_already_have_voted_for_this_object_with_this_state,
             cannot_create_techspec_for_premade_worker_proposal,
             only_premade_worker_result_can_be_created_for_premade_worker_proposal,
@@ -658,8 +656,8 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (worker_result_can_be_created_only_for_techspec_in_work)
         (cannot_delete_worker_result_for_paying_techspec)
         (this_post_already_used_as_worker_result)
-        (approver_of_result_should_be_in_top19_of_witnesses)
-        (worker_techspec_should_be_complete_or_paying_to_approve_result)
+        (approver_of_payment_should_be_in_top19_of_witnesses)
+        (worker_techspec_should_be_complete_or_paying)
         (worker_techspec_already_has_final_result)
         (worker_can_be_assigned_only_to_proposal_with_approved_techspec)
         (worker_cannot_be_assigned_to_premade_proposal)
@@ -667,8 +665,6 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (worker_can_be_unassigned_only_by_techspec_author_or_himself)
         (insufficient_funds_to_approve_worker_techspec)
         (approve_term_has_expired)
-        (approver_of_payment_should_be_in_top19_of_witnesses)
-        (worker_techspec_should_be_in_payment_state)
         (you_already_have_voted_for_this_object_with_this_state)
         (cannot_create_techspec_for_premade_worker_proposal)
         (only_premade_worker_result_can_be_created_for_premade_worker_proposal)

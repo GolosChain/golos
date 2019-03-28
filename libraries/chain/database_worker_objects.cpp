@@ -58,8 +58,8 @@ namespace golos { namespace chain {
         return count_worker_approves<worker_techspec_approve_index, by_techspec_approver>(*this, post);
     }
 
-    flat_map<worker_techspec_approve_state, int32_t> database::count_worker_result_approves(const comment_id_type& post) {
-        return count_worker_approves<worker_result_approve_index, by_result_approver>(*this, post);
+    flat_map<worker_techspec_approve_state, int32_t> database::count_worker_payment_approves(const comment_id_type& post) {
+        return count_worker_approves<worker_payment_approve_index, by_techspec_approver>(*this, post);
     }
 
     asset database::calculate_worker_techspec_consumption_per_day(const worker_techspec_object& wto) {
@@ -158,7 +158,7 @@ namespace golos { namespace chain {
             return;
         }
 
-        clear_worker_approves<worker_result_approve_index, by_result_approver>(*this, wto.worker_result_post);
+        clear_worker_approves<worker_payment_approve_index, by_techspec_approver>(*this, wto.post);
     }
 
     void database::close_worker_techspec(const worker_techspec_object& wto, golos::chain::worker_techspec_state closed_state) {
@@ -178,10 +178,10 @@ namespace golos { namespace chain {
         }
 
         const auto& wtao_idx = get_index<worker_techspec_approve_index, by_techspec_approver>();
-        const auto& wrao_idx = get_index<worker_result_approve_index, by_result_approver>();
+        const auto& wpao_idx = get_index<worker_payment_approve_index, by_techspec_approver>();
         auto wtao_itr = wtao_idx.find(wto.post);
-        auto wrao_itr = wrao_idx.find(wto.worker_result_post);
-        bool has_approves = (wtao_itr != wtao_idx.end() || wrao_itr != wrao_idx.end());
+        auto wpao_itr = wpao_idx.find(wto.post);
+        bool has_approves = (wtao_itr != wtao_idx.end() || wpao_itr != wpao_idx.end());
 
         clear_worker_techspec_approves(wto);
         clear_worker_payment_approves(wto);

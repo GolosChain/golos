@@ -548,8 +548,8 @@ if (options.count(name)) { \
             insert_dual(op.author);
         }
 
-        void operator()(const worker_result_approve_operation& op) {
-            insert_pair(op.approver, op.author);
+        void operator()(const worker_payment_approve_operation& op) {
+            insert_pair(op.approver, op.worker_techspec_author);
         }
 
         void operator()(const techspec_reward_operation& op) {

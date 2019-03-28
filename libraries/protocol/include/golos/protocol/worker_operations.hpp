@@ -154,10 +154,10 @@ namespace golos { namespace protocol {
         }
     };
 
-    struct worker_result_approve_operation : public base_operation {
+    struct worker_payment_approve_operation : public base_operation {
         account_name_type approver;
-        account_name_type author;
-        std::string permlink;
+        account_name_type worker_techspec_author;
+        std::string worker_techspec_permlink;
         worker_techspec_approve_state state;
 
         extensions_type extensions;
@@ -212,5 +212,5 @@ FC_REFLECT(
     (author)(permlink)(extensions))
 
 FC_REFLECT(
-    (golos::protocol::worker_result_approve_operation),
-    (approver)(author)(permlink)(state)(extensions))
+    (golos::protocol::worker_payment_approve_operation),
+    (approver)(worker_techspec_author)(worker_techspec_permlink)(state)(extensions))

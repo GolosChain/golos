@@ -3274,16 +3274,16 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction(tx, broadcast);
         }
 
-        annotated_signed_transaction wallet_api::approve_worker_result(
-                const std::string& approver, const std::string& author, const std::string& permlink,
+        annotated_signed_transaction wallet_api::approve_worker_payment(
+                const std::string& approver, const std::string& worker_techspec_author, const std::string& worker_techspec_permlink,
                 worker_techspec_approve_state state, bool broadcast
         ) {
             WALLET_CHECK_UNLOCKED();
 
-            worker_result_approve_operation op;
+            worker_payment_approve_operation op;
             op.approver = approver;
-            op.author = author;
-            op.permlink = permlink;
+            op.worker_techspec_author = worker_techspec_author;
+            op.worker_techspec_permlink = worker_techspec_permlink;
             op.state = state;
 
             signed_transaction tx;

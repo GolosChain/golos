@@ -78,7 +78,7 @@ namespace mongo_db {
         result_type operator()(const worker_result_operation& op);
         result_type operator()(const worker_result_premade_operation& op);
         result_type operator()(const worker_result_delete_operation& op);
-        result_type operator()(const worker_result_approve_operation& op);
+        result_type operator()(const worker_payment_approve_operation& op);
         result_type operator()(const worker_assign_operation& op);
         result_type operator()(const fill_convert_request_operation& op);
         result_type operator()(const author_reward_operation& op);
