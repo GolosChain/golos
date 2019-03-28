@@ -1518,16 +1518,16 @@ namespace golos { namespace wallet {
                 );
 
             /**
-             * Approve or disapprove worker result based on specified post, or cancel this
+             * Approve or disapprove payment for worker techspec based on specified post, or cancel this
              *
              * @param approver witness account
-             * @param author author of the post
-             * @param permlink permlink of the post
+             * @param worker_techspec_author author of the post
+             * @param worker_techspec_permlink permlink of the post
              * @param state approve, disapprove or abstain
              * @param broadcast true if you wish to broadcast the transaction
              */
-            annotated_signed_transaction approve_worker_result(
-                const std::string& approver, const std::string& author, const std::string& permlink,
+            annotated_signed_transaction approve_worker_payment(
+                const std::string& approver, const std::string& worker_techspec_author, const std::string& worker_techspec_permlink,
                 worker_techspec_approve_state state, bool broadcast
                 );
 
@@ -1677,7 +1677,7 @@ FC_API( golos::wallet::wallet_api,
                 (worker_result)
                 (premade_worker_result)
                 (delete_worker_result)
-                (approve_worker_result)
+                (approve_worker_payment)
 )
 
 FC_REFLECT((golos::wallet::memo_data), (from)(to)(nonce)(check)(encrypted))

@@ -83,12 +83,12 @@ namespace golos { namespace chain {
         worker_techspec_approve_state state;
     };
 
-    class worker_result_approve_object : public object<worker_result_approve_object_type, worker_result_approve_object> {
+    class worker_payment_approve_object : public object<worker_payment_approve_object_type, worker_payment_approve_object> {
     public:
-        worker_result_approve_object() = delete;
+        worker_payment_approve_object() = delete;
 
         template <typename Constructor, typename Allocator>
-        worker_result_approve_object(Constructor&& c, allocator <Allocator> a) {
+        worker_payment_approve_object(Constructor&& c, allocator <Allocator> a) {
             c(*this);
         };
 
@@ -158,24 +158,22 @@ namespace golos { namespace chain {
                     std::less<account_name_type>>>>,
         allocator<worker_techspec_approve_object>>;
 
-    struct by_result_approver;
-
-    using worker_result_approve_index = multi_index_container<
-        worker_result_approve_object,
+    using worker_payment_approve_index = multi_index_container<
+        worker_payment_approve_object,
         indexed_by<
             ordered_unique<
                 tag<by_id>,
-                member<worker_result_approve_object, worker_result_approve_object_id_type, &worker_result_approve_object::id>>,
+                member<worker_payment_approve_object, worker_payment_approve_object_id_type, &worker_payment_approve_object::id>>,
             ordered_unique<
-                tag<by_result_approver>,
+                tag<by_techspec_approver>,
                 composite_key<
-                    worker_result_approve_object,
-                    member<worker_result_approve_object, comment_id_type, &worker_result_approve_object::post>,
-                    member<worker_result_approve_object, account_name_type, &worker_result_approve_object::approver>>,
+                    worker_payment_approve_object,
+                    member<worker_payment_approve_object, comment_id_type, &worker_payment_approve_object::post>,
+                    member<worker_payment_approve_object, account_name_type, &worker_payment_approve_object::approver>>,
                 composite_key_compare<
                     std::less<comment_id_type>,
                     std::less<account_name_type>>>>,
-        allocator<worker_result_approve_object>>;
+        allocator<worker_payment_approve_object>>;
 
 } } // golos::chain
 
@@ -196,5 +194,5 @@ CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_techspec_approve_index);
 
 CHAINBASE_SET_INDEX_TYPE(
-    golos::chain::worker_result_approve_object,
-    golos::chain::worker_result_approve_index);
+    golos::chain::worker_payment_approve_object,
+    golos::chain::worker_payment_approve_index);
