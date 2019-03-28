@@ -1,5 +1,4 @@
 #include <golos/chain/database.hpp>
-#include <golos/chain/worker_objects.hpp>
 #include <golos/chain/account_object.hpp>
 #include <golos/chain/comment_object.hpp>
 #include <golos/protocol/exceptions.hpp>

@@ -132,15 +132,7 @@ namespace golos { namespace chain {
             logic_exception::cannot_delete_paying_worker_techspec,
             "Cannot delete paying worker techspec");
 
-        if (wto.state == worker_techspec_state::approved) {
-            const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
-            _db.modify(wpo, [&](worker_proposal_object& wpo) {
-                wpo.state = worker_proposal_state::created;
-                wpo.approved_techspec_post = comment_id_type();
-            });
-        }
-
-        _db.remove(wto);
+        _db.close_worker_techspec(wto, worker_techspec_state::closed_by_author);
     }
 
     void worker_techspec_approve_evaluator::do_apply(const worker_techspec_approve_operation& o) {
