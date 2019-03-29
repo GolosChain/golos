@@ -187,11 +187,7 @@ namespace golos { namespace chain {
                 return;
             }
 
-            _db.clear_worker_techspec_approves(wto);
-
-            _db.modify(wto, [&](worker_techspec_object& wto) {
-                wto.state = worker_techspec_state::closed;
-            });
+            _db.close_worker_techspec(wto, worker_techspec_state::closed_by_witnesses);
         } else if (o.state == worker_techspec_approve_state::approve) {
             auto day_sec = fc::days(1).to_seconds();
             auto payments_period = int64_t(wto.payments_interval) * wto.payments_count;
@@ -335,9 +331,10 @@ namespace golos { namespace chain {
 
         const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
 
-        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::complete || wto.state == worker_techspec_state::payment,
-            logic_exception::worker_techspec_should_be_complete_or_paying,
-            "Worker techspec should be complete or paying");
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::complete || wto.state == worker_techspec_state::payment
+                || wto.state == worker_techspec_state::work,
+            logic_exception::worker_techspec_should_be_in_work_complete_or_paying,
+            "Worker techspec should be in work, complete or paying");
 
         if (wto.state == worker_techspec_state::complete) {
             if (wpo.type == worker_proposal_type::premade_work) {
@@ -351,6 +348,10 @@ namespace golos { namespace chain {
             GOLOS_CHECK_LOGIC(_db.head_block_time() <= worker_result_post.created + mprops.worker_result_approve_term_sec,
                 logic_exception::approve_term_has_expired,
                 "Approve term has expired");
+        } else {
+            GOLOS_CHECK_LOGIC(o.state != worker_techspec_approve_state::approve,
+                logic_exception::techspec_cannot_be_approved_when_paying_or_not_finished,
+                "Techspec cannot be approved when paying or not finished");
         }
 
         const auto& wpao_idx = _db.get_index<worker_payment_approve_index, by_techspec_approver>();
@@ -384,28 +385,14 @@ namespace golos { namespace chain {
                 return;
             }
 
-            const auto& gpo = _db.get_dynamic_global_properties();
-            _db.modify(gpo, [&](dynamic_global_property_object& gpo) {
-                gpo.worker_consumption_per_day -= _db.calculate_worker_techspec_consumption_per_day(wto);
-            });
-
-            _db.clear_worker_payment_approves(wto);
-
-            _db.modify(wto, [&](worker_techspec_object& wto) {
-                if (wto.state == worker_techspec_state::payment) {
-                    wto.state = worker_techspec_state::payment_canceled;
-                    wto.next_cashout_time = time_point_sec::maximum();
-                    return;
-                }
-
-                wto.state = worker_techspec_state::closed;
-            });
-        } else if (o.state == worker_techspec_approve_state::approve) {
-            if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
+            if (wto.state == worker_techspec_state::payment) {
+                _db.close_worker_techspec(wto, worker_techspec_state::disapproved_by_witnesses);
                 return;
             }
 
-            if (wto.state == worker_techspec_state::payment) {
+            _db.close_worker_techspec(wto, worker_techspec_state::closed_by_witnesses); 
+        } else if (o.state == worker_techspec_approve_state::approve) {
+            if (approves[o.state] < STEEMIT_MAJOR_VOTED_WITNESSES) {
                 return;
             }
 

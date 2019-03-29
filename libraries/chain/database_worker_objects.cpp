@@ -161,8 +161,10 @@ namespace golos { namespace chain {
         clear_worker_approves<worker_payment_approve_index, by_techspec_approver>(*this, wto.post);
     }
 
-    void database::close_worker_techspec(const worker_techspec_object& wto, golos::chain::worker_techspec_state closed_state) {
-        if (wto.state == worker_techspec_state::approved) {
+    void database::close_worker_techspec(const worker_techspec_object& wto, worker_techspec_state closed_state) {
+        bool has_approves = false;
+
+        if (wto.state >= worker_techspec_state::approved) {
             const auto& wpo = get_worker_proposal(wto.worker_proposal_post);
             if (wpo.type == worker_proposal_type::task) {
                 modify(wpo, [&](worker_proposal_object& wpo) {
@@ -175,25 +177,27 @@ namespace golos { namespace chain {
             modify(gpo, [&](dynamic_global_property_object& gpo) {
                 gpo.worker_consumption_per_day -= calculate_worker_techspec_consumption_per_day(wto);
             });
-        }
 
-        const auto& wtao_idx = get_index<worker_techspec_approve_index, by_techspec_approver>();
-        const auto& wpao_idx = get_index<worker_payment_approve_index, by_techspec_approver>();
-        auto wtao_itr = wtao_idx.find(wto.post);
-        auto wpao_itr = wpao_idx.find(wto.post);
-        bool has_approves = (wtao_itr != wtao_idx.end() || wpao_itr != wpao_idx.end());
+            has_approves = true;
+        } else {
+            const auto& wtao_idx = get_index<worker_techspec_approve_index, by_techspec_approver>();
+            const auto& wpao_idx = get_index<worker_payment_approve_index, by_techspec_approver>();
+            auto wtao_itr = wtao_idx.find(wto.post);
+            auto wpao_itr = wpao_idx.find(wto.post);
+            has_approves = (wtao_itr != wtao_idx.end() || wpao_itr != wpao_idx.end());
+        }
 
         clear_worker_techspec_approves(wto);
         clear_worker_payment_approves(wto);
 
-        if (has_approves) {
-            modify(wto, [&](worker_techspec_object& wto) {
-                wto.state = closed_state;
-            });
-            return;
-        }
+        modify(wto, [&](worker_techspec_object& wto) {
+            wto.next_cashout_time = time_point_sec::maximum();
+            wto.state = closed_state;
+        });
 
-        remove(wto);
+        if (closed_state == worker_techspec_state::closed_by_author && !has_approves) {
+            remove(wto);
+        }
     }
 
     void database::clear_expired_worker_objects() {
@@ -216,11 +220,7 @@ namespace golos { namespace chain {
                 continue;
             }
 
-            clear_worker_techspec_approves(*itr);
-
-            modify(*itr, [&](worker_techspec_object& wto) {
-                wto.state = worker_techspec_state::closed;
-            });
+            close_worker_techspec(*itr, worker_techspec_state::closed_by_witnesses);
         }
     }
 

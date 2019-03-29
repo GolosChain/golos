@@ -37,9 +37,9 @@ namespace golos { namespace chain {
         complete,
         payment,
         payment_complete,
-        payment_canceled,
-        closed,
-        closed_by_author
+        closed_by_author,
+        closed_by_witnesses,
+        disapproved_by_witnesses
     };
 
     class worker_techspec_object : public object<worker_techspec_object_type, worker_techspec_object> {
@@ -182,7 +182,8 @@ CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_proposal_object,
     golos::chain::worker_proposal_index);
 
-FC_REFLECT_ENUM(golos::chain::worker_techspec_state, (created)(approved)(work)(complete)(payment)(payment_complete)(payment_canceled)(closed)(closed_by_author))
+FC_REFLECT_ENUM(golos::chain::worker_techspec_state,
+    (created)(approved)(work)(complete)(payment)(payment_complete)(closed_by_author)(closed_by_witnesses)(disapproved_by_witnesses))
 
 CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_techspec_object,

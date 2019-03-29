@@ -412,6 +412,7 @@ BOOST_AUTO_TEST_CASE(worker_assign) {
     const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
     auto wtmo_itr = wtmo_idx.find(wto_post.id);
     BOOST_CHECK_EQUAL(wtmo_itr->work_beginning_time, time_point_sec::min());
+    BOOST_CHECK_EQUAL(wtmo_itr->consumption_per_day, db->get_dynamic_global_properties().worker_consumption_per_day);
 
     BOOST_TEST_MESSAGE("-- Assigning worker");
 
