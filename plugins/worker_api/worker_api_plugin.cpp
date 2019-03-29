@@ -84,13 +84,16 @@ struct post_operation_visitor {
     result_type operator()(const worker_techspec_delete_operation& o) const {
         const auto& post = _db.get_comment(o.author, o.permlink);
 
-        const auto* wto = _db.find_worker_techspec(post.id);
-        if (wto) {
-            return;
-        }
-
         const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
         auto wtmo_itr = wtmo_idx.find(post.id);
+
+        const auto* wto = _db.find_worker_techspec(post.id);
+        if (wto) {
+            _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
+                wtmo.consumption_per_day = asset(0, STEEM_SYMBOL);
+            });
+            return;
+        }
 
         _db.remove(*wtmo_itr);
     }
@@ -118,6 +121,7 @@ struct post_operation_visitor {
 
     result_type operator()(const worker_techspec_approve_operation& o) const {
         const auto& wto_post = _db.get_comment(o.author, o.permlink);
+        const auto& wto = _db.get_worker_techspec(wto_post.id);
 
         const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
         auto wtmo_itr = wtmo_idx.find(wto_post.id);
@@ -127,6 +131,10 @@ struct post_operation_visitor {
         _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
             wtmo.approves = approves[worker_techspec_approve_state::approve];
             wtmo.disapproves = approves[worker_techspec_approve_state::disapprove];
+
+            if (wto.state == worker_techspec_state::approved) {
+                wtmo.consumption_per_day = _db.calculate_worker_techspec_consumption_per_day(wto);
+            }
         });
     }
 
@@ -158,10 +166,14 @@ struct post_operation_visitor {
             wtmo.worker_payment_approves = approves[worker_techspec_approve_state::approve];
             wtmo.worker_payment_disapproves = approves[worker_techspec_approve_state::disapprove];
 
-            if (wto.state == worker_techspec_state::payment && wtmo.consumption_per_day.amount == 0) {
+            if (wto.state == worker_techspec_state::payment) {
+                if (wtmo.payment_beginning_time != time_point_sec::min()) { // Do not check consumption_per_day because cost can be 0
+                    return;
+                }
                 wtmo.payment_beginning_time = wto.next_cashout_time;
-                wtmo.consumption_per_day = _db.calculate_worker_techspec_consumption_per_day(wto);
-            } else if (wto.state == worker_techspec_state::payment_canceled) {
+            }
+
+            if (wto.state == worker_techspec_state::closed_by_witnesses || wto.state == worker_techspec_state::disapproved_by_witnesses) {
                 wtmo.consumption_per_day = asset(0, STEEM_SYMBOL);
             }
         });
