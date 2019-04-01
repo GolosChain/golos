@@ -362,7 +362,6 @@ namespace golos {
             cannot_unassign_worker_from_finished_or_not_started_work,
             worker_can_be_unassigned_only_by_techspec_author_or_himself,
             insufficient_funds_to_approve_worker_techspec,
-            approve_term_has_expired,
             you_already_have_voted_for_this_object_with_this_state,
             cannot_create_techspec_for_premade_worker_proposal,
             only_premade_worker_result_can_be_created_for_premade_worker_proposal,
@@ -664,7 +663,6 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (cannot_unassign_worker_from_finished_or_not_started_work)
         (worker_can_be_unassigned_only_by_techspec_author_or_himself)
         (insufficient_funds_to_approve_worker_techspec)
-        (approve_term_has_expired)
         (you_already_have_voted_for_this_object_with_this_state)
         (cannot_create_techspec_for_premade_worker_proposal)
         (only_premade_worker_result_can_be_created_for_premade_worker_proposal)

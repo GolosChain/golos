@@ -338,12 +338,6 @@ namespace golos { namespace chain {
                     logic_exception::this_worker_proposal_already_has_approved_result,
                     "This worker proposal already has approved result");
             }
-
-            const auto& worker_result_post = _db.get_comment(wto.worker_result_post);
-            const auto& mprops = _db.get_witness_schedule_object().median_props;
-            GOLOS_CHECK_LOGIC(_db.head_block_time() <= worker_result_post.created + mprops.worker_result_approve_term_sec,
-                logic_exception::approve_term_has_expired,
-                "Approve term has expired");
         } else {
             GOLOS_CHECK_LOGIC(o.state != worker_techspec_approve_state::approve,
                 logic_exception::techspec_cannot_be_approved_when_paying_or_not_finished,
