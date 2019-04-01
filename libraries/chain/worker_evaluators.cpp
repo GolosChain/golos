@@ -327,8 +327,8 @@ namespace golos { namespace chain {
 
         const auto& wpo = _db.get_worker_proposal(wto.worker_proposal_post);
 
-        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::complete || wto.state == worker_techspec_state::payment
-                || wto.state == worker_techspec_state::work,
+        GOLOS_CHECK_LOGIC(wto.state == worker_techspec_state::wip || wto.state == worker_techspec_state::work
+                || wto.state == worker_techspec_state::complete || wto.state == worker_techspec_state::payment,
             logic_exception::worker_techspec_should_be_in_work_complete_or_paying,
             "Worker techspec should be in work, complete or paying");
 
