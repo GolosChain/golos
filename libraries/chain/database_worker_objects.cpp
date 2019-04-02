@@ -190,13 +190,13 @@ namespace golos { namespace chain {
         clear_worker_techspec_approves(wto);
         clear_worker_payment_approves(wto);
 
-        modify(wto, [&](worker_techspec_object& wto) {
-            wto.next_cashout_time = time_point_sec::maximum();
-            wto.state = closed_state;
-        });
-
         if (closed_state == worker_techspec_state::closed_by_author && !has_approves) {
             remove(wto);
+        } else {
+            modify(wto, [&](worker_techspec_object& wto) {
+                wto.next_cashout_time = time_point_sec::maximum();
+                wto.state = closed_state;
+            });
         }
     }
 
