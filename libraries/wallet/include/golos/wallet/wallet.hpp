@@ -729,9 +729,10 @@ namespace golos { namespace wallet {
              * @param delegatee The name of the account receiving GESTS
              * @param vesting_shares The amount of GESTS to delegate
              * @param interest_rate The interest rate wanted by delegator
+             * @param payout_strategy The strategy of payout wanted by delegator
              * @param broadcast true if you wish to broadcast the transaction
              */
-            annotated_signed_transaction delegate_vesting_shares_with_interest(string delegator, string delegatee, asset vesting_shares, uint16_t interest_rate, bool broadcast);
+            annotated_signed_transaction delegate_vesting_shares_with_interest(string delegator, string delegatee, asset vesting_shares, uint16_t interest_rate, delegator_payout_strategy payout_strategy, bool broadcast);
 
 
             /**

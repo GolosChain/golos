@@ -2307,7 +2307,7 @@ namespace golos { namespace chain {
 
                 const auto& delegator = get_account(dvir.account);
                 asset delegator_vesting = create_vesting(delegator, asset(delegator_claim, STEEM_SYMBOL));
-                if (dvir.payout_strategy == to_delegated_vesting) {
+                if (dvir.payout_strategy == delegator_payout_strategy::to_delegated_vesting) {
                     auto vdo_itr = vdo_idx.find(std::make_tuple(delegatee.name, dvir.account));
                     if (vdo_itr != vdo_idx.end()) {
                         modify(delegator, [&](account_object& a) {

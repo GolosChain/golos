@@ -209,7 +209,7 @@ public:
     account_name_type delegatee;
     asset vesting_shares;
     uint16_t interest_rate = 0;
-    protocol::delegator_payout_strategy payout_strategy = protocol::to_delegator;
+    protocol::delegator_payout_strategy payout_strategy = protocol::delegator_payout_strategy::to_delegator;
     time_point_sec min_delegation_time;
 };
 
@@ -540,7 +540,7 @@ CHAINBASE_SET_INDEX_TYPE(golos::chain::account_bandwidth_object, golos::chain::a
 FC_REFLECT((golos::chain::account_metadata_object), (id)(account)(json_metadata))
 CHAINBASE_SET_INDEX_TYPE(golos::chain::account_metadata_object, golos::chain::account_metadata_index)
 
-FC_REFLECT((golos::chain::vesting_delegation_object), (id)(delegator)(delegatee)(vesting_shares)(interest_rate)(min_delegation_time))
+FC_REFLECT((golos::chain::vesting_delegation_object), (id)(delegator)(delegatee)(vesting_shares)(interest_rate)(payout_strategy)(min_delegation_time))
 CHAINBASE_SET_INDEX_TYPE(golos::chain::vesting_delegation_object, golos::chain::vesting_delegation_index)
 
 FC_REFLECT((golos::chain::vesting_delegation_expiration_object), (id)(delegator)(vesting_shares)(expiration))

@@ -119,7 +119,7 @@ namespace golos {
 
             account_name_type account;
             uint16_t interest_rate = 0;
-            protocol::delegator_payout_strategy payout_strategy = protocol::to_delegator;
+            protocol::delegator_payout_strategy payout_strategy = protocol::delegator_payout_strategy::to_delegator;
         };
 
         /**

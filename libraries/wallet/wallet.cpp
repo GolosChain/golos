@@ -2154,7 +2154,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             return my->sign_transaction(tx, broadcast);
         }
 
-        annotated_signed_transaction wallet_api::delegate_vesting_shares_with_interest(string delegator, string delegatee, asset vesting_shares, uint16_t interest_rate, bool broadcast) {
+        annotated_signed_transaction wallet_api::delegate_vesting_shares_with_interest(string delegator, string delegatee, asset vesting_shares, uint16_t interest_rate, delegator_payout_strategy payout_strategy, bool broadcast) {
             WALLET_CHECK_UNLOCKED();
 
             delegate_vesting_shares_with_interest_operation op;
@@ -2162,6 +2162,15 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             op.delegatee = delegatee;
             op.vesting_shares = vesting_shares;
             op.interest_rate = interest_rate;
+
+            if (payout_strategy != delegator_payout_strategy::to_delegator) {
+                auto hf = my->_remote_database_api->get_hardfork_version();
+                FC_ASSERT(hf >= hardfork_version(0, STEEMIT_HARDFORK_0_21), "Only to_delegator payout strategy is enabled until HF21");
+
+                delegate_delegator_payout_strategy ddps;
+                ddps.strategy = payout_strategy;
+                op.extensions.insert(ddps);
+            }
 
             signed_transaction tx;
             tx.operations.push_back(op);

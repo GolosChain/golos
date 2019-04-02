@@ -727,12 +727,33 @@ namespace golos { namespace protocol {
             GOLOS_CHECK_PARAM_ACCOUNT(referral);
         }
 
+        struct delegate_vesting_shares_with_interest_extension_validate_visitor {
+            delegate_vesting_shares_with_interest_extension_validate_visitor() {
+            }
+
+            using result_type = void;
+
+            void operator()(const delegate_delegator_payout_strategy& ddps) const {
+                ddps.validate();
+            }
+        };
+
+        void delegate_delegator_payout_strategy::validate() const {
+            GOLOS_CHECK_PARAM(strategy, {
+                GOLOS_CHECK_VALUE(strategy < delegator_payout_strategy::_size, "This value is reserved");
+            });
+        }
+
         void delegate_vesting_shares_with_interest_operation::validate() const {
             GOLOS_CHECK_PARAM_ACCOUNT(delegator);
             GOLOS_CHECK_PARAM_ACCOUNT(delegatee);
             GOLOS_CHECK_LOGIC(delegator != delegatee, logic_exception::cannot_delegate_to_yourself,
                 "You cannot delegate GESTS to yourself");
             GOLOS_CHECK_PARAM(vesting_shares, GOLOS_CHECK_ASSET_GE0(vesting_shares, GESTS));
+
+            for (auto& e : extensions) {
+                e.visit(delegate_vesting_shares_with_interest_extension_validate_visitor());
+            }
         }
 
         void reject_vesting_shares_delegation_operation::validate() const {

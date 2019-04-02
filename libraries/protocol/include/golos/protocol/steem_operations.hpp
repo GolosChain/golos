@@ -1348,11 +1348,23 @@ namespace golos { namespace protocol {
             }
         };
 
-        enum delegator_payout_strategy {
+        enum class delegator_payout_strategy {
             to_delegator,
             to_delegated_vesting,
             _size
         };
+
+        struct delegate_delegator_payout_strategy {
+            delegator_payout_strategy strategy = delegator_payout_strategy::to_delegator;
+
+            void validate() const;
+        };
+
+        using delegate_vesting_shares_with_interest_extension = static_variant<
+            delegate_delegator_payout_strategy
+        >;
+
+        using delegate_vesting_shares_with_interest_extensions_type = flat_set<delegate_vesting_shares_with_interest_extension>;
 
         class delegate_vesting_shares_with_interest_operation : public base_operation {
         public:
@@ -1360,8 +1372,8 @@ namespace golos { namespace protocol {
             account_name_type delegatee;    ///< The account receiving vesting shares
             asset vesting_shares;           ///< The amount of vesting shares delegated
             uint16_t interest_rate = STEEMIT_DEFAULT_DELEGATED_VESTING_INTEREST_RATE; ///< The interest rate wanted by delegator
-            delegator_payout_strategy payout_strategy = to_delegator; ///< The strategy of delegator vesting payouts
-            extensions_type extensions;     ///< Extensions. Not currently used.
+
+            delegate_vesting_shares_with_interest_extensions_type extensions;         ///< Extensions.
 
             void validate() const;
             void get_required_active_authorities(flat_set<account_name_type>& a) const {
@@ -1490,5 +1502,7 @@ FC_REFLECT((golos::protocol::chain_properties_update_operation), (owner)(props))
 FC_REFLECT((golos::protocol::break_free_referral_operation), (referral)(extensions));
 
 FC_REFLECT_ENUM(golos::protocol::delegator_payout_strategy, (to_delegator)(to_delegated_vesting)(_size))
+FC_REFLECT((golos::protocol::delegate_delegator_payout_strategy), (strategy))
+FC_REFLECT_TYPENAME((golos::protocol::delegate_vesting_shares_with_interest_extension));
 FC_REFLECT((golos::protocol::delegate_vesting_shares_with_interest_operation), (delegator)(delegatee)(vesting_shares)(interest_rate)(extensions));
 FC_REFLECT((golos::protocol::reject_vesting_shares_delegation_operation), (delegator)(delegatee)(extensions));

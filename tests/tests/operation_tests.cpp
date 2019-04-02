@@ -6973,18 +6973,22 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
 
             signed_transaction tx;
 
+            delegate_delegator_payout_strategy ddps;
+            ddps.strategy = delegator_payout_strategy::to_delegated_vesting;
+
             delegate_vesting_shares_with_interest_operation op;
             op.vesting_shares = ASSET_GESTS(50000);
             op.delegator = "carol";
             op.delegatee = "bob";
-            op.payout_strategy = to_delegated_vesting;
+            op.extensions.insert(ddps);
             BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, carol_private_key, op));
             generate_block();
             tx.operations.clear();
             tx.signatures.clear();
 
-            op.payout_strategy = to_delegator;
             op.delegator = "dave";
+            ddps.strategy = delegator_payout_strategy::to_delegator;
+            op.extensions.insert(ddps);
             BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, dave_private_key, op));
             generate_block();
             tx.operations.clear();

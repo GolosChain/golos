@@ -3,6 +3,7 @@
 #define STEEMIT_HARDFORK_0_21__1013 (STEEMIT_HARDFORK_0_21) // Workers
 #define STEEMIT_HARDFORK_0_21__1008 (STEEMIT_HARDFORK_0_21) // Remove limit on max delegate interest witness prop
 #define STEEMIT_HARDFORK_0_21__1010 (STEEMIT_HARDFORK_0_21) // Fix post bandwidth
+#define STEEMIT_HARDFORK_0_21__1045 (STEEMIT_HARDFORK_0_21) // Two payout strategies for vesting delegations with interest
 
 #ifdef STEEMIT_BUILD_TESTNET
 #define STEEMIT_HARDFORK_0_21_TIME  1547787600 // 18 jan 2019 12:00:00 MSK
