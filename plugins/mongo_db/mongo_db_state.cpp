@@ -486,6 +486,18 @@ namespace mongo_db {
             format_value(body, "delegatee", delegation.delegatee);
             format_value(body, "vesting_shares", delegation.vesting_shares);
             format_value(body, "interest_rate", delegation.interest_rate);
+
+            std::string payout_strategy;
+            switch (delegation.payout_strategy) {
+                case delegator_payout_strategy::to_delegator:
+                    payout_strategy = "to_delegator";
+                    break;
+                case delegator_payout_strategy::to_delegated_vesting:
+                    payout_strategy = "to_delegated_vesting";
+                    break;
+            }
+            format_value(body, "payout_strategy", payout_strategy);
+
             format_value(body, "min_delegation_time", delegation.min_delegation_time);
             format_value(body, "timestamp", state_block.timestamp);
 

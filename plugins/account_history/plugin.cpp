@@ -486,6 +486,14 @@ if (options.count(name)) { \
             insert_receiver(op.account);
         }
 
+        void operator()(const delegate_vesting_shares_with_interest_operation& op) {
+            insert_pair(op.delegator, op.delegatee);
+        }
+
+        void operator()(const reject_vesting_shares_delegation_operation& op) {
+            insert_pair(op.delegatee, op.delegator);
+        }
+
         // todo: proposal tx signers are receivers
         void operator()(const proposal_create_operation& op) {
             insert_dual(op.author);
