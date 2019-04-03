@@ -6954,6 +6954,37 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
         FC_LOG_AND_RETHROW()
     }
 
+    BOOST_AUTO_TEST_CASE(delegate_vesting_shares_with_interest_validate) {
+        try {
+            delegate_vesting_shares_with_interest_operation op;
+            op.vesting_shares = ASSET_GESTS(50000);
+            op.delegator = "carol";
+            op.delegatee = "bob";
+            op.extensions.insert(delegate_delegator_payout_strategy(delegator_payout_strategy::to_delegated_vesting));
+
+            BOOST_TEST_MESSAGE("--- Test success under normal conditions");
+            CHECK_OP_VALID(op);
+            CHECK_PARAM_VALID(op, vesting_shares, ASSET_GESTS(0));
+
+            BOOST_TEST_MESSAGE("--- Test failure when delegate negative amount");
+            CHECK_PARAM_INVALID(op, vesting_shares, ASSET_GESTS(-1));
+
+            BOOST_TEST_MESSAGE("--- Test failure when delegate to same acc");
+            CHECK_PARAM_INVALID_LOGIC(op, delegator, "bob", logic_exception::cannot_delegate_to_yourself);
+
+            BOOST_TEST_MESSAGE("--- Test failure when account not set");
+            CHECK_PARAM_INVALID(op, delegator, "");
+            CHECK_PARAM_INVALID(op, delegatee, "");
+
+            BOOST_TEST_MESSAGE("--- Test failure when incorrect payout strategy set");
+            op.extensions.clear();
+            op.extensions.insert(delegate_delegator_payout_strategy(delegator_payout_strategy::_size));
+            GOLOS_CHECK_ERROR_PROPS(op.validate(),
+                CHECK_ERROR(invalid_parameter, "strategy"));
+        }
+        FC_LOG_AND_RETHROW()
+    }
+
     BOOST_AUTO_TEST_CASE(delegate_vesting_shares_with_interest_apply) {
         try {
             BOOST_TEST_MESSAGE("Testing: delegate_vesting_shares_with_interest_apply");
@@ -6983,30 +7014,25 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
             op.extensions.insert(ddps);
             BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, carol_private_key, op));
             generate_block();
-            tx.operations.clear();
-            tx.signatures.clear();
 
             op.delegator = "dave";
             ddps.strategy = delegator_payout_strategy::to_delegator;
+            op.extensions.clear();
             op.extensions.insert(ddps);
             BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, dave_private_key, op));
             generate_block();
-            tx.operations.clear();
-            tx.signatures.clear();
 
-            comment_operation comment_op;
-            comment_op.author = "alice";
-            comment_op.permlink = "test";
-            comment_op.parent_permlink = "test";
-            comment_op.title = "foo";
-            comment_op.body = "bar";
-            tx.set_expiration(db->head_block_time() + STEEMIT_MAX_TIME_UNTIL_EXPIRATION);
-            tx.operations.push_back(comment_op);
-            tx.sign(alice_private_key, db->get_chain_id());
-            db->push_transaction(tx, 0);
+            BOOST_TEST_MESSAGE("-- Checking cannot change payout strategy of already created delegation");
 
-            tx.operations.clear();
-            tx.signatures.clear();
+            op.delegator = "dave";
+            ddps.strategy = delegator_payout_strategy::to_delegated_vesting;
+            op.extensions.clear();
+            op.extensions.insert(ddps);
+            GOLOS_CHECK_ERROR_LOGIC(cannot_change_delegator_payout_strategy, dave_private_key, op);
+
+            BOOST_TEST_MESSAGE("-- Creating post and voting it by delegatee bob");
+
+            comment_create("alice", alice_private_key, "test", "", "test");
 
             generate_blocks(db->head_block_time() + STEEMIT_MIN_VOTE_INTERVAL_SEC + STEEMIT_BLOCK_INTERVAL);
 
@@ -7015,9 +7041,7 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
             vote_op.author = "alice";
             vote_op.permlink = "test";
             vote_op.weight = STEEMIT_100_PERCENT;
-            tx.operations.push_back(vote_op);
-            tx.sign(bob_private_key, db->get_chain_id());
-            db->push_transaction(tx, 0);
+            BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, bob_private_key, vote_op));
 
             BOOST_TEST_MESSAGE("-- Getting old VDO vesting_shares before cashout");
 
@@ -7026,7 +7050,6 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
             BOOST_CHECK(vdo_itr != vdo_idx.end());
             auto old_vdo_gests = vdo_itr->vesting_shares;
 
-            tx.set_expiration(db->head_block_time() + STEEMIT_BLOCK_INTERVAL);
             generate_blocks(db->get_comment("alice", string("test")).cashout_time - STEEMIT_BLOCK_INTERVAL, true);
 
             auto& alice_comment = db->get_comment("alice", string("test"));
@@ -7040,8 +7063,8 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
 
             auto& gpo = db->get_dynamic_global_properties();
 
-            APPROX_CHECK_EQUAL(gpo.total_vesting_shares.to_real(), total_comment_fund.vesting_shares().to_real(), 10);
-            APPROX_CHECK_EQUAL(gpo.total_vesting_fund_steem.amount.value, total_comment_fund.vesting_fund().amount.value, 1);
+            BOOST_CHECK_EQUAL(gpo.total_vesting_shares.to_real(), total_comment_fund.vesting_shares().to_real());
+            BOOST_CHECK_EQUAL(gpo.total_vesting_fund_steem.amount.value, total_comment_fund.vesting_fund().amount.value);
 
             BOOST_TEST_MESSAGE("-- Checking bob delegatee payout");
 

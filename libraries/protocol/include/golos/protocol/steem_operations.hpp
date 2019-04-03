@@ -1355,6 +1355,13 @@ namespace golos { namespace protocol {
         };
 
         struct delegate_delegator_payout_strategy {
+            delegate_delegator_payout_strategy() {
+            }
+
+            delegate_delegator_payout_strategy(delegator_payout_strategy strat)
+                : strategy(strat) {
+            }
+
             delegator_payout_strategy strategy = delegator_payout_strategy::to_delegator;
 
             void validate() const;
