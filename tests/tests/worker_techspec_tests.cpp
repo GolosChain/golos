@@ -992,7 +992,7 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
     {
         const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
         const auto& wto = db->get_worker_techspec(wto_post.id);
-        BOOST_CHECK(wto.state != worker_techspec_state::closed_by_witnesses);
+        BOOST_CHECK(wto.state != worker_techspec_state::closed_by_expiration);
 
         const auto& wtao_idx = db->get_index<worker_techspec_approve_index, by_techspec_approver>();
         BOOST_CHECK(wtao_idx.find(wto_post.id) != wtao_idx.end());
@@ -1007,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
     {
         const auto& wto_post = db->get_comment("bob", string("bob-techspec"));
         const auto& wto = db->get_worker_techspec(wto_post.id);
-        BOOST_CHECK(wto.state == worker_techspec_state::closed_by_witnesses);
+        BOOST_CHECK(wto.state == worker_techspec_state::closed_by_expiration);
 
         const auto& wtao_idx = db->get_index<worker_techspec_approve_index, by_techspec_approver>();
         BOOST_CHECK(wtao_idx.find(wto_post.id) == wtao_idx.end());

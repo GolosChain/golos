@@ -220,7 +220,7 @@ namespace golos { namespace chain {
                 break;
             }
 
-            close_worker_techspec(*itr, worker_techspec_state::closed_by_witnesses);
+            close_worker_techspec(*itr, worker_techspec_state::closed_by_expiration);
         }
 
         const auto& result_idx = get_index<worker_techspec_index, by_worker_result>();
@@ -234,7 +234,7 @@ namespace golos { namespace chain {
                 break;
             }
 
-            close_worker_techspec(*result_itr, worker_techspec_state::closed_by_witnesses);
+            close_worker_techspec(*result_itr, worker_techspec_state::closed_by_expiration);
         }
     }
 

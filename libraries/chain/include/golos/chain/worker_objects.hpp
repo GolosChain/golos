@@ -39,6 +39,7 @@ namespace golos { namespace chain {
         payment,
         payment_complete,
         closed_by_author,
+        closed_by_expiration,
         closed_by_witnesses,
         disapproved_by_witnesses
     };
@@ -184,7 +185,7 @@ CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_proposal_index);
 
 FC_REFLECT_ENUM(golos::chain::worker_techspec_state,
-    (created)(approved)(work)(wip)(complete)(payment)(payment_complete)(closed_by_author)(closed_by_witnesses)(disapproved_by_witnesses))
+    (created)(approved)(work)(wip)(complete)(payment)(payment_complete)(closed_by_author)(closed_by_expiration)(closed_by_witnesses)(disapproved_by_witnesses))
 
 CHAINBASE_SET_INDEX_TYPE(
     golos::chain::worker_techspec_object,
