@@ -257,6 +257,18 @@ namespace golos { namespace protocol {
             account_name_type account;
             asset vesting_shares;
         };
+
+        struct techspec_expired_operation : public virtual_operation {
+            techspec_expired_operation() {
+            }
+            techspec_expired_operation(const account_name_type& a, const string& p, bool w)
+                    : author(a), permlink(p), was_approved(w) {
+            }
+
+            account_name_type author;
+            string permlink;
+            bool was_approved;
+        };
 } } //golos::protocol
 
 FC_REFLECT((golos::protocol::author_reward_operation), (author)(permlink)(sbd_payout)(steem_payout)(vesting_payout))
@@ -278,3 +290,4 @@ FC_REFLECT((golos::protocol::producer_reward_operation), (producer)(vesting_shar
 FC_REFLECT((golos::protocol::delegation_reward_operation), (delegator)(delegatee)(payout_strategy)(vesting_shares))
 FC_REFLECT((golos::protocol::techspec_reward_operation), (author)(permlink)(reward))
 FC_REFLECT((golos::protocol::worker_reward_operation), (worker)(worker_techspec_author)(worker_techspec_permlink)(reward))
+FC_REFLECT((golos::protocol::techspec_expired_operation), (author)(permlink)(was_approved))

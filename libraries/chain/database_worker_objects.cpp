@@ -221,6 +221,8 @@ namespace golos { namespace chain {
             }
 
             close_worker_techspec(*itr, worker_techspec_state::closed_by_expiration);
+
+            push_virtual_operation(techspec_expired_operation(wto_post.author, to_string(wto_post.permlink), false));
         }
 
         const auto& result_idx = get_index<worker_techspec_index, by_worker_result>();
@@ -235,6 +237,9 @@ namespace golos { namespace chain {
             }
 
             close_worker_techspec(*result_itr, worker_techspec_state::closed_by_expiration);
+
+            const auto& wto_post = get_comment(result_itr->post);
+            push_virtual_operation(techspec_expired_operation(wto_post.author, to_string(wto_post.permlink), true));
         }
     }
 

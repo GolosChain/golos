@@ -1011,6 +1011,13 @@ BOOST_AUTO_TEST_CASE(worker_techspec_approve_apply_clear_on_expired) {
 
         const auto& wtao_idx = db->get_index<worker_techspec_approve_index, by_techspec_approver>();
         BOOST_CHECK(wtao_idx.find(wto_post.id) == wtao_idx.end());
+
+        BOOST_TEST_MESSAGE("-- Checking virtual operation pushed");
+
+        auto teop = get_last_operations<techspec_expired_operation>(1)[0];
+        BOOST_CHECK_EQUAL(teop.author, wto_post.author);
+        BOOST_CHECK_EQUAL(teop.permlink, to_string(wto_post.permlink));
+        BOOST_CHECK(!teop.was_approved);
     }
 
     BOOST_TEST_MESSAGE("-- Checking carol techspec is not closed and has approves");

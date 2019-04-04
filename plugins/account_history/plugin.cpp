@@ -556,6 +556,10 @@ if (options.count(name)) { \
             insert_receiver(op.author);
         }
 
+        void operator()(const techspec_expired_operation& op) {
+            insert_receiver(op.author);
+        }
+
         void operator()(const worker_reward_operation& op) {
             insert_pair(op.worker_techspec_author, op.worker);
         }

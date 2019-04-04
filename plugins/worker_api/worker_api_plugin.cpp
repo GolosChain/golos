@@ -194,6 +194,20 @@ struct post_operation_visitor {
             wtmo.consumption_per_day = asset(0, STEEM_SYMBOL);
         });
     }
+
+    result_type operator()(const techspec_expired_operation& o) const {
+        if (!o.was_approved) {
+            return;
+        }
+
+        const auto& post = _db.get_comment(o.author, o.permlink);
+
+        const auto& wtmo_idx = _db.get_index<worker_techspec_metadata_index, by_post>();
+        auto wtmo_itr = wtmo_idx.find(post.id);
+        _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
+            wtmo.consumption_per_day = asset(0, STEEM_SYMBOL);
+        });
+    }
 };
 
 class worker_api_plugin::worker_api_plugin_impl final {

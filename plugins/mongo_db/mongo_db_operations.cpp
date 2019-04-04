@@ -833,6 +833,11 @@ namespace mongo_db {
         return body;
     }
 
+    auto operation_writer::operator()(const techspec_expired_operation& op) -> result_type {
+        result_type body;
+        return body;
+    }
+
     auto operation_writer::operator()(const worker_reward_operation& op) -> result_type {
         result_type body;
         return body;
