@@ -51,8 +51,9 @@ namespace golos { namespace chain {
         }
 
         result_type operator()(const chain_properties_19& p) const {
-            ASSERT_REQ_HF(STEEMIT_HARDFORK_0_19__295, "chain_properties_19");
-            GOLOS_CHECK_VALUE_LE(p.max_delegated_vesting_interest_rate, 80*STEEMIT_1_PERCENT);
+            if (!_db.has_hardfork(STEEMIT_HARDFORK_0_21__1008)) {
+                GOLOS_CHECK_VALUE_LE(p.max_delegated_vesting_interest_rate, STEEMIT_MAX_DELEGATED_VESTING_INTEREST_RATE_PRE_HF21);
+            }
             _wprops = p;
         }
 
