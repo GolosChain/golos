@@ -56,6 +56,11 @@ namespace golos { namespace chain {
                     auto max_delegated_vesting_interest_rate = props.max_delegated_vesting_interest_rate;
                     GOLOS_CHECK_VALUE_LE(max_delegated_vesting_interest_rate, STEEMIT_MAX_DELEGATED_VESTING_INTEREST_RATE_PRE_HF21);
                 }
+                if (!_db.has_hardfork(STEEMIT_HARDFORK_0_21__1009)) {
+                    auto min_curation_percent = props.min_curation_percent;
+                    auto max_curation_percent = props.max_curation_percent;
+                    GOLOS_CHECK_VALUE_LEGE(min_curation_percent, STEEMIT_MIN_CURATION_PERCENT_PRE_HF21, max_curation_percent);
+                }
             });
             _wprops = props;
         }
