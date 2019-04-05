@@ -7603,17 +7603,9 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
             op.author = "alice";
             op.permlink = "test";
 
-            BOOST_TEST_MESSAGE("--- Test less than allowed minimum");
-
-            golos::protocol::comment_curation_rewards_percent perc;
-            perc.percent = STEEMIT_MIN_CURATION_PERCENT - STEEMIT_1_PERCENT;
-            op.extensions.clear();
-            op.extensions.insert(perc);
-            GOLOS_CHECK_ERROR_PROPS(op.validate(),
-                CHECK_ERROR(invalid_parameter, "percent"));
-
             BOOST_TEST_MESSAGE("--- Test more than allowed maximum");
 
+            golos::protocol::comment_curation_rewards_percent perc;
             perc.percent = STEEMIT_MAX_CURATION_PERCENT + STEEMIT_1_PERCENT;
             op.extensions.clear();
             op.extensions.insert(perc);

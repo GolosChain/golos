@@ -104,7 +104,7 @@ namespace golos {
             bool allow_replies = true;      /// allows a post to disable replies.
             bool allow_votes = true;      /// allows a post to receive votes;
             bool allow_curation_rewards = true;
-            uint16_t curation_rewards_percent = STEEMIT_MIN_CURATION_PERCENT;
+            uint16_t curation_rewards_percent = STEEMIT_DEF_CURATION_PERCENT;
 
             bip::vector <protocol::beneficiary_route_type, allocator<protocol::beneficiary_route_type>> beneficiaries;
         };
