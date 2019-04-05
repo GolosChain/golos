@@ -154,18 +154,6 @@ BOOST_AUTO_TEST_CASE(worker_techspec_apply_create) {
     GOLOS_CHECK_ERROR_LOGIC(worker_techspec_can_be_created_only_for_existing_proposal, bob_private_key, op);
     generate_block();
 
-    BOOST_TEST_MESSAGE("-- Create worker techspec for premade_work proposal");
-
-    comment_create("dave", dave_private_key, "dave-proposal", "", "dave-proposal");
-
-    worker_proposal("dave", dave_private_key, "dave-proposal", worker_proposal_type::premade_work);
-    generate_block();
-
-    op.worker_proposal_author = "dave";
-    op.worker_proposal_permlink = "dave-proposal";
-    GOLOS_CHECK_ERROR_LOGIC(cannot_create_techspec_for_premade_worker_proposal, bob_private_key, op);
-    generate_block();
-
     BOOST_TEST_MESSAGE("-- Create worker techspec for worker proposal with approved techspec");
 
     {

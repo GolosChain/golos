@@ -345,6 +345,7 @@ namespace golos {
             worker_techspec_can_be_created_only_on_post,
             worker_techspec_can_be_created_only_for_existing_proposal,
             this_worker_proposal_already_has_approved_techspec,
+            premade_techspec_requires_worker_set_on_creation,
             this_worker_techspec_is_already_used_for_another_worker_proposal,
             cannot_delete_paying_worker_techspec,
             approver_of_techspec_should_be_in_top19_of_witnesses,
@@ -358,16 +359,11 @@ namespace golos {
             techspec_cannot_be_approved_when_paying_or_not_finished,
             worker_techspec_already_has_final_result,
             worker_can_be_assigned_only_to_proposal_with_approved_techspec,
-            worker_cannot_be_assigned_to_premade_proposal,
             cannot_unassign_worker_from_finished_or_not_started_work,
             worker_can_be_unassigned_only_by_techspec_author_or_himself,
             insufficient_funds_to_approve_worker_techspec,
             you_already_have_voted_for_this_object_with_this_state,
-            cannot_create_techspec_for_premade_worker_proposal,
-            only_premade_worker_result_can_be_created_for_premade_worker_proposal,
             this_post_already_used_as_worker_techspec,
-            premade_result_can_be_created_only_for_premade_work_proposal,
-            this_worker_proposal_already_has_approved_result,
 
             // custom operations
             inner_authorities_does_not_match_outer,
@@ -645,6 +641,7 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (cannot_delete_worker_proposal_with_techspecs)
         (worker_techspec_can_be_created_only_on_post)
         (worker_techspec_can_be_created_only_for_existing_proposal)
+        (premade_techspec_requires_worker_set_on_creation)
         (this_worker_proposal_already_has_approved_techspec)
         (this_worker_techspec_is_already_used_for_another_worker_proposal)
         (cannot_delete_paying_worker_techspec)
@@ -659,16 +656,11 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         (techspec_cannot_be_approved_when_paying_or_not_finished)
         (worker_techspec_already_has_final_result)
         (worker_can_be_assigned_only_to_proposal_with_approved_techspec)
-        (worker_cannot_be_assigned_to_premade_proposal)
         (cannot_unassign_worker_from_finished_or_not_started_work)
         (worker_can_be_unassigned_only_by_techspec_author_or_himself)
         (insufficient_funds_to_approve_worker_techspec)
         (you_already_have_voted_for_this_object_with_this_state)
-        (cannot_create_techspec_for_premade_worker_proposal)
-        (only_premade_worker_result_can_be_created_for_premade_worker_proposal)
         (this_post_already_used_as_worker_techspec)
-        (premade_result_can_be_created_only_for_premade_work_proposal)
-        (this_worker_proposal_already_has_approved_result)
 
         // custom operations
         (inner_authorities_does_not_match_outer)

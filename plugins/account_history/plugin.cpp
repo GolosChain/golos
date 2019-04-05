@@ -540,10 +540,6 @@ if (options.count(name)) { \
             insert_dual(op.author);
         }
 
-        void operator()(const worker_result_premade_operation& op) {
-            insert_pair(op.author, op.worker_proposal_author);
-        }
-
         void operator()(const worker_result_delete_operation& op) {
             insert_dual(op.author);
         }

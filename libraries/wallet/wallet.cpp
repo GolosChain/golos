@@ -3147,7 +3147,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
         annotated_signed_transaction wallet_api::worker_techspec(
                 const std::string& author, const std::string& permlink,
                 const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
-                const asset& specification_cost, const asset& development_cost,
+                const asset& specification_cost, const asset& development_cost, const std::string& worker,
                 uint16_t payments_count, uint32_t payments_interval, bool broadcast
         ) {
             WALLET_CHECK_UNLOCKED();
@@ -3159,6 +3159,7 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             op.worker_proposal_permlink = worker_proposal_permlink;
             op.specification_cost = specification_cost;
             op.development_cost = development_cost;
+            op.worker = worker;
             op.payments_count = payments_count;
             op.payments_interval = payments_interval;
 
@@ -3233,30 +3234,6 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             tx.operations.push_back(op);
             tx.validate();
             return my->sign_transaction(tx, broadcast);
-        }
-
-        annotated_signed_transaction wallet_api::premade_worker_result(
-                const std::string& author, const std::string& permlink,
-                const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
-                const asset& specification_cost, const asset& development_cost,
-                uint16_t payments_count, uint32_t payments_interval, bool broadcast
-        ) {
-            WALLET_CHECK_UNLOCKED();
-
-            worker_result_premade_operation op;
-            op.author = author;
-            op.permlink = permlink;
-            op.worker_proposal_author = worker_proposal_author;
-            op.worker_proposal_permlink = worker_proposal_permlink;
-            op.specification_cost = specification_cost;
-            op.development_cost = development_cost;
-            op.payments_count = payments_count;
-            op.payments_interval = payments_interval;
-
-            signed_transaction tx;
-            tx.operations.push_back(op);
-            tx.validate();
-            return sign_transaction(tx, broadcast);
         }
 
         annotated_signed_transaction wallet_api::delete_worker_result(

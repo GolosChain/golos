@@ -76,7 +76,6 @@ namespace golos { namespace protocol {
                 worker_techspec_delete_operation,
                 worker_techspec_approve_operation,
                 worker_result_operation,
-                worker_result_premade_operation,
                 worker_result_delete_operation,
                 worker_payment_approve_operation,
                 worker_assign_operation,

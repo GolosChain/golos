@@ -128,12 +128,22 @@ struct post_operation_visitor {
 
         auto approves = _db.count_worker_techspec_approves(wto_post.id);
 
+        const auto now = _db.head_block_time();
+
         _db.modify(*wtmo_itr, [&](worker_techspec_metadata_object& wtmo) {
             wtmo.approves = approves[worker_techspec_approve_state::approve];
             wtmo.disapproves = approves[worker_techspec_approve_state::disapprove];
 
-            if (wto.state == worker_techspec_state::approved) {
+            if (wto.state == worker_techspec_state::approved || wto.state == worker_techspec_state::work
+                    || wto.state == worker_techspec_state::payment) {
                 wtmo.consumption_per_day = _db.calculate_worker_techspec_consumption_per_day(wto);
+            }
+
+            if (wto.state == worker_techspec_state::work) {
+                wtmo.work_beginning_time = now;
+            }
+            else if (wto.state == worker_techspec_state::payment) {
+                wtmo.payment_beginning_time = wto.next_cashout_time;
             }
         });
     }

@@ -1424,6 +1424,7 @@ namespace golos { namespace wallet {
              * @param worker_proposal_permlink permlink of the worker proposal
              * @param specification_cost cost of specification
              * @param development_cost cost of work
+             * @param worker worker who will do techspec or done if premade
              * @param payments_count count of payments for work and techspec
              * @param payments_interval interval between payments in seconds
              * @param broadcast true if you wish to broadcast the transaction
@@ -1431,7 +1432,7 @@ namespace golos { namespace wallet {
             annotated_signed_transaction worker_techspec(
                 const std::string& author, const std::string& permlink,
                 const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
-                const asset& specification_cost, const asset& development_cost,
+                const asset& specification_cost, const asset& development_cost, const std::string& worker,
                 uint16_t payments_count, uint32_t payments_interval, bool broadcast
                 );
 
@@ -1484,26 +1485,6 @@ namespace golos { namespace wallet {
              */
             annotated_signed_transaction worker_result(
                 const std::string& author, const std::string& permlink, const std::string& worker_techspec_permlink, bool broadcast
-                );
-
-            /**
-             * Create worker premade result for specified premade_work proposal using specified post
-             *
-             * @param author author of the post
-             * @param permlink permlink of the post
-             * @param worker_proposal_author author of the worker proposal
-             * @param worker_proposal_permlink permlink of the worker proposal
-             * @param specification_cost cost of specification
-             * @param development_cost cost of work
-             * @param payments_count count of payments for work and techspec
-             * @param payments_interval interval between payments in seconds
-             * @param broadcast true if you wish to broadcast the transaction
-             */
-            annotated_signed_transaction premade_worker_result(
-                const std::string& author, const std::string& permlink,
-                const std::string& worker_proposal_author, const std::string& worker_proposal_permlink,
-                const asset& specification_cost, const asset& development_cost,
-                uint16_t payments_count, uint32_t payments_interval, bool broadcast
                 );
 
             /**
@@ -1675,7 +1656,6 @@ FC_API( golos::wallet::wallet_api,
                 (approve_worker_techspec)
                 (assign_worker)
                 (worker_result)
-                (premade_worker_result)
                 (delete_worker_result)
                 (approve_worker_payment)
 )
