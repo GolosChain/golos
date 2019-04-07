@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(worker_proposal_apply_modify) {
     }
 
     op.type = worker_proposal_type::task;
-    GOLOS_CHECK_ERROR_LOGIC(cannot_edit_worker_proposal_with_approved_techspec, alice_private_key, op);
+    GOLOS_CHECK_ERROR_LOGIC(cannot_edit_worker_proposal_with_techspecs, alice_private_key, op);
 }
 
 BOOST_AUTO_TEST_CASE(worker_proposal_delete_validate) {

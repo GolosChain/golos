@@ -134,15 +134,11 @@ struct post_operation_visitor {
             wtmo.approves = approves[worker_techspec_approve_state::approve];
             wtmo.disapproves = approves[worker_techspec_approve_state::disapprove];
 
-            if (wto.state == worker_techspec_state::approved || wto.state == worker_techspec_state::work
-                    || wto.state == worker_techspec_state::payment) {
+            if (wto.state == worker_techspec_state::approved || wto.state == worker_techspec_state::payment) {
                 wtmo.consumption_per_day = _db.calculate_worker_techspec_consumption_per_day(wto);
             }
 
-            if (wto.state == worker_techspec_state::work) {
-                wtmo.work_beginning_time = now;
-            }
-            else if (wto.state == worker_techspec_state::payment) {
+            if (wto.state == worker_techspec_state::payment) {
                 wtmo.payment_beginning_time = wto.next_cashout_time;
             }
         });

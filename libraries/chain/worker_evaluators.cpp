@@ -30,8 +30,8 @@ namespace golos { namespace chain {
 
         if (wpo) {
             GOLOS_CHECK_LOGIC(wpo->state == worker_proposal_state::created,
-                logic_exception::cannot_edit_worker_proposal_with_approved_techspec,
-                "Cannot edit worker proposal with approved techspec");
+                logic_exception::cannot_edit_worker_proposal_with_techspecs,
+                "Cannot edit worker proposal with techspecs");
 
             _db.modify(*wpo, [&](worker_proposal_object& wpo) {
                 wpo.type = o.type;
@@ -85,13 +85,9 @@ namespace golos { namespace chain {
             "This worker proposal already has approved techspec");
 
         if (wpo->type == worker_proposal_type::premade_work) {
-            GOLOS_CHECK_LOGIC(o.worker.size(),
-                logic_exception::premade_techspec_requires_worker_set_on_creation,
-                "Premade techspec requires worker set on creation");
-        }
-
-        if (o.worker.size()) {
-            _db.get_account(o.worker);
+            GOLOS_CHECK_LOGIC(o.author == wpo_post.author,
+                logic_exception::premade_techspec_can_be_created_only_by_proposal_author,
+                "Premade techspec can be created only by proposal author");
         }
 
         const auto* wto = _db.find_worker_techspec(post.id);
@@ -104,7 +100,6 @@ namespace golos { namespace chain {
             _db.modify(*wto, [&](worker_techspec_object& wto) {
                 wto.specification_cost = o.specification_cost;
                 wto.development_cost = o.development_cost;
-                wto.worker = o.worker;
                 wto.payments_count = o.payments_count;
                 wto.payments_interval = o.payments_interval;
             });
@@ -120,7 +115,11 @@ namespace golos { namespace chain {
             wto.state = worker_techspec_state::created;
             wto.specification_cost = o.specification_cost;
             wto.development_cost = o.development_cost;
-            wto.worker = o.worker;
+
+            if (wpo->type == worker_proposal_type::premade_work) {
+                wto.worker = o.author;
+            }
+
             wto.payments_count = o.payments_count;
             wto.payments_interval = o.payments_interval;
         });
@@ -236,11 +235,7 @@ namespace golos { namespace chain {
             }
 
             _db.modify(wto, [&](worker_techspec_object& wto) {
-                if (wto.worker.size()) {
-                    wto.state = worker_techspec_state::work;
-                } else {
-                    wto.state = worker_techspec_state::approved;
-                }
+                wto.state = worker_techspec_state::approved;
             });
         }
     }

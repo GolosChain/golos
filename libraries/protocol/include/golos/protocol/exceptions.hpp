@@ -340,12 +340,12 @@ namespace golos {
             // workers
             worker_proposal_can_be_created_only_on_post,
             post_should_be_in_cashout_window,
-            cannot_edit_worker_proposal_with_approved_techspec,
+            cannot_edit_worker_proposal_with_techspecs,
             cannot_delete_worker_proposal_with_techspecs,
             worker_techspec_can_be_created_only_on_post,
             worker_techspec_can_be_created_only_for_existing_proposal,
             this_worker_proposal_already_has_approved_techspec,
-            premade_techspec_requires_worker_set_on_creation,
+            premade_techspec_can_be_created_only_by_proposal_author,
             this_worker_techspec_is_already_used_for_another_worker_proposal,
             cannot_delete_paying_worker_techspec,
             approver_of_techspec_should_be_in_top19_of_witnesses,
@@ -637,12 +637,12 @@ FC_REFLECT_ENUM(golos::logic_exception::error_types,
         // workers
         (worker_proposal_can_be_created_only_on_post)
         (post_should_be_in_cashout_window)
-        (cannot_edit_worker_proposal_with_approved_techspec)
+        (cannot_edit_worker_proposal_with_techspecs)
         (cannot_delete_worker_proposal_with_techspecs)
         (worker_techspec_can_be_created_only_on_post)
         (worker_techspec_can_be_created_only_for_existing_proposal)
-        (premade_techspec_requires_worker_set_on_creation)
         (this_worker_proposal_already_has_approved_techspec)
+        (premade_techspec_can_be_created_only_by_proposal_author)
         (this_worker_techspec_is_already_used_for_another_worker_proposal)
         (cannot_delete_paying_worker_techspec)
         (approver_of_techspec_should_be_in_top19_of_witnesses)

@@ -33,10 +33,6 @@ namespace golos { namespace protocol {
             GOLOS_CHECK_VALUE_GE(development_cost.amount, 0);
         });
 
-        if (worker.size()) {
-            GOLOS_CHECK_PARAM_ACCOUNT(worker);
-        }
-
         GOLOS_CHECK_PARAM(payments_count, {
             GOLOS_CHECK_VALUE_GE(payments_count, 1);
         });
