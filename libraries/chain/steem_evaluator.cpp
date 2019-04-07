@@ -535,7 +535,7 @@ namespace golos { namespace chain {
                     if (!_db.has_hardfork(STEEMIT_HARDFORK_0_21__1009)) {
                         GOLOS_CHECK_VALUE(STEEMIT_MIN_CURATION_PERCENT_PRE_HF21 <= percent && percent <= STEEMIT_MAX_CURATION_PERCENT,
                             "Curation rewards percent must be between ${min} and ${max}.",
-                            ("min", STEEMIT_MIN_CURATION_PERCENT)("max", STEEMIT_MAX_CURATION_PERCENT));
+                            ("min", STEEMIT_MIN_CURATION_PERCENT_PRE_HF21)("max", STEEMIT_MAX_CURATION_PERCENT));
                     }
 
                     GOLOS_CHECK_VALUE(mprops.min_curation_percent <= ccrp.percent && ccrp.percent <= mprops.max_curation_percent,
@@ -812,7 +812,7 @@ namespace golos { namespace chain {
                         if (_db.has_hardfork(STEEMIT_HARDFORK_0_19__324)) {
                             com.curation_rewards_percent = mprops.min_curation_percent;
                         } else {
-                            com.curation_rewards_percent = STEEMIT_MIN_CURATION_PERCENT;
+                            com.curation_rewards_percent = STEEMIT_DEF_CURATION_PERCENT;
                         }
 
                         com.author = o.author;
