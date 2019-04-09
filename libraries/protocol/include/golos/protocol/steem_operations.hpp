@@ -168,7 +168,7 @@ namespace golos { namespace protocol {
                 : percent(perc) {
             }
 
-            uint16_t percent = STEEMIT_MIN_CURATION_PERCENT;
+            uint16_t percent = STEEMIT_DEF_CURATION_PERCENT;
 
             void validate() const;
         };
