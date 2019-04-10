@@ -2453,16 +2453,72 @@ namespace {
 */
         }
 
-template <typename ValidateWithVdo, typename CreateVdo, typename Operation>
+        struct delegate_vesting_shares_with_interest_extension_validator {
+            delegate_vesting_shares_with_interest_extension_validator(const vesting_delegation_object* vdo, database& db)
+                    : _vdo(vdo), _db(db) {
+            }
+
+            using result_type = void;
+
+            const vesting_delegation_object* _vdo;
+            database& _db;
+
+            result_type operator()(const delegate_delegator_payout_strategy& ddps) const {
+                ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1045, "delegate_delegator_payout_strategy");
+
+                if (!_vdo) {
+                    return;
+                }
+
+                GOLOS_CHECK_LOGIC(_vdo->payout_strategy == ddps.strategy,
+                     logic_exception::cannot_change_delegator_payout_strategy,
+                     "Cannot change payout strategy of already created delegation");
+            }
+        };
+
+        struct delegate_vesting_shares_with_interest_extension_visitor {
+            delegate_vesting_shares_with_interest_extension_visitor(const vesting_delegation_object* vdo, database& db)
+                    : _vdo(vdo), _db(db) {
+            }
+
+            using result_type = void;
+
+            const vesting_delegation_object* _vdo;
+            database& _db;
+
+            result_type operator()(const delegate_delegator_payout_strategy& ddps) const {
+                ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1045, "delegate_delegator_payout_strategy");
+
+                if (!_vdo) {
+                    return;
+                }
+
+                _db.modify(*_vdo, [&](vesting_delegation_object& _vdo) {
+                    _vdo.payout_strategy = ddps.strategy;
+                });
+            }
+        };
+
+template <typename Operation>
 void delegate_vesting_shares(
     database& _db, const chain_properties& median_props, const Operation& op,
-    ValidateWithVdo&& validate_with_vdo, CreateVdo&& create_vdo
+    const delegate_vesting_shares_with_interest_extensions_type* extensions, uint16_t interest_rate
 ) {
     const auto& delegator = _db.get_account(op.delegator);
     const auto& delegatee = _db.get_account(op.delegatee);
     auto delegation = _db.find<vesting_delegation_object, by_delegation>(std::make_tuple(op.delegator, op.delegatee));
 
-    validate_with_vdo(delegation);
+    if (delegation) {
+        GOLOS_CHECK_LOGIC(delegation->interest_rate == interest_rate,
+        logic_exception::cannot_change_delegator_interest_rate,
+        "Cannot change interest rate of already created delegation");
+    }
+
+    if (extensions) {
+        for (auto& e : *extensions) {
+            e.visit(delegate_vesting_shares_with_interest_extension_validator(delegation, _db));
+        }
+    }
 
     const auto v_share_price = _db.get_dynamic_global_properties().get_vesting_share_price();
     auto min_delegation = median_props.min_delegation * v_share_price;
@@ -2487,12 +2543,14 @@ void delegate_vesting_shares(
     });
 
     if (increasing) {
-        auto delegated = delegator.delegated_vesting_shares;
         GOLOS_CHECK_BALANCE(delegator, AVAILABLE_VESTING, delta);
+
         auto elapsed_seconds = (now - delegator.last_vote_time).to_seconds();
         auto regenerated_power = (STEEMIT_100_PERCENT * elapsed_seconds) / STEEMIT_VOTE_REGENERATION_SECONDS;
         auto current_power = std::min<int64_t>(delegator.voting_power + regenerated_power, STEEMIT_100_PERCENT);
         auto max_allowed = (uint128_t(delegator.vesting_shares.amount) * current_power / STEEMIT_100_PERCENT).to_uint64();
+
+        auto delegated = delegator.delegated_vesting_shares;
         GOLOS_CHECK_LOGIC(delegated + delta <= asset(max_allowed, VESTS_SYMBOL),
             logic_exception::delegation_limited_by_voting_power,
             "Account allowed to delegate a maximum of ${v} with current voting power = ${p}",
@@ -2505,16 +2563,25 @@ void delegate_vesting_shares(
                     "Account must delegate a minimum of ${v}",
                     ("v",min_delegation)("vesting_shares",op.vesting_shares));
             });
-            _db.create<vesting_delegation_object>([&](vesting_delegation_object& o) {
+
+            delegation = &_db.create<vesting_delegation_object>([&](vesting_delegation_object& o) {
                 o.delegator = op.delegator;
                 o.delegatee = op.delegatee;
                 o.vesting_shares = op.vesting_shares;
                 o.min_delegation_time = now;
-                create_vdo(&o);
+                o.interest_rate = interest_rate;
+            });
+        } else {
+            _db.modify(*delegation, [&](vesting_delegation_object& o) {
+                o.vesting_shares = op.vesting_shares;
             });
         }
+
         _db.modify(delegator, [&](account_object& a) {
             a.delegated_vesting_shares += delta;
+        });
+        _db.modify(delegatee, [&](account_object& a) {
+            a.received_vesting_shares += delta;
         });
     } else {
         GOLOS_CHECK_OP_PARAM(op, vesting_shares, {
@@ -2523,23 +2590,29 @@ void delegate_vesting_shares(
                 "Delegation must be removed or leave minimum delegation amount of ${v}",
                 ("v",min_delegation)("vesting_shares",op.vesting_shares));
         });
+
         _db.create<vesting_delegation_expiration_object>([&](vesting_delegation_expiration_object& o) {
             o.delegator = op.delegator;
             o.vesting_shares = -delta;
             o.expiration = std::max(now + STEEMIT_CASHOUT_WINDOW_SECONDS, delegation->min_delegation_time);
         });
-    }
 
-    _db.modify(delegatee, [&](account_object& a) {
-        a.received_vesting_shares += delta;
-    });
-    if (delegation) {
-        if (op.vesting_shares.amount > 0) {
+        _db.modify(delegatee, [&](account_object& a) {
+            a.received_vesting_shares += delta;
+        });
+
+        if (op.vesting_shares.amount == 0) {
+            _db.remove(*delegation);
+        } else {
             _db.modify(*delegation, [&](vesting_delegation_object& o) {
                 o.vesting_shares = op.vesting_shares;
             });
-        } else {
-            _db.remove(*delegation);
+        }
+    }
+
+    if (extensions) {
+        for (auto& e : *extensions) {
+            e.visit(delegate_vesting_shares_with_interest_extension_visitor(delegation, _db));
         }
     }
 }
@@ -2547,7 +2620,7 @@ void delegate_vesting_shares(
         void delegate_vesting_shares_evaluator::do_apply(const delegate_vesting_shares_operation& op) {
             const auto& median_props = _db.get_witness_schedule_object().median_props;
 
-            delegate_vesting_shares(_db, median_props, op, [&](auto*){}, [&](auto*){});
+            delegate_vesting_shares(_db, median_props, op, nullptr, 0);
         }
 
         void break_free_referral_evaluator::do_apply(const break_free_referral_operation& op) {
@@ -2572,35 +2645,6 @@ void delegate_vesting_shares(
             });
         }
 
-        struct delegate_vesting_shares_with_interest_extension_visitor {
-            delegate_vesting_shares_with_interest_extension_visitor(database& db, vesting_delegation_object* vdo,
-                    bool validate_case)
-                    : _db(db), _vdo(vdo), _validate_case(validate_case) {
-            }
-
-            using result_type = void;
-
-            database& _db;
-            vesting_delegation_object* _vdo;
-            bool _validate_case;
-
-            void operator()(const delegate_delegator_payout_strategy& ddps) const {
-                if (_validate_case) {
-                    ASSERT_REQ_HF(STEEMIT_HARDFORK_0_21__1045, "delegate_delegator_payout_strategy");
-
-                    if (_vdo) {
-                        GOLOS_CHECK_LOGIC(_vdo->payout_strategy == ddps.strategy,
-                             logic_exception::cannot_change_delegator_payout_strategy,
-                             "Cannot change payout strategy of already created delegation");
-                    }
-
-                    return;
-                }
-
-                _vdo->payout_strategy = ddps.strategy;
-            }
-        };
-
         void delegate_vesting_shares_with_interest_evaluator::do_apply(const delegate_vesting_shares_with_interest_operation& op) {
             ASSERT_REQ_HF(STEEMIT_HARDFORK_0_19__756, "delegate_vesting_shares_with_interest_operation");
 
@@ -2608,23 +2652,7 @@ void delegate_vesting_shares(
 
             GOLOS_CHECK_LIMIT_PARAM(op.interest_rate, median_props.max_delegated_vesting_interest_rate);
 
-            delegate_vesting_shares(_db, median_props, op, [&](auto* vdo) {
-                if (vdo) {
-                    GOLOS_CHECK_LOGIC(vdo->interest_rate == op.interest_rate,
-                        logic_exception::cannot_change_delegator_interest_rate,
-                        "Cannot change interest rate of already created delegation");
-                }
-
-                for (auto& e : op.extensions) {
-                    e.visit(delegate_vesting_shares_with_interest_extension_visitor(_db, const_cast<vesting_delegation_object*>(vdo), true));
-                }
-            }, [&](auto* vdo) {
-                vdo->interest_rate = op.interest_rate;
-
-                for (auto& e : op.extensions) {
-                    e.visit(delegate_vesting_shares_with_interest_extension_visitor(_db, vdo, false));
-                }
-            });
+            delegate_vesting_shares(_db, median_props, op, &op.extensions, op.interest_rate);
         }
 
         void reject_vesting_shares_delegation_evaluator::do_apply(const reject_vesting_shares_delegation_operation& op) {
