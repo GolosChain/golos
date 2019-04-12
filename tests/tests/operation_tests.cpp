@@ -7004,6 +7004,8 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
 
             signed_transaction tx;
 
+            BOOST_TEST_MESSAGE("-- Checking limit on interest rate");
+
             delegate_delegator_payout_strategy ddps;
             ddps.strategy = delegator_payout_strategy::to_delegated_vesting;
 
@@ -7011,7 +7013,16 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
             op.vesting_shares = ASSET_GESTS(50000);
             op.delegator = "carol";
             op.delegatee = "bob";
+            op.interest_rate = 2501;
             op.extensions.insert(ddps);
+
+            GOLOS_CHECK_ERROR_PROPS(push_tx_with_ops(tx, carol_private_key, op),
+                CHECK_ERROR(tx_invalid_operation, 0,
+                    CHECK_ERROR(invalid_parameter, "op.interest_rate")));
+
+            BOOST_TEST_MESSAGE("-- Normal case, creating carol and dave to bob delegations");
+
+            op.interest_rate = 2500;
             BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, carol_private_key, op));
             generate_block();
 
@@ -7021,6 +7032,14 @@ BOOST_FIXTURE_TEST_SUITE(operation_tests, clean_database_fixture)
             op.extensions.insert(ddps);
             BOOST_CHECK_NO_THROW(push_tx_with_ops(tx, dave_private_key, op));
             generate_block();
+
+            BOOST_TEST_MESSAGE("-- Checking cannot change interest_rate of already created delegation");
+
+            op.delegator = "dave";
+            op.interest_rate = 2400;
+            GOLOS_CHECK_ERROR_LOGIC(cannot_change_delegator_interest_rate, dave_private_key, op);
+
+            op.interest_rate = 2500;
 
             BOOST_TEST_MESSAGE("-- Checking cannot change payout strategy of already created delegation");
 
