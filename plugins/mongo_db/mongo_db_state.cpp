@@ -1927,4 +1927,8 @@ namespace mongo_db {
 
     }
 
+    auto state_writer::operator()(const total_comment_reward_operation& op) -> result_type {
+
+    }
+
 }}}

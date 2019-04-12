@@ -2467,6 +2467,11 @@ namespace golos { namespace chain {
                         modify(get_account(comment.author), [&](account_object &a) {
                             a.posting_rewards += author_tokens;
                         });
+
+                        auto author_golos = asset(author_tokens, STEEM_SYMBOL);
+                        auto benefactor_golos = asset(total_beneficiary, STEEM_SYMBOL);
+                        auto curator_golos = asset(reward_tokens.to_uint64() - (author_tokens + total_beneficiary), STEEM_SYMBOL);
+                        push_virtual_operation(total_comment_reward_operation(comment.author, to_string(comment.permlink), author_golos, benefactor_golos, curator_golos, comment.net_rshares.value));
                     }
 
                     fc::uint128_t old_rshares2 = calculate_vshares(comment.net_rshares.value);

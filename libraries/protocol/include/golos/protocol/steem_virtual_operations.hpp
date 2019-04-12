@@ -232,6 +232,22 @@ namespace golos { namespace protocol {
             account_name_type account;
             asset vesting_shares;
         };
+
+        struct total_comment_reward_operation : public virtual_operation {
+            total_comment_reward_operation() {
+            }
+
+            total_comment_reward_operation(const account_name_type& a, const string &p, const asset& ar, const asset& br, const asset& cr, int64_t nr)
+                    : author(a), permlink(p), author_reward(ar), benefactor_reward(br), curator_reward(cr), net_rshares(nr) {
+            }
+
+            account_name_type author;
+            string permlink;
+            asset author_reward;
+            asset benefactor_reward;
+            asset curator_reward;
+            int64_t net_rshares;
+        };
 } } //golos::protocol
 
 FC_REFLECT((golos::protocol::author_reward_operation), (author)(permlink)(sbd_payout)(steem_payout)(vesting_payout))
@@ -251,3 +267,4 @@ FC_REFLECT((golos::protocol::comment_benefactor_reward_operation), (benefactor)(
 FC_REFLECT((golos::protocol::return_vesting_delegation_operation), (account)(vesting_shares))
 FC_REFLECT((golos::protocol::producer_reward_operation), (producer)(vesting_shares))
 FC_REFLECT((golos::protocol::delegation_reward_operation), (delegator)(delegatee)(payout_strategy)(vesting_shares))
+FC_REFLECT((golos::protocol::total_comment_reward_operation), (author)(permlink)(author_reward)(benefactor_reward)(curator_reward)(net_rshares))
