@@ -2163,13 +2163,13 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             op.vesting_shares = vesting_shares;
             op.interest_rate = interest_rate;
 
-            if (payout_strategy != delegator_payout_strategy::to_delegator) {
-                auto hf = my->_remote_database_api->get_hardfork_version();
-                FC_ASSERT(hf >= hardfork_version(0, STEEMIT_HARDFORK_0_21), "Only to_delegator payout strategy is enabled until HF21");
-
+            auto hf = my->_remote_database_api->get_hardfork_version();
+            if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_21)) {
                 delegate_delegator_payout_strategy ddps;
                 ddps.strategy = payout_strategy;
                 op.extensions.insert(ddps);
+            } else {
+                FC_ASSERT(payout_strategy == delegator_payout_strategy::to_delegator, "Only to_delegator payout strategy is enabled until HF21");
             }
 
             signed_transaction tx;
