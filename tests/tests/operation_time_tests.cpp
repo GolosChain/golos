@@ -364,7 +364,13 @@ BOOST_FIXTURE_TEST_SUITE(operation_time_tests, clean_database_fixture)
             BOOST_REQUIRE(dave_account.vesting_shares == dave_total_vesting);
             BOOST_REQUIRE(dave_account.sbd_balance == dave_sbd_balance);
 
-            auto bob_author_reward = get_last_operations(1)[0].get<author_reward_operation>();
+            auto ops = get_last_operations(2);
+
+            auto total_reward = ops[0].get<total_comment_reward_operation>();
+            BOOST_CHECK_EQUAL(total_reward.author, "bob");
+            BOOST_CHECK_EQUAL(total_reward.permlink, "test");
+
+            auto bob_author_reward = ops[1].get<author_reward_operation>();
             BOOST_REQUIRE(bob_author_reward.author == "bob");
             BOOST_REQUIRE(bob_author_reward.permlink == "test");
             BOOST_REQUIRE(bob_author_reward.sbd_payout == bob_comment_reward.sbd_payout());
@@ -606,62 +612,75 @@ BOOST_FIXTURE_TEST_SUITE(operation_time_tests, clean_database_fixture)
             BOOST_CHECK(dave_cr_itr != cr_idx.end());
             BOOST_CHECK_EQUAL(dave_cr_itr->total_payout_value, dave_comment_reward.total_payout());
 
-            auto ops = get_last_operations(9);
+            auto ops = get_last_operations(12);
 
             BOOST_TEST_MESSAGE("Checking Virtual Operation Correctness");
 
             curation_reward_operation vop_curation;
             author_reward_operation vop_author;
+            total_comment_reward_operation vop_total;
 
-            vop_author = ops[0].get<author_reward_operation>();
+            vop_total = ops[0].get<total_comment_reward_operation>();
+            BOOST_CHECK_EQUAL(vop_total.author, "dave");
+            BOOST_CHECK_EQUAL(vop_total.permlink, "test");
+
+            vop_author = ops[1].get<author_reward_operation>();
             BOOST_REQUIRE(vop_author.author == "dave");
             BOOST_REQUIRE(vop_author.permlink == "test");
             BOOST_REQUIRE(vop_author.sbd_payout == dave_comment_reward.sbd_payout());
             BOOST_REQUIRE(vop_author.vesting_payout == dave_comment_reward.vesting_payout());
 
-            vop_curation = ops[1].get<curation_reward_operation>();
+            vop_curation = ops[2].get<curation_reward_operation>();
             BOOST_REQUIRE(vop_curation.curator == "bob");
             BOOST_REQUIRE(vop_curation.comment_author == "dave");
             BOOST_REQUIRE(vop_curation.comment_permlink == "test");
             BOOST_REQUIRE(vop_curation.reward == dave_comment_reward.vote_payout(bob_account));
 
-            vop_author = ops[2].get<author_reward_operation>();
+            vop_total = ops[3].get<total_comment_reward_operation>();
+            BOOST_CHECK_EQUAL(vop_total.author, "bob");
+            BOOST_CHECK_EQUAL(vop_total.permlink, "test");
+
+            vop_author = ops[4].get<author_reward_operation>();
             BOOST_REQUIRE(vop_author.author == "bob");
             BOOST_REQUIRE(vop_author.permlink == "test");
             BOOST_REQUIRE(vop_author.sbd_payout == bob_comment_reward.sbd_payout());
             BOOST_REQUIRE(vop_author.vesting_payout == bob_comment_reward.vesting_payout());
 
-            vop_curation = ops[3].get<curation_reward_operation>();
+            vop_curation = ops[5].get<curation_reward_operation>();
             BOOST_CHECK_EQUAL(vop_curation.curator, "bob");
             BOOST_CHECK_EQUAL(vop_curation.comment_author, "bob");
             BOOST_CHECK_EQUAL(vop_curation.comment_permlink, "test");
             BOOST_CHECK_EQUAL(vop_curation.reward, bob_comment_reward.vote_payout(bob_account));
 
-            vop_curation = ops[4].get<curation_reward_operation>();
+            vop_curation = ops[6].get<curation_reward_operation>();
             BOOST_CHECK_EQUAL(vop_curation.curator, "sam");
             BOOST_CHECK_EQUAL(vop_curation.comment_author, "bob");
             BOOST_CHECK_EQUAL(vop_curation.comment_permlink, "test");
             BOOST_CHECK_EQUAL(vop_curation.reward, bob_comment_reward.vote_payout(sam_account));
 
-            vop_curation = ops[5].get<curation_reward_operation>();
+            vop_curation = ops[7].get<curation_reward_operation>();
             BOOST_CHECK_EQUAL(vop_curation.curator, "alice");
             BOOST_CHECK_EQUAL(vop_curation.comment_author, "bob");
             BOOST_CHECK_EQUAL(vop_curation.comment_permlink, "test");
             BOOST_CHECK_EQUAL(vop_curation.reward, bob_comment_reward.vote_payout(alice_account));
 
-            vop_author = ops[6].get<author_reward_operation>();
+            vop_total = ops[8].get<total_comment_reward_operation>();
+            BOOST_CHECK_EQUAL(vop_total.author, "alice");
+            BOOST_CHECK_EQUAL(vop_total.permlink, "test");
+
+            vop_author = ops[9].get<author_reward_operation>();
             BOOST_CHECK_EQUAL(vop_author.author, "alice");
             BOOST_CHECK_EQUAL(vop_author.permlink, "test");
             BOOST_CHECK_EQUAL(vop_author.sbd_payout, alice_comment_reward.sbd_payout());
             BOOST_CHECK_EQUAL(vop_author.vesting_payout, alice_comment_reward.vesting_payout());
 
-            vop_curation = ops[7].get<curation_reward_operation>();
+            vop_curation = ops[10].get<curation_reward_operation>();
             BOOST_CHECK_EQUAL(vop_curation.curator, "alice");
             BOOST_CHECK_EQUAL(vop_curation.comment_author, "alice");
             BOOST_CHECK_EQUAL(vop_curation.comment_permlink, "test");
             BOOST_CHECK_EQUAL(vop_curation.reward, alice_comment_reward.vote_payout(alice_account));
 
-            vop_curation = ops[8].get<curation_reward_operation>();
+            vop_curation = ops[11].get<curation_reward_operation>();
             BOOST_CHECK_EQUAL(vop_curation.curator, "bob");
             BOOST_CHECK_EQUAL(vop_curation.comment_author, "alice");
             BOOST_CHECK_EQUAL(vop_curation.comment_permlink, "test");
