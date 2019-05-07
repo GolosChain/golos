@@ -109,6 +109,13 @@ public:
         fc::raw::pack(b, op);
 
         fc::raw::pack(b, _block.timestamp);
+
+        int64_t rshares = 0;
+        const auto& comment = _db.get_comment(op.author, op.permlink);
+        const auto& vote_idx = _db.get_index<comment_vote_index, by_comment_voter>();
+        auto vote_itr = vote_idx.find(std::make_tuple(comment.id, _db.get_account(op.voter).id));
+        rshares = vote_itr->rshares;
+        fc::raw::pack(b, rshares);
     }
 
     // Not logs if operation failed in plugin, but logs if plugin not exists
