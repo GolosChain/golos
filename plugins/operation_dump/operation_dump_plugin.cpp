@@ -8,6 +8,45 @@ namespace golos { namespace plugins { namespace operation_dump {
 
 namespace bfs = boost::filesystem;
 
+using block_operations = std::map<uint32_t, std::vector<operation>>;
+
+void add_virtual_op_to_block(const operation& op, uint32_t block_num, block_operations& virtual_ops) {
+    virtual_ops[block_num].push_back(op);
+
+    // remove ops if there were forks and rollbacks
+    auto itr = virtual_ops.find(block_num);
+    ++itr;
+    virtual_ops.erase(itr, virtual_ops.end());
+}
+
+struct post_operation_visitor {
+    golos::chain::database& _db;
+    block_operations& _virtual_ops;
+    uint32_t _block_num;
+
+    post_operation_visitor(golos::chain::database& db, block_operations& virtual_ops, uint32_t block_num)
+            : _db(db), _virtual_ops(virtual_ops), _block_num(block_num) {
+    }
+
+    typedef void result_type;
+
+    template<typename T>
+    result_type operator()(const T&) const {
+    }
+
+    result_type operator()(const vote_operation& op) const {
+        if (_db.is_generating() || _db.is_producing()) {
+            return;
+        }
+
+        const auto& comment = _db.get_comment(op.author, op.permlink);
+        const auto& vote_idx = _db.get_index<comment_vote_index, by_comment_voter>();
+        auto vote_itr = vote_idx.find(std::make_tuple(comment.id, _db.get_account(op.voter).id));
+
+        add_virtual_op_to_block(vote_rshares_operation(op.voter, op.author, op.permlink, vote_itr->rshares), _block_num, _virtual_ops);
+    }
+};
+
 class operation_dump_plugin::operation_dump_plugin_impl final {
 public:
     operation_dump_plugin_impl()
@@ -65,16 +104,12 @@ public:
     }
 
     void on_operation(const operation_notification& note) {
-        if (!is_virtual_operation(note.op)) {
+        if (is_virtual_operation(note.op)) {
+            add_virtual_op_to_block(note.op, note.block, virtual_ops);
             return;
         }
 
-        virtual_ops[note.block].push_back(note.op);
-
-        // remove ops if there were forks and rollbacks
-        auto itr = virtual_ops.find(note.block);
-        ++itr;
-        virtual_ops.erase(itr, virtual_ops.end());
+        note.op.visit(post_operation_visitor(_db, virtual_ops, note.block));
     }
 
     database& _db;
@@ -83,7 +118,7 @@ public:
 
     uint32_t start_block = 1;
 
-    std::map<uint32_t, std::vector<operation>> virtual_ops;
+    block_operations virtual_ops;
     dump_buffers buffers;
 };
 

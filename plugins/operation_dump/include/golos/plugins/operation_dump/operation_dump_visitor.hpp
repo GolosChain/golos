@@ -5,6 +5,7 @@
 #include <golos/chain/comment_object.hpp>
 #include <golos/plugins/follow/follow_operations.hpp>
 #include <golos/plugins/tags/tag_visitor.hpp>
+#include <queue>
 
 namespace golos { namespace plugins { namespace operation_dump {
 
@@ -25,6 +26,8 @@ public:
     uint16_t& _op_in_block;
 
     database& _db;
+
+    std::queue<uint64_t> rshares_offsets;
 
     operation_dump_visitor(dump_buffers& buffers, const signed_block& block, uint16_t& op_in_block, database& db)
             : _buffers(buffers), _block(block), _op_in_block(op_in_block), _db(db) {
@@ -110,12 +113,18 @@ public:
 
         fc::raw::pack(b, _block.timestamp);
 
-        int64_t rshares = 0;
-        const auto& comment = _db.get_comment(op.author, op.permlink);
-        const auto& vote_idx = _db.get_index<comment_vote_index, by_comment_voter>();
-        auto vote_itr = vote_idx.find(std::make_tuple(comment.id, _db.get_account(op.voter).id));
-        rshares = vote_itr->rshares;
-        fc::raw::pack(b, rshares);
+        rshares_offsets.push(b.tellp());
+        fc::raw::pack(b, int64_t(0));
+    }
+
+    auto operator()(const vote_rshares_operation& op) -> result_type {
+        auto& b = _buffers["votes"];
+
+        auto pos = b.tellp();
+        b.seekp(rshares_offsets.front());
+        fc::raw::pack(b, op.rshares);
+        b.seekp(pos);
+        rshares_offsets.pop();
     }
 
     // Not logs if operation failed in plugin, but logs if plugin not exists

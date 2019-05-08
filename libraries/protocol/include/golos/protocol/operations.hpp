@@ -88,7 +88,8 @@ namespace golos { namespace protocol {
                 producer_reward_operation,
                 delegation_reward_operation,
                 auction_window_reward_operation,
-                total_comment_reward_operation
+                total_comment_reward_operation,
+                vote_rshares_operation
         > operation;
 
         /*void operation_get_required_authorities( const operation& op,
