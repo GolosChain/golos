@@ -43,7 +43,7 @@ struct post_operation_visitor {
         const auto& vote_idx = _db.get_index<comment_vote_index, by_comment_voter>();
         auto vote_itr = vote_idx.find(std::make_tuple(comment.id, _db.get_account(op.voter).id));
 
-        add_virtual_op_to_block(vote_rshares_operation(op.voter, op.author, op.permlink, vote_itr->rshares), _block_num, _virtual_ops);
+        add_virtual_op_to_block(vote_rshares_operation(op.voter, op.author, op.permlink, op.weight, vote_itr->rshares), _block_num, _virtual_ops);
     }
 };
 

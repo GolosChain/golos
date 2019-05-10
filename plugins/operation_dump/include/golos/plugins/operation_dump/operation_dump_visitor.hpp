@@ -27,8 +27,6 @@ public:
 
     database& _db;
 
-    std::queue<uint64_t> rshares_offsets;
-
     operation_dump_visitor(dump_buffers& buffers, const signed_block& block, uint16_t& op_in_block, database& db)
             : _buffers(buffers), _block(block), _op_in_block(op_in_block), _db(db) {
     }
@@ -106,25 +104,13 @@ public:
         fc::raw::pack(b, op);
     }
 
-    auto operator()(const vote_operation& op) -> result_type {
+
+    auto operator()(const vote_rshares_operation& op) -> result_type {
         auto& b = write_op_header("votes", COMMENT_ID(op));
 
         fc::raw::pack(b, op);
 
         fc::raw::pack(b, _block.timestamp);
-
-        rshares_offsets.push(b.tellp());
-        fc::raw::pack(b, int64_t(0));
-    }
-
-    auto operator()(const vote_rshares_operation& op) -> result_type {
-        auto& b = _buffers["votes"];
-
-        auto pos = b.tellp();
-        b.seekp(rshares_offsets.front());
-        fc::raw::pack(b, op.rshares);
-        b.seekp(pos);
-        rshares_offsets.pop();
     }
 
     // Not logs if operation failed in plugin, but logs if plugin not exists
