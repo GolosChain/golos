@@ -1441,6 +1441,16 @@ namespace golos { namespace protocol {
             }
         };
 
+        class transit_to_cyberway_operation : public base_operation {
+        public:
+            account_name_type owner;
+            bool vote_to_transit = true;
+
+            void validate() const;
+            void get_required_active_authorities(flat_set<account_name_type> &a) const {
+                a.insert(owner);
+            }
+        };
 } } // golos::protocol
 
 
@@ -1560,3 +1570,4 @@ FC_REFLECT((golos::protocol::delegate_delegator_payout_strategy), (strategy))
 FC_REFLECT_TYPENAME((golos::protocol::delegate_vesting_shares_with_interest_extension));
 FC_REFLECT((golos::protocol::delegate_vesting_shares_with_interest_operation), (delegator)(delegatee)(vesting_shares)(interest_rate)(extensions));
 FC_REFLECT((golos::protocol::reject_vesting_shares_delegation_operation), (delegator)(delegatee)(extensions));
+FC_REFLECT((golos::protocol::transit_to_cyberway_operation), (owner)(vote_to_transit));

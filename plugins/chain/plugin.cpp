@@ -29,6 +29,11 @@ namespace golos { namespace plugins { namespace chain {
         bool readonly = false;
         bool check_locks = false;
         bool validate_invariants = false;
+
+        bool serialize_state = false;
+        bfs::path serialize_state_path;
+        long serialize_delay_sec = 0;
+
         uint32_t flush_interval = 0;
         flat_map<uint32_t, block_id_type> loaded_checkpoints;
 
@@ -61,13 +66,21 @@ namespace golos { namespace plugins { namespace chain {
 
         bool clear_old_worker_approves = false;
 
-        impl() {
+        boost::asio::deadline_timer transit_timer;
+
+        impl() : transit_timer(appbase::app().get_io_service()) {
             // get default settings
             read_wait_micro = db.read_wait_micro();
             max_read_wait_retries = db.max_read_wait_retries();
 
             write_wait_micro = db.write_wait_micro();
             max_write_wait_retries = db.max_write_wait_retries();
+        }
+
+        ~impl() {
+            if (transit_timer.cancel()) {
+                transit_to_cyberway(); // it doesn't throw any exception
+            }
         }
 
         // HELPERS
@@ -82,6 +95,8 @@ namespace golos { namespace plugins { namespace chain {
         void replay_db(const bfs::path& data_dir, bool force_replay);
 
         void on_block (const protocol::signed_block& b);
+        void transit_to_cyberway();
+        void start_transit_to_cyberway(uint32_t, uint32_t);
     };
 
 
@@ -98,6 +113,43 @@ namespace golos { namespace plugins { namespace chain {
             ++itr;
             db.remove(vote);
         }
+    }
+
+    void plugin::impl::start_transit_to_cyberway(uint32_t n, uint32_t skip) {
+        if (!serialize_state || db._fixed_irreversible_block_num != UINT32_MAX) {
+            return;
+        }
+
+        if (skip & db.skip_block_log) {
+            transit_to_cyberway();
+        } else {
+            db._fixed_irreversible_block_num = db.last_non_undoable_block_num();
+
+            if (serialize_delay_sec) {
+                wlog("Starts the timer for ${sec} seconds to generate genesis for CyberWay.", ("sec", serialize_delay_sec));
+                transit_timer.expires_from_now(boost::posix_time::seconds(serialize_delay_sec));
+                transit_timer.async_wait([this, n](const boost::system::error_code&) {
+                    this->db.with_strong_write_lock([&]() {
+                        this->transit_to_cyberway();
+                    });
+                });
+            } else {
+                transit_to_cyberway();
+            }
+        }
+    }
+
+    void plugin::impl::transit_to_cyberway() {
+        // revert to last LIB
+        auto lib = db.last_non_undoable_block_num();
+        while (db.head_block_num() != lib) {
+            db.pop_block();
+        }
+        db.flush();
+
+        state_serializer().serialize(db, serialize_state_path);
+        db.close();
+        std::exit(0);
     }
 
     void plugin::impl::check_time_in_block(const protocol::signed_block& block) {
@@ -265,6 +317,13 @@ namespace golos { namespace plugins { namespace chain {
             ) (
                 "clear-old-worker-approves", bpo::value<bool>()->default_value(false),
                 "if set, remove worker techspec, result, payment approves when approving ends"
+            ) (
+                "serialize-state", bpo::value<std::string>(),
+                "The location of the file to serialize state to (abs path or relative to application data dir). "
+                "If set then app will exit after serialization."
+            ) (
+                "serialize-delay-sec", bpo::value<long>()->default_value(5*60),
+                "The delay in seconds before the state is serialized, which will be used for CyberWay genesis."
             );
         //  Do not use bool_switch() in cfg!
         cli.add_options()
@@ -291,6 +350,10 @@ namespace golos { namespace plugins { namespace chain {
 
         my->db.applied_block.connect([&](const protocol::signed_block& b) {
             my->on_block(b);
+        });
+
+        my->db.transit_to_cyberway.connect([&](const uint32_t n, uint32_t skip) {
+            my->start_transit_to_cyberway(n, skip);
         });
 
         auto sfd = options.at("shared-file-dir").as<bfs::path>();
@@ -337,6 +400,22 @@ namespace golos { namespace plugins { namespace chain {
         my->resync = options.at("resync-blockchain").as<bool>();
         my->check_locks = options.at("check-locks").as<bool>();
         my->validate_invariants = options.at("validate-database-invariants").as<bool>();
+
+        bool serialize = options.count("serialize-state") > 0;
+        if (serialize) {
+            auto s = options.at("serialize-state").as<std::string>();
+            serialize = s.size() > 0;
+            if (serialize) {
+                auto p = bfs::path(s);
+                my->serialize_state_path = p.is_relative() ? appbase::app().data_dir() / p : p;
+            }
+        }
+        my->serialize_state = serialize;
+
+        if (options.count("serialize-delay-sec")) {
+            my->serialize_delay_sec = options.at("serialize-delay-sec").as<long>();
+        }
+
         if (options.count("flush-state-interval")) {
             my->flush_interval = options.at("flush-state-interval").as<uint32_t>();
         } else {

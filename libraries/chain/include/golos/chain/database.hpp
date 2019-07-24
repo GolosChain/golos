@@ -59,10 +59,13 @@ namespace golos { namespace chain {
                 _is_generating = p;
             }
 
+            bool is_transit_enabled() const;
+
             bool _is_producing = false;
             bool _is_generating = false;
             bool _is_testing = false;           ///< set for tests to avoid low free memory spam
             bool _log_hardforks = true;
+            uint32_t _fixed_irreversible_block_num = UINT32_MAX;
 
             enum validation_steps {
                 skip_nothing = 0,
@@ -347,6 +350,11 @@ namespace golos { namespace chain {
             fc::signal<void(const signed_transaction &)> on_applied_transaction;
 
             /**
+             * This signal is emitted when required number of votes is reached to transit to CyberWay
+             */
+            fc::signal<void(const uint32_t, const uint32_t)> transit_to_cyberway;
+
+            /**
              *  Emitted After a block has been applied and committed.  The callback
              *  should not yield and should execute quickly.
              */
@@ -447,7 +455,7 @@ namespace golos { namespace chain {
 
             uint64_t pay_delegators(const account_object& delegatee, const comment_vote_object& cvo, uint64_t claim);
 
-            share_type pay_curators(const comment_curation_info& c, share_type max_rewards);
+            share_type pay_curators(const comment_curation_info& c, share_type max_rewards, share_type& actual_rewards);
 
             void cashout_comment_helper(const comment_object &comment);
 
@@ -605,6 +613,8 @@ namespace golos { namespace chain {
             void create_block_summary(const signed_block &next_block);
 
             void update_witness_schedule4();
+
+            void process_transit_to_cyberway(const signed_block& b, uint32_t skip);
 
             void update_median_witness_props();
 

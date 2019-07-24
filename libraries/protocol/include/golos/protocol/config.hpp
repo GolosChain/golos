@@ -49,7 +49,7 @@
 #define STEEMIT_BLOCKS_PER_YEAR                 (365*24*60*60/STEEMIT_BLOCK_INTERVAL)
 #define STEEMIT_BLOCKS_PER_DAY                  (24*60*60/STEEMIT_BLOCK_INTERVAL)
 #define STEEMIT_START_VESTING_BLOCK             (STEEMIT_BLOCKS_PER_DAY / 512)
-#define STEEMIT_START_MINER_VOTING_BLOCK        (60*10/STEEMIT_BLOCK_INTERVAL)
+#define STEEMIT_START_MINER_VOTING_BLOCK        (60/STEEMIT_BLOCK_INTERVAL)
 #define STEEMIT_FIRST_CASHOUT_TIME              (fc::time_point_sec(1476788400 + STEEMIT_BLOCK_INTERVAL))
 
 #define STEEMIT_INIT_MINER_NAME                 "cyberfounder"
@@ -61,6 +61,7 @@
 #define STEEMIT_MAX_MINER_WITNESSES             1
 #define STEEMIT_MAX_RUNNER_WITNESSES            1
 #define STEEMIT_MAX_WITNESSES                   (STEEMIT_MAX_VOTED_WITNESSES+STEEMIT_MAX_MINER_WITNESSES+STEEMIT_MAX_RUNNER_WITNESSES) /// 21 is more than enough
+#define STEEMIT_TRANSIT_REQUIRED_WITNESSES      1 // 16 from top19 -> This guarantees 75% participation on all subsequent rounds.
 #define STEEMIT_HARDFORK_REQUIRED_WITNESSES     1 // 17 of the 20 dpos witnesses (19 elected and 1 virtual time) required for hardfork. This guarantees 75% participation on all subsequent rounds.
 #define STEEMIT_MAJOR_VOTED_WITNESSES           (STEEMIT_MAX_VOTED_WITNESSES / 2 + 1)
 #define STEEMIT_SUPER_MAJOR_VOTED_WITNESSES      (STEEMIT_MAX_VOTED_WITNESSES * 3 / 4 + 1)
@@ -306,6 +307,7 @@
 #define STEEMIT_MAX_MINER_WITNESSES             1
 #define STEEMIT_MAX_RUNNER_WITNESSES            1
 #define STEEMIT_MAX_WITNESSES                   (STEEMIT_MAX_VOTED_WITNESSES+STEEMIT_MAX_MINER_WITNESSES+STEEMIT_MAX_RUNNER_WITNESSES) /// 21 is more than enough
+#define STEEMIT_TRANSIT_REQUIRED_WITNESSES      16 // 16 from top19 -> This guarantees 75% participation on all subsequent rounds.
 #define STEEMIT_HARDFORK_REQUIRED_WITNESSES     17 // 17 of the 20 dpos witnesses (19 elected and 1 virtual time) required for hardfork. This guarantees 75% participation on all subsequent rounds.
 #define STEEMIT_MAJOR_VOTED_WITNESSES           (STEEMIT_MAX_VOTED_WITNESSES / 2 + 1)
 #define STEEMIT_SUPER_MAJOR_VOTED_WITNESSES      (STEEMIT_MAX_VOTED_WITNESSES * 3 / 4 + 1)

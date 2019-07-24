@@ -52,5 +52,3 @@ FC_REFLECT((golos::chain::hardfork_property_object),
 CHAINBASE_SET_INDEX_TYPE( golos::chain::hardfork_property_object, golos::chain::hardfork_property_index)
 
 #define STEEMIT_NUM_HARDFORKS 22
-
-

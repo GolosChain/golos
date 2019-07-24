@@ -319,6 +319,11 @@ namespace golos { namespace wallet {
                     result["median_sbd_price"] = _remote_witness_api->get_current_median_history_price();
                     result["account_creation_fee"] = median_props.account_creation_fee;
 
+                    std::vector<std::string> transit_witnesses;
+                    for (auto& w: dynamic_props.transit_witnesses) if (w.size()) {
+                        transit_witnesses.push_back(w);
+                    }
+
                     auto hf = _remote_database_api->get_hardfork_version();
                     if (hf >= hardfork_version(0, STEEMIT_HARDFORK_0_18)) {
                         result["create_account_min_golos_fee"] = median_props.create_account_min_golos_fee;
@@ -2317,6 +2322,23 @@ fc::ecc::private_key wallet_api::derive_private_key(const std::string& prefix_st
             tx.validate();
 
             return my->sign_transaction(tx, broadcast);
+        }
+
+        annotated_signed_transaction wallet_api::transit_to_cyberway(
+            string witness_account_name,
+            bool broadcast
+        ) {
+            WALLET_CHECK_UNLOCKED();
+
+            transit_to_cyberway_operation op;
+            op.owner = witness_account_name;
+            op.vote_to_transit = true;
+
+            signed_transaction tx;
+            tx.operations.push_back( op );
+            tx.validate();
+
+            return my->sign_transaction( tx, broadcast );
         }
 
         annotated_signed_transaction wallet_api::vote_for_witness(string voting_account, string witness_to_vote_for, bool approve, bool broadcast )

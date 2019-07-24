@@ -574,6 +574,12 @@ namespace mongo_db {
         return body;
     }
 
+    auto operation_writer::operator()(const transit_to_cyberway_operation& op) -> result_type {
+        result_type body;
+
+        return body;
+    }
+
     auto operation_writer::operator()(const account_create_with_delegation_operation& op) -> result_type {
         result_type body;
 
@@ -845,6 +851,11 @@ namespace mongo_db {
     }
 
     auto operation_writer::operator()(const worker_reward_operation& op) -> result_type {
+        result_type body;
+        return body;
+    }
+
+    auto operation_writer::operator()(const total_comment_reward_operation& op) -> result_type {
         result_type body;
         return body;
     }

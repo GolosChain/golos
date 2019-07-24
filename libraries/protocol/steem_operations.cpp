@@ -789,4 +789,8 @@ namespace golos { namespace protocol {
             GOLOS_CHECK_PARAM_ACCOUNT(delegatee);
         }
 
+        void transit_to_cyberway_operation::validate() const {
+            GOLOS_CHECK_PARAM_ACCOUNT(owner);
+        }
+
 } } // golos::protocol

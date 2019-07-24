@@ -360,6 +360,10 @@ namespace golos {
     };
 
     GOLOS_DECLARE_DERIVED_EXCEPTION(
+        transit_enabled_exception, business_exception,
+        2040000, "Migrating to CyberWay is started");
+
+    GOLOS_DECLARE_DERIVED_EXCEPTION(
         internal_error, golos_exception,
         4000000, "internal error");
 

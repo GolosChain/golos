@@ -498,6 +498,10 @@ if (options.count(name)) { \
             insert_pair(op.delegatee, op.delegator);
         }
 
+        void operator()(const total_comment_reward_operation& op) {
+            insert_dual(op.author);
+        }
+
         // todo: proposal tx signers are receivers
         void operator()(const proposal_create_operation& op) {
             insert_dual(op.author);

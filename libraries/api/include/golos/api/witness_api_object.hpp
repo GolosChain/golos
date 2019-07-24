@@ -32,6 +32,7 @@ namespace golos { namespace api {
         version running_version;
         hardfork_version hardfork_version_vote;
         time_point_sec hardfork_time_vote;
+        time_point_sec transit_to_cyberway_vote = STEEMIT_GENESIS_TIME;
     };
 
 } } // golos::api
@@ -42,4 +43,4 @@ FC_REFLECT(
     (id)(owner)(created)(url)(votes)(virtual_last_update)(virtual_position)(virtual_scheduled_time)
     (total_missed)(last_aslot)(last_confirmed_block_num)(pow_worker)(signing_key)(props)
     (sbd_exchange_rate)(last_sbd_exchange_update)(last_work)(running_version)(hardfork_version_vote)
-    (hardfork_time_vote))
+    (hardfork_time_vote)(transit_to_cyberway_vote))

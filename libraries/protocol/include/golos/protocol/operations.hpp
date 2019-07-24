@@ -70,6 +70,7 @@ namespace golos { namespace protocol {
                 break_free_referral_operation,
                 delegate_vesting_shares_with_interest_operation,
                 reject_vesting_shares_delegation_operation,
+                transit_to_cyberway_operation,
                 vote_options_operation,
                 worker_proposal_operation,
                 worker_proposal_delete_operation,
@@ -103,6 +104,7 @@ namespace golos { namespace protocol {
                 techspec_reward_operation,
                 worker_reward_operation,
                 techspec_expired_operation
+                total_comment_reward_operation
         > operation;
 
         /*void operation_get_required_authorities( const operation& op,

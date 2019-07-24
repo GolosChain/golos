@@ -148,6 +148,9 @@ namespace golos {
 
             asset worker_revenue_per_day = asset(0, STEEM_SYMBOL);
             asset worker_consumption_per_day = asset(0, STEEM_SYMBOL);
+
+            uint32_t transit_block_num = UINT32_MAX;
+            fc::array<account_name_type, STEEMIT_MAX_WITNESSES> transit_witnesses;
         };
 
         typedef multi_index_container <
@@ -196,5 +199,7 @@ FC_REFLECT((golos::chain::dynamic_global_property_object),
                 (is_forced_min_price)
                 (worker_revenue_per_day)
                 (worker_consumption_per_day)
+                (transit_block_num)
+                (transit_witnesses)
 )
 CHAINBASE_SET_INDEX_TYPE(golos::chain::dynamic_global_property_object, golos::chain::dynamic_global_property_index)

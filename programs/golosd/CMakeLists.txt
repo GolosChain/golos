@@ -28,6 +28,7 @@ target_link_libraries(
         golos::social_network
         golos::tags
         golos::market_history
+        golos::operation_dump
         golos::operation_history
         golos::statsd
         golos::account_by_key

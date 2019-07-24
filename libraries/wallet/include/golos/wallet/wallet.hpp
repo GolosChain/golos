@@ -802,6 +802,17 @@ namespace golos { namespace wallet {
                 bool broadcast = false
             );
 
+            /**
+             * Vote for transit to cyberway
+             *
+             * @param witness_name
+             * @param broadcast true if you wish to broadcast the transaction.
+             */
+            annotated_signed_transaction transit_to_cyberway(
+                string witness_name,
+                bool broadcast = false
+            );
+
             /** Set the voting proxy for an account.
              *
              * If a user does not wish to take an active part in voting, they can choose
@@ -1586,6 +1597,7 @@ FC_API( golos::wallet::wallet_api,
                 (delegate_vesting_shares_with_interest)
                 (update_witness)
                 (update_chain_properties)
+                (transit_to_cyberway)
                 (set_voting_proxy)
                 (vote_for_witness)
                 //(follow)

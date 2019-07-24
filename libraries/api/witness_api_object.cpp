@@ -10,6 +10,6 @@ namespace golos { namespace api {
           virtual_last_update(w.virtual_last_update), virtual_position(w.virtual_position),
           virtual_scheduled_time(w.virtual_scheduled_time), last_work(w.last_work),
           running_version(w.running_version), hardfork_version_vote(w.hardfork_version_vote),
-          hardfork_time_vote(w.hardfork_time_vote) {
+          hardfork_time_vote(w.hardfork_time_vote), transit_to_cyberway_vote(w.transit_to_cyberway_vote) {
     }
 } } // golos::api

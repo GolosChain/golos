@@ -115,6 +115,8 @@ namespace golos { namespace chain {
 
         hardfork_version hardfork_version_vote;
         time_point_sec hardfork_time_vote = STEEMIT_GENESIS_TIME;
+
+        time_point_sec transit_to_cyberway_vote = STEEMIT_GENESIS_TIME;
     };
 
 
@@ -247,7 +249,7 @@ FC_REFLECT(
     (golos::chain::witness_object),
     (id)(owner)(created)(url)(votes)(schedule)(virtual_last_update)(virtual_position)(virtual_scheduled_time)(total_missed)
     (last_aslot)(last_confirmed_block_num)(pow_worker)(signing_key)(props)(sbd_exchange_rate)(last_sbd_exchange_update)
-    (last_work)(running_version)(hardfork_version_vote)(hardfork_time_vote))
+    (last_work)(running_version)(hardfork_version_vote)(hardfork_time_vote)(transit_to_cyberway_vote))
 
 CHAINBASE_SET_INDEX_TYPE(golos::chain::witness_object, golos::chain::witness_index)
 
