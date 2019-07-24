@@ -642,7 +642,7 @@ namespace golos { namespace chain {
 
             bool _resize(uint32_t block_num);
 
-            void pay_curator(const comment_vote_object& cvo, uint64_t claim, const account_name_type& author, const std::string& permlink);
+            uint64_t pay_curator(const comment_vote_object& cvo, uint64_t claim, const account_name_type& author, const std::string& permlink);
 
             void adjust_sbd_balance(const account_object &a, const asset &delta);
 

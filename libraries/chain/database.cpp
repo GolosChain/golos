@@ -2395,7 +2395,7 @@ namespace golos { namespace chain {
             return delegators_reward;
         }
 
-        void database::pay_curator(const comment_vote_object& cvo, uint64_t claim, const account_name_type& author, const std::string& permlink) {
+        uint64_t database::pay_curator(const comment_vote_object& cvo, uint64_t claim, const account_name_type& author, const std::string& permlink) {
             const auto &voter = get(cvo.voter);
 
             if (has_hardfork(STEEMIT_HARDFORK_0_19__756)) {
@@ -2404,13 +2404,13 @@ namespace golos { namespace chain {
 
             auto voter_reward = create_vesting(voter, asset(claim, STEEM_SYMBOL));
 
-            push_virtual_operation(curation_reward_operation(voter.name, voter_reward, author, permlink, asset(voter_claim, STEEM_SYMBOL)));
+            push_virtual_operation(curation_reward_operation(voter.name, voter_reward, author, permlink, asset(claim, STEEM_SYMBOL)));
 
             modify(voter, [&](account_object &a) {
                 a.curation_rewards += claim;
             });
 
-            return voter_claim;
+            return claim;
         }
 /**
  *  This method will iterate through all comment_vote_objects and give them

@@ -280,6 +280,7 @@ namespace golos { namespace protocol {
 
             total_comment_reward_operation(const account_name_type& a, const string &p, const asset& ar, const asset& br, const asset& cr, int64_t nr)
                     : author(a), permlink(p), author_reward(ar), benefactor_reward(br), curator_reward(cr), net_rshares(nr) {
+            }
 
             account_name_type author;
             string permlink;

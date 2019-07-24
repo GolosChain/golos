@@ -103,7 +103,7 @@ namespace golos { namespace protocol {
                 auction_window_reward_operation,
                 techspec_reward_operation,
                 worker_reward_operation,
-                techspec_expired_operation
+                techspec_expired_operation,
                 total_comment_reward_operation
         > operation;
 
