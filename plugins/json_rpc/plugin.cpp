@@ -13,6 +13,9 @@
 namespace golos {
     namespace plugins {
         namespace json_rpc {
+
+            namespace bpo = boost::program_options;
+
             struct json_rpc_error {
                 json_rpc_error() : code(0) {
                 }
@@ -273,24 +276,41 @@ namespace golos {
                 }
 
                 struct dump_rpc_time {
-                    dump_rpc_time(const fc::variant& data)
-                        : data_(data) {
+                    dump_rpc_time(const fc::variant& data, uint64_t log_rpc_calls_slower_msec)
+                        : data_(data), log_rpc_calls_slower_msec_(log_rpc_calls_slower_msec) {
 
                         dlog("data: ${data}", ("data", fc::json::to_string(data_)));
                     }
 
                     ~dump_rpc_time() {
+                        auto msecs = (fc::time_point::now() - start_).count() / 1000;
+
                         if (error_.empty()) {
                             dlog(
-                                "elapsed: ${time} sec, data: ${data}",
+                                "elapsed: ${time} msec, data: ${data}",
                                 ("data", fc::json::to_string(data_))
-                                ("time", double((fc::time_point::now() - start_).count()) / 1000000.0));
+                                ("time", msecs));
                         } else {
                             dlog(
-                                "elapsed: ${time} sec, error: '${error}', data: ${data}",
+                                "elapsed: ${time} msec, error: '${error}', data: ${data}",
                                 ("data", fc::json::to_string(data_))
                                 ("error", error_)
-                                ("time", double((fc::time_point::now() - start_).count()) / 1000000.0));
+                                ("time", msecs));
+                        }
+
+                        if (uint64_t(msecs) > log_rpc_calls_slower_msec_) {
+                            if (error_.empty()) {
+                                wlog(
+                                    "Too slow RPC call: ${time} msec, data: ${data}",
+                                    ("data", fc::json::to_string(data_))
+                                    ("time", msecs));
+                            } else {
+                                wlog(
+                                    "Too slow RPC call: ${time} msec, error: '${error}', data: ${data}",
+                                    ("data", fc::json::to_string(data_))
+                                    ("error", error_)
+                                    ("time", msecs));
+                            }
                         }
                     }
 
@@ -302,10 +322,11 @@ namespace golos {
                     fc::time_point start_ = fc::time_point::now();
                     std::string error_;
                     const fc::variant& data_;
+                    uint64_t log_rpc_calls_slower_msec_;
                 };
 
                 void rpc(const fc::variant& data, msg_pack& msg) {
-                    dump_rpc_time dump(data);
+                    dump_rpc_time dump(data, _log_rpc_calls_slower_msec);
 
                     try {
                         rpc_jsonrpc(data, msg);
@@ -406,6 +427,7 @@ namespace golos {
                 map<string, api_description> _registered_apis;
                 vector<string> _methods;
                 map<string, map<string, api_method_signature> > _method_sigs;
+                uint64_t _log_rpc_calls_slower_msec = UINT64_MAX;
             private:
                 // This is a reindex which allows to get parent plugin by method
                 // unordered_map[method] -> plugin
@@ -422,10 +444,18 @@ namespace golos {
             plugin::~plugin() {
             }
 
+            void plugin::set_program_options(bpo::options_description& cli, bpo::options_description& cfg) {
+                cfg.add_options() (
+                    "log-rpc-calls-slower-msec", bpo::value<uint64_t>()->default_value(UINT64_MAX),
+                    "Maximal milliseconds of RPC call or dump it as too slow. If not set, do not dump"
+                );
+            }
+
             void plugin::plugin_initialize(const boost::program_options::variables_map &options) {
                 ilog("json_rpc plugin: plugin_initialize() begin");
                 pimpl = std::make_unique<impl>();
                 pimpl->initialize();
+                pimpl->_log_rpc_calls_slower_msec = options.at("log-rpc-calls-slower-msec").as<uint64_t>();
                 ilog("json_rpc plugin: plugin_initialize() end");
             }
 

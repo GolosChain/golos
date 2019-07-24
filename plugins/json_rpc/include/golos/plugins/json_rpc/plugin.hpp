@@ -96,8 +96,7 @@ namespace golos {
                 APPBASE_PLUGIN_REQUIRES();
 
                 void set_program_options(boost::program_options::options_description &,
-                                         boost::program_options::options_description &) override {
-                }
+                                         boost::program_options::options_description &);
 
                 static const std::string &name() {
                     static std::string name = STEEM_JSON_RPC_PLUGIN_NAME;

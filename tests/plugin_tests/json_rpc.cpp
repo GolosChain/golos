@@ -117,9 +117,18 @@ BOOST_FIXTURE_TEST_SUITE(json_rpc, database_fixture)
             auto &rpc_plugin  = appbase::app().register_plugin<json_rpc_plugin>();
             auto &testing_api = appbase::app().register_plugin<test_plugin::testing_api>();
 
-            boost::program_options::variables_map options;
-            rpc_plugin.plugin_initialize(options);
-            testing_api.plugin_initialize(options);
+            {
+                boost::program_options::options_description desc;
+                rpc_plugin.set_program_options(desc, desc);
+
+                boost::program_options::variables_map options;
+                boost::program_options::store(parse_command_line(0, (char**)NULL, desc), options);
+                rpc_plugin.plugin_initialize(options);
+            }
+            {
+                boost::program_options::variables_map options;
+                testing_api.plugin_initialize(options);
+            }
 
             open_database();
 
