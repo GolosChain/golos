@@ -18,6 +18,7 @@ namespace golos { namespace chain {
         uint64_t total_vote_weight = 0; ///< The total weight of voting rewards, used to calculate pro-rata share of curation payouts
         uint64_t auction_window_weight = 0; ///< The weight of auction window without weight of voters
         uint64_t votes_in_auction_window_weight = 0; ///< The weight of votes in auction window
+        uint64_t author_promote_weight = 0; ///< Sum of author promote weights
         uint64_t votes_after_auction_window_weight = 0;
         protocol::curation_curve curve = protocol::curation_curve::detect;
 

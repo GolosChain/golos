@@ -68,6 +68,7 @@ namespace golos { namespace api {
         uint16_t auction_window_size = STEEMIT_REVERSE_AUCTION_WINDOW_SECONDS;
         uint64_t auction_window_weight = 0;
         uint64_t votes_in_auction_window_weight = 0;
+        uint64_t author_promote_weight = 0;
         
         string root_title;
 
@@ -91,7 +92,7 @@ FC_REFLECT(
     (reward_weight)(total_payout_value)(beneficiary_payout_value)(beneficiary_gests_payout_value)(curator_payout_value)(curator_gests_payout_value)
     (author_rewards)(author_gbg_payout_value)(author_golos_payout_value)(author_gests_payout_value)(net_votes)
     (mode)(curation_reward_curve)(auction_window_reward_destination)
-    (auction_window_size)(auction_window_weight)(votes_in_auction_window_weight)
+    (auction_window_size)(auction_window_weight)(votes_in_auction_window_weight)(author_promote_weight)
     (root_comment)(root_title)(max_accepted_payout)(percent_steem_dollars)(allow_replies)(allow_votes)
     (allow_curation_rewards)(curation_rewards_percent)(beneficiaries))
 

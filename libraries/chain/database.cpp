@@ -2441,9 +2441,6 @@ namespace golos { namespace chain {
                     for (auto itr = c.vote_list.begin(); c.vote_list.end() != itr; ++itr) {
                         uint128_t weight(itr->weight);
                         uint64_t claim = ((max_rewards.value * weight) / total_weight).to_uint64();
-                        if (has_hardfork(STEEMIT_HARDFORK_0_22__1014)) {
-                            claim -= (uint128_t(claim) * (*itr->vote).author_promote_rate / STEEMIT_100_PERCENT).to_uint64();
-                        }
 
                         // to_curators case
                         if (c.comment.auction_window_reward_destination == protocol::to_curators &&

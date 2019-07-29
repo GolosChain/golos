@@ -62,7 +62,7 @@ namespace golos { namespace api {
         void fill_comment_api_object(const comment_object& o, comment_api_object& d) const;
 
     private:
-        void distribute_auction_tokens(discussion& d, share_type& curator_tokens, share_type& author_tokens) const;
+        void distribute_auction_and_promote_tokens(discussion& d, share_type& curator_tokens, share_type& author_tokens) const;
 
     private:
         golos::chain::database& database_;
@@ -168,6 +168,7 @@ namespace golos { namespace api {
         d.total_vote_weight = c.total_vote_weight;
         d.auction_window_weight = c.auction_window_weight;
         d.votes_in_auction_window_weight = c.votes_in_auction_window_weight;
+        d.author_promote_weight = c.author_promote_weight;
         d.active_votes = select_active_votes(c, vote_limit, offset);
 
         set_pending_payout(d);
@@ -229,10 +230,14 @@ namespace golos { namespace api {
 //
 // set_pending_payout
 
-    void discussion_helper::impl::distribute_auction_tokens(discussion& d, share_type& curators_tokens, share_type& author_tokens) const {
+    void discussion_helper::impl::distribute_auction_and_promote_tokens(discussion& d, share_type& curators_tokens, share_type& author_tokens) const {
         const auto auction_window_reward = curators_tokens.value * d.auction_window_weight / d.total_vote_weight;
 
         curators_tokens -= auction_window_reward;
+
+        const auto promote_reward = curators_tokens.value * d.author_promote_weight / d.total_vote_weight;
+        curators_tokens -= promote_reward;
+        author_tokens += promote_reward;
 
         if (d.auction_window_reward_destination == to_author) {
             author_tokens += auction_window_reward;
@@ -276,7 +281,7 @@ namespace golos { namespace api {
             share_type author_tokens = reward_tokens - curation_tokens;
 
             if (d.allow_curation_rewards) {
-                distribute_auction_tokens(d, curation_tokens, author_tokens);
+                distribute_auction_and_promote_tokens(d, curation_tokens, author_tokens);
 
                 d.pending_curator_payout_value = db.to_sbd(asset(curation_tokens, STEEM_SYMBOL));
                 d.pending_curator_payout_gests_value = asset(curation_tokens, STEEM_SYMBOL) * props.get_vesting_share_price();

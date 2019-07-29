@@ -13,6 +13,7 @@ namespace golos { namespace chain {
         uint64_t total_vote_weight = 0;
         uint64_t auction_window_weight = 0;
         uint64_t votes_in_auction_window_weight = 0;
+        uint64_t author_promote_weight = 0;
 
         /**
          *  weight / total_vote_weight ==> % of rshares increase that is accounted for by the vote
@@ -38,17 +39,23 @@ namespace golos { namespace chain {
             auto weight = calculate_curve(vote);
             bool was_changes = (vote.num_changes != 0 /* no changes */ && vote.num_changes != -1 /* marked for remove */);
 
-            if (weight > 0 && vote.auction_time != comment.auction_window_size) {
-                auto new_weight = (uint128_t(weight) * vote.auction_time / comment.auction_window_size).to_uint64();
-                auto auction_weight = (weight - new_weight);
+            if (weight > 0) {
+                if (vote.auction_time != comment.auction_window_size) {
+                    auto new_weight = (uint128_t(weight) * vote.auction_time / comment.auction_window_size).to_uint64();
+                    auto auction_weight = (weight - new_weight);
 
-                weight = new_weight;
-                total_vote_weight += auction_weight;
-                auction_window_weight += auction_weight;
+                    weight = new_weight;
+                    total_vote_weight += auction_weight;
+                    auction_window_weight += auction_weight;
 
-                if (!was_changes) {
-                    votes_in_auction_window_weight += weight;
+                    if (!was_changes) {
+                        votes_in_auction_window_weight += weight;
+                    }
                 }
+                auto promote = (uint128_t(weight) * vote.author_promote_rate / STEEMIT_100_PERCENT).to_uint64();
+                weight -= promote;
+                total_vote_weight += promote;
+                author_promote_weight += promote;
             }
 
             if (was_changes) {
@@ -182,6 +189,7 @@ namespace golos { namespace chain {
         auction_window_weight = helper.auction_window_weight;
         votes_in_auction_window_weight = helper.votes_in_auction_window_weight;
         votes_after_auction_window_weight = total_vote_weight - votes_in_auction_window_weight - auction_window_weight;
+        author_promote_weight = helper.author_promote_weight;
 
         std::sort(vote_list.begin(), vote_list.end(), [](auto& r, auto& l) {
             if (r.weight == l.weight) {
