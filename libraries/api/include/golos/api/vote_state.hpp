@@ -9,6 +9,7 @@ namespace golos { namespace api {
         uint64_t weight = 0;
         int64_t rshares = 0;
         int16_t percent = 0;
+        int16_t author_promote_percent = 0;
         fc::optional<share_type> reputation;
         time_point_sec time;
     };
@@ -16,4 +17,4 @@ namespace golos { namespace api {
 } } // golos::api
 
 
-FC_REFLECT((golos::api::vote_state), (voter)(weight)(rshares)(percent)(reputation)(time));
+FC_REFLECT((golos::api::vote_state), (voter)(weight)(rshares)(percent)(author_promote_percent)(reputation)(time));

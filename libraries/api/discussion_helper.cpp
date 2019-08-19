@@ -213,6 +213,7 @@ namespace golos { namespace api {
             vstate.weight = itr->weight;
             vstate.rshares = itr->vote->rshares;
             vstate.percent = itr->vote->vote_percent;
+            vstate.author_promote_percent = itr->vote->author_promote_rate;
             vstate.time = itr->vote->last_update;
             fill_reputation_(database(), vo.name, vstate.reputation);
             result.emplace_back(std::move(vstate));
